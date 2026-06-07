@@ -46,10 +46,11 @@ quarto preview examples/cross-validation.qmd   # single deck with live reload
 quarto render                          # build the whole site
 ```
 
-## Capturing a deck as a GIF
+## Capturing a deck as a GIF or MP4
 
-`tools/capture_gif.py` drives a rendered deck headlessly with Playwright,
-advancing through the fragments, then assembles a looping GIF. It does **not**
+`tools/capture_recordings.py` drives a rendered deck headlessly with Playwright,
+advancing through the fragments, then assembles a looping GIF (or an MP4 — pick
+the format with the `--out` extension). It does **not**
 guess delays: each animation module reports busy/idle through `TM.anime` /
 `TM.pause`, and the recorder waits for `window.TM.idle()` — so it samples densely
 *while* something is animating and lets static holds collapse to a single
@@ -66,11 +67,20 @@ pip install playwright && playwright install chromium   # one-time
 # also requires ffmpeg, and gifsicle for the lossless pass (brew install gifsicle)
 quarto render examples/cross-validation.qmd              # GIF records the rendered _site/ output
 
-python tools/capture_gif.py \
+python tools/capture_recordings.py \
     --deck _site/examples/cross-validation.html \
     --slide 2 --steps 5 \
     --out gifs/cross-validation.gif
+
+# same command, MP4 instead — the .mp4 extension switches to H.264 encoding
+python tools/capture_recordings.py \
+    --deck _site/examples/cross-validation.html \
+    --slide 2 --steps 5 \
+    --out mp4/cross-validation.mp4
 ```
+
+The `.mp4` path encodes H.264 (`libx264`, `yuv420p`, faststart) from the same
+lossless frames; `--crf` (default 18, visually lossless) tunes quality.
 
 - `--slide` is the Reveal slide index the animation lives on; `--steps` is the
   number of fragment advances to record.

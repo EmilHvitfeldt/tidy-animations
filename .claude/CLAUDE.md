@@ -24,10 +24,11 @@ animations in one deck — it lets fragment ids cross-fire and breaks the
 - `css/demos.css` — shared styles + per-concept classes.
 - `index.qmd` — the landing page, an **HTML website page** (`format: html`, not a
   deck). One `##` section per concept: an `<iframe class="deck-embed">` embedding
-  the rendered deck, followed by a `.gif-link` line with three links — *Open full
-  deck*, *View as GIF* (`gifs/<concept>.gif`), and *Download reusable bundle*
-  (`bundles/<concept>.zip`).
+  the rendered deck, followed by a `.gif-link` line with four links — *Open full
+  deck*, *View as GIF* (`gifs/<concept>.gif`), *View as MP4* (`mp4/<concept>.mp4`),
+  and *Download reusable bundle* (`bundles/<concept>.zip`).
 - `gifs/<concept>.gif` — committed GIF capture (see capture section).
+- `mp4/<concept>.mp4` — committed MP4 capture (same recorder, see capture section).
 - `bundles/<concept>.zip` — **generated, but committed** (we push the rendered
   site). Built by `tools/make_bundle.py` from `js/infra.html`, `js/<concept>.html`,
   `css/demos.css`, and `examples/<concept>.qmd`. Don't edit by hand — re-run the
@@ -48,7 +49,7 @@ Property ownership: CSS owns layout/structure; anime.js owns `transform`,
 **Always drive animations through `TM.anime(...)` (not bare `anime(...)`) and time
 gaps with `TM.pause(ms, fn)` (not bare `setTimeout`).** These keep a busy counter
 so `TM.idle()` reports when the deck has settled — that's what lets
-`tools/capture_gif.py` pace a GIF to the real animation durations instead of
+`tools/capture_recordings.py` pace a GIF/MP4 to the real animation durations instead of
 guessing. `anime.set` / `anime.stagger` are instant/static and need no wrapping.
 
 ## Building a slide — the recipe that worked for cross-validation
@@ -106,15 +107,16 @@ When you add `examples/<concept>.qmd` + `js/<concept>.html`, also do these so th
 website, GIF, and bundle stay complete — it's easy to forget the last three:
 
 1. Build the deck + module + any `.<concept>-*` CSS in `css/demos.css`.
-2. **Capture the GIF** → `gifs/<concept>.gif` (see capture section below).
+2. **Capture the GIF and MP4** → `gifs/<concept>.gif` + `mp4/<concept>.mp4` (see
+   capture section below; same recorder, just swap the `--out` extension).
 3. **Add a `##` section to `index.qmd`** — copy an existing section and swap the
-   concept name in the iframe `src` and all three links (deck, gif, bundle).
+   concept name in the iframe `src` and all four links (deck, gif, mp4, bundle).
 4. **No `_quarto.yml` change needed** for the bundle: `make_bundle.py --all`
    auto-discovers any `examples/*.qmd` that has a matching `js/*.html`, and the
    pre-render hook runs it. Just `quarto render` and commit the new
    `bundles/<concept>.zip`.
 5. Run `quarto render` and verify the new section renders, the iframe loads, and
-   all three links resolve (`_site/gifs/...`, `_site/bundles/...`).
+   all four links resolve (`_site/gifs/...`, `_site/mp4/...`, `_site/bundles/...`).
 
 ## Build / preview
 
@@ -124,15 +126,20 @@ website, GIF, and bundle stay complete — it's easy to forget the last three:
 Always verify animations in a real browser — surface checks (HTTP 200, classes
 present) won't catch behavioural bugs in shared helpers.
 
-## Capturing a GIF (`tools/capture_gif.py`)
+## Capturing a GIF or MP4 (`tools/capture_recordings.py`)
+
+The output format is chosen from the `--out` extension: `.mp4` encodes H.264
+(`libx264`, `yuv420p`, faststart; `--crf` tunes quality, default 18); anything
+else produces a GIF. Both share the same frame capture, so commit both per deck.
 
 ```bash
 quarto render examples/<concept>.qmd   # capture from the rendered _site/ copy
-python3 tools/capture_gif.py \
+python3 tools/capture_recordings.py \
   --deck _site/examples/<concept>.html --slide 1 \
   --steps <fragments + 1> \
   --selector .<concept>-stage-wrap \
   --out gifs/<concept>.gif
+# repeat with --out mp4/<concept>.mp4 for the MP4
 ```
 
 - **`--steps` must be `(number of gating fragments) + 1`.** The first `ArrowRight`
@@ -140,7 +147,7 @@ python3 tools/capture_gif.py \
   deck needs `--steps 5` to reach the final stage. If the last frame stops one
   stage short, this is why.
 - `--slide 1` is the content slide (slide 0 is Quarto's title slide).
-- `--selector` is the deck's stage wrapper (e.g. `.bs-stage-wrap`); the GIF is
-  cropped to it.
+- `--selector` is the deck's stage wrapper (e.g. `.bs-stage-wrap`); the recording
+  is cropped to it.
 - Verify the result by extracting frames with ffmpeg (first/mid/last) and reading
   them — don't trust that the run "succeeded".

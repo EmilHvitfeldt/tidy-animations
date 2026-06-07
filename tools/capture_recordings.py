@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Capture a tidymodels-animated deck as a (small, crisp) GIF.
+"""Capture a tidymodels-animated deck as a (small, crisp) GIF or MP4.
+
+The output format is chosen from the `--out` extension: `.mp4` encodes H.264
+(libx264, yuv420p, faststart) from the same lossless PNG frames; anything else
+produces a GIF. Both paths share the frame capture below and feed ffmpeg's concat
+demuxer with real per-frame durations, so pacing matches the live animation.
 
 Drives a rendered RevealJS deck headlessly with Playwright, advancing through the
 fragments. Instead of guessing delays, it waits for `window.TM.idle()` — the
@@ -141,6 +146,30 @@ def assemble_gif(frames, args):
         print(f"wrote {args.out} ({raw // 1024} KB)")
 
 
+def assemble_mp4(frames, args):
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)) or ".", exist_ok=True)
+    with tempfile.TemporaryDirectory() as td:
+        # concat demuxer with real per-frame durations -> accurate pacing
+        listfile = os.path.join(td, "frames.txt")
+        with open(listfile, "w") as fh:
+            for i, (path, t) in enumerate(frames):
+                if i + 1 < len(frames):
+                    dur = max(frames[i + 1][1] - t, 0.02)
+                else:
+                    dur = 0.1
+                fh.write(f"file '{path}'\nduration {dur:.3f}\n")
+            fh.write(f"file '{frames[-1][0]}'\n")  # concat needs the last file repeated
+
+        # scale to target width; force even dimensions (yuv420p / libx264 require it)
+        vf = (f"fps={args.fps},scale={args.scale}:-2:flags=lanczos,"
+              "pad=ceil(iw/2)*2:ceil(ih/2)*2")
+        run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", listfile,
+             "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p",
+             "-movflags", "+faststart", "-crf", str(args.crf), args.out])
+
+    print(f"wrote {args.out} ({os.path.getsize(args.out) // 1024} KB, H.264)")
+
+
 def run(cmd):
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
@@ -169,13 +198,17 @@ def main():
     ap.add_argument("--scale", type=int, default=900, help="output width in px (height auto)")
     ap.add_argument("--pad", type=int, default=8, help="px of padding around the cropped region")
     ap.add_argument("--no-optimize", action="store_true", help="skip the lossless gifsicle -O3 pass")
+    ap.add_argument("--crf", type=int, default=18, help="H.264 quality for .mp4 output (lower = better, 18 ~ visually lossless)")
     args = ap.parse_args()
 
     with tempfile.TemporaryDirectory() as frames_dir:
         frames, _clip = capture_frames(args, frames_dir)
         if not frames:
             sys.exit("No frames captured.")
-        assemble_gif(frames, args)
+        if args.out.lower().endswith(".mp4"):
+            assemble_mp4(frames, args)
+        else:
+            assemble_gif(frames, args)
 
 
 if __name__ == "__main__":

@@ -2,9 +2,10 @@ project:
   type: website
   # regenerate the reusable bundles from the current js/ + css/ before each build
   pre-render: tools/make_bundle.py --all
-  # ship the GIF captures and reusable bundles alongside the rendered decks
+  # ship the GIF/MP4 captures and reusable bundles alongside the rendered decks
   resources:
     - gifs/
+    - mp4/
     - bundles/
 
 website:
