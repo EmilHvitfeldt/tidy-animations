@@ -1,0 +1,145 @@
+<script>
+/* ---- Time-based train / validation / test split ----
+ * Marker slide: .tvs-slide   Stage container: #tvs-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * Same machinery as the sliding-window resampling, extended to a three-way
+ * split: the sliding window now has three contiguous segments — training,
+ * validation, then testing — that always run in time order. The window slides
+ * forward and each position is filed as a row in the staircase below.
+ */
+(function () {
+  const N = 26;                                 // time-ordered observations
+  const BOX = 26, GAP = 7, STEP = BOX + GAP;    // 33px pitch (fits 26 across)
+  const START_X = 200;                          // left gutter holds row labels
+  const LABEL_X = 18;
+
+  const TRAIN = 8, VAL = 4, TEST = 4;           // window: train → val → test (16)
+  const WIN = TRAIN + VAL + TEST;
+  const SLIDE = 5, RES = 3;                     // slides by 5, three resamples
+  const segWidth = n => n * BOX + (n - 1) * GAP;
+  const T_W = segWidth(TRAIN), V_W = segWidth(VAL), S_W = segWidth(TEST);
+
+  const TOP_Y = 56;                             // the data row
+  const ROWS_Y = [165, 255, 345];               // staircase rows (one per resample)
+
+  // Colours configurable from the .qmd via `window.TVS_COLORS`.
+  const C = window.TVS_COLORS || {};            // (segments use the CSS classes)
+
+  function cellX(i)    { return START_X + i * STEP; }
+  function winStart(r) { return r * SLIDE; }
+  // which segment a window-position k (0..WIN-1) belongs to → CSS suffix
+  function segClass(k) { return k < TRAIN ? 'a' : k < TRAIN + VAL ? 'v' : 's'; }
+
+  let cells = [];
+  let win;
+  let rows = [];
+  let shown = 0;
+  let built = false;
+
+  function mk(cls) { const d = document.createElement('div'); d.className = cls; return d; }
+
+  function build() {
+    const stage = document.getElementById('tvs-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    for (let i = 0; i < N; i++) {
+      const c = mk('tvs-cell');
+      c.style.width = BOX + 'px'; c.style.height = BOX + 'px';
+      anime.set(c, { translateX: cellX(i), translateY: TOP_Y });
+      stage.appendChild(c);
+      cells.push(c);
+    }
+
+    const axis = mk('tvs-axis');
+    axis.textContent = 'time →';
+    axis.style.left = cellX(N - 1) + BOX - 70 + 'px';
+    axis.style.top = (TOP_Y + BOX + 8) + 'px';
+    stage.appendChild(axis);
+
+    // sliding window overlay: three segments (train → validation → test)
+    win = mk('tvs-window');
+    win.style.width = (T_W + GAP + V_W + GAP + S_W + 12) + 'px';
+    win.style.height = (BOX + 12) + 'px';
+    win.style.opacity = 0;
+    let left = 6;
+    [['a', T_W], ['v', V_W], ['s', S_W]].forEach(([suffix, w]) => {
+      const seg = mk('tvs-seg tvs-seg-' + suffix);
+      seg.style.left = left + 'px'; seg.style.width = w + 'px'; seg.style.height = BOX + 'px';
+      win.appendChild(seg);
+      left += w + GAP;
+    });
+    anime.set(win, { translateX: cellX(winStart(0)) - 6, translateY: TOP_Y - 6 });
+    stage.appendChild(win);
+
+    // staircase rows: the window's observations as individual coloured cells
+    for (let r = 0; r < RES; r++) {
+      const pts = [];
+      for (let k = 0; k < WIN; k++) {
+        const idx = winStart(r) + k;
+        const p = mk('tvs-pt tvs-c-' + segClass(k));
+        p.style.width = BOX + 'px'; p.style.height = BOX + 'px';
+        p.style.opacity = 0;
+        anime.set(p, { translateX: cellX(idx), translateY: TOP_Y });
+        stage.appendChild(p);
+        pts.push(p);
+      }
+      const label = mk('tvs-label');
+      label.textContent = 'Split ' + (r + 1);
+      label.style.lineHeight = BOX + 'px';
+      label.style.opacity = 0;
+      anime.set(label, { translateX: LABEL_X, translateY: ROWS_Y[r] });
+      stage.appendChild(label);
+      rows.push({ pts, label });
+    }
+
+    return true;
+  }
+
+  function fileRow(r, on) {
+    const { pts, label } = rows[r];
+    TM.anime({
+      targets: pts,
+      opacity: on ? 1 : 0,
+      translateY: on ? ROWS_Y[r] : TOP_Y,
+      duration: 500,
+      delay: on ? anime.stagger(18) : 0,
+      easing: on ? 'easeOutCubic' : 'easeInQuad',
+    });
+    TM.anime({ targets: label, opacity: on ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const active = Math.max(0, Math.min(stage, RES) - 1);
+    TM.anime({
+      targets: win,
+      opacity: stage >= 1 ? 1 : 0,
+      translateX: cellX(winStart(active)) - 6,
+      translateY: TOP_Y - 6,
+      duration: 650, easing: 'easeInOutCubic',
+    });
+
+    const want = Math.min(stage, RES);
+    if (want > shown) for (let r = shown; r < want; r++) fileRow(r, true);
+    else if (want < shown) for (let r = want; r < shown; r++) fileRow(r, false);
+    shown = want;
+
+    const title = document.getElementById('tvs-title');
+    if (title) {
+      const text = stage === 0 ? 'Time order: train → validation → test'
+                 : `Slide forward — split ${Math.min(stage, RES)} of ${RES}`;
+      title.textContent = text;
+      TM.anime({ targets: title, opacity: 1, duration: 350, easing: 'easeInOutQuad' });
+    }
+  }
+
+  TM.gate({
+    markerClass: 'tvs-slide',
+    fragmentIds: ['tvs-r1', 'tvs-r2', 'tvs-r3'],
+    render,
+  });
+})();
+</script>

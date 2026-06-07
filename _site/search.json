@@ -11,7 +11,14 @@
     "href": "index.html#initial-traintest-split",
     "title": "tidymodels, animated",
     "section": "Initial train/test split",
-    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (7 KB)"
+    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (8 KB)"
+  },
+  {
+    "objectID": "index.html#trainvalidationtest-split",
+    "href": "index.html#trainvalidationtest-split",
+    "title": "tidymodels, animated",
+    "section": "Train/validation/test split",
+    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (7 KB)"
   },
   {
     "objectID": "index.html#time-based-resampling",
@@ -19,6 +26,13 @@
     "title": "tidymodels, animated",
     "section": "Time-based resampling",
     "text": "Time-based resampling\n\n\n\nOpen full deck Download GIF (224 KB) Download MP4 (109 KB) Download reusable bundle (7 KB)"
+  },
+  {
+    "objectID": "index.html#time-based-trainvalidationtest-split",
+    "href": "index.html#time-based-trainvalidationtest-split",
+    "title": "tidymodels, animated",
+    "section": "Time-based train/validation/test split",
+    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (7 KB)"
   },
   {
     "objectID": "index.html#cross-validation",

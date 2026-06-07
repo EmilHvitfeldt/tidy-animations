@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – Time-based resampling</title>
+  <title>tidymodels, animated – Train/validation/test split</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -130,7 +130,7 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">Time-based resampling</h1>
+  <h1 class="title">Train/validation/test split</h1>
 
 <div class="quarto-title-authors">
 </div>
@@ -138,20 +138,20 @@
 </section>
 <section class="slide level2">
 
-<!-- Configure the analysis/assessment colours here. -->
-<script>window.SW_COLORS = { analysis: '#6aa9e0', assess: '#e8853a' };</script>
+<!-- Configure the set colours here. -->
+<script>window.TVT_COLORS = { data: '#c8ccd4', train: '#6aa9e0', val: '#6cbf84', test: '#e8853a' };</script>
 </section>
-<section id="section" class="slide level2 sw-slide">
+<section id="section" class="slide level2 tvt-slide">
 <h2></h2>
-<div class="sw-stage-wrap">
-<div id="sw-title" class="sw-title">
+<div class="tvt-stage-wrap">
+<div id="tvt-title" class="tvt-title">
 
 </div>
-<div id="sw-stage">
+<div id="tvt-stage">
 
 </div>
 </div>
-<p><span id="sw-r1" class="fragment sw-frag"></span> <span id="sw-r2" class="fragment sw-frag"></span> <span id="sw-r3" class="fragment sw-frag"></span> <span id="sw-r4" class="fragment sw-frag"></span></p>
+<p><span id="tvt-color" class="fragment tvt-frag"></span> <span id="tvt-split" class="fragment tvt-frag"></span> <span id="tvt-compact" class="fragment tvt-frag"></span> <span id="tvt-vault" class="fragment tvt-frag"></span></p>
 
 
 </section>
@@ -455,159 +455,225 @@
     };
     </script>
     <script>
-    /* ---- Time-based (sliding-window) resampling animation ----
-     * Marker slide: .sw-slide   Stage container: #sw-stage
+    /* ---- Train / validation / test split (random) ----
+     * Marker slide: .tvt-slide   Stage container: #tvt-stage
      * render(stage) is idempotent (stage = number of visible gating fragments).
      *
-     * For time-ordered data you can't split at random — the test set must come
-     * *after* the training set in time. This shows rolling-origin resampling: a
-     * fixed-size window (analysis → assessment) slides forward through the data one
-     * step at a time. Each step's window is "filed" as a row in a staircase below,
-     * so the classic rolling-origin diagram builds up as the window slides.
+     * Same idea as the train/test split, but a three-way random split: each
+     * observation is rolled into training (60%), validation (20%), or testing
+     * (20%). The points drop into three rows (keeping their x position, so the
+     * scatter shows as gaps), then compact, then the *test* set is locked in a
+     * vault — the validation set you may use while tuning, the test set you may not.
      */
     (function () {
-      const N = 26;                                 // time-ordered observations
-      const BOX = 26, GAP = 7, STEP = BOX + GAP;    // 33px pitch (fits 26 across)
-      const START_X = 200;                          // left gutter holds row labels
-      const LABEL_X = 18;
+      const N = 20;                                 // observations in the data
+      const BOX = 36, GAP = 8, STEP = BOX + GAP;    // 44px pitch
+      const START_X = 200;                          // left gutter holds the row labels
+      const LABEL_X = 14;
 
-      const ANALYSIS = 10, ASSESS = 4, SLIDE = 4;   // fixed window, slides by 4
-      const RES = 4;                                // number of resamples
-      const A_W = ANALYSIS * BOX + (ANALYSIS - 1) * GAP;   // analysis bar width
-      const S_W = ASSESS   * BOX + (ASSESS - 1)   * GAP;   // assessment bar width
+      const ROW_DATA_Y  = 48;                        // the original row (stays put)
+      const ROW_TRAIN_Y = 175;
+      const ROW_VAL_Y   = 300;
+      const ROW_TEST_Y  = 425;
+      const ROW_Y = [ROW_TRAIN_Y, ROW_VAL_Y, ROW_TEST_Y];
 
-      const TOP_Y = 50;                             // the data row
-      const ROWS_Y = [150, 220, 290, 360];          // staircase rows (one per resample)
+      // Set membership: 0 = train, 1 = validation, 2 = test. Rolled once, hardcoded
+      // (runtime Math.random() would break idempotence). 12 / 4 / 4 (60/20/20),
+      // scattered across the row.
+      const ASSIGN = [0,2,0,1,0,0,2,0,1,0,0,1,2,0,0,1,0,2,0,0];
 
-      // Colours are configurable from the .qmd via `window.SW_COLORS`.
-      const C = window.SW_COLORS || {};
-      const ANALYSIS_C = C.analysis || '#6aa9e0';
-      const ASSESS_C   = C.assess   || '#e8853a';
+      // Colours are configurable from the .qmd via `window.TVT_COLORS`.
+      const C = window.TVT_COLORS || {};
+      const DATA   = C.data  || '#c8ccd4';
+      const COLORS = [C.train || '#6aa9e0', C.val || '#6cbf84', C.test || '#e8853a'];
+      const TEST = 2;
 
-      function cellX(i)  { return START_X + i * STEP; }
-      function winStart(r) { return r * SLIDE; }                 // first analysis cell
-      function analysisX(r) { return cellX(winStart(r)); }
-      function assessX(r)   { return cellX(winStart(r) + ANALYSIS); }
+      function setOf(i)      { return ASSIGN[i]; }
+      function isTest(i)     { return ASSIGN[i] === TEST; }
+      function topX(i)       { return START_X + i * STEP; }
+      function rowY(i)       { return ROW_Y[ASSIGN[i]]; }
+      function classColor(i) { return COLORS[ASSIGN[i]]; }
 
-      let cells = [];          // the top data row
-      let win;                 // sliding window overlay
-      let rows = [];           // staircase: { aBar, sBar, label }
-      let shown = 0;           // how many staircase rows are currently filed (stable)
+      // packed slot for the compact stage: each set fills left-to-right in its row.
+      const packX = (function () {
+        const xs = new Array(N), k = [0, 0, 0];
+        for (let i = 0; i < N; i++) xs[i] = START_X + (k[ASSIGN[i]]++) * STEP;
+        return xs;
+      })();
+      const TEST_COUNT = ASSIGN.filter(a => a === TEST).length;
+
+      let boxes = [];
+      let copies = [];
+      let labels = {};
+      let vault;
+      let copyMode = 'none';
+      let coloured = false;
       let built = false;
 
-      function mk(cls) { const d = document.createElement('div'); d.className = cls; return d; }
+      function mkBox(cls) { const b = document.createElement('div'); b.className = cls; return b; }
+
+      function mkLabel(text, y) {
+        const l = mkBox('tvt-label');
+        l.textContent = text;
+        l.style.opacity = 0;
+        anime.set(l, { translateX: LABEL_X, translateY: y + (BOX - 30) / 2 });
+        return l;
+      }
 
       function build() {
-        const stage = document.getElementById('sw-stage');
+        const stage = document.getElementById('tvt-stage');
         if (!stage || built) return !!stage;
         built = true;
 
         for (let i = 0; i < N; i++) {
-          const c = mk('sw-cell');
-          c.style.width = BOX + 'px';
-          c.style.height = BOX + 'px';
-          anime.set(c, { translateX: cellX(i), translateY: TOP_Y });
-          stage.appendChild(c);
-          cells.push(c);
+          const b = mkBox('tvt-box');
+          b.style.backgroundColor = DATA;
+          anime.set(b, { translateX: topX(i), translateY: ROW_DATA_Y });
+          stage.appendChild(b);
+          boxes.push(b);
         }
 
-        const axis = mk('sw-axis');
-        axis.textContent = 'time →';
-        axis.style.left = cellX(N - 1) + BOX - 70 + 'px';
-        axis.style.top = (TOP_Y + BOX + 8) + 'px';
-        stage.appendChild(axis);
+        labels.train = mkLabel('Training', ROW_TRAIN_Y);
+        labels.val   = mkLabel('Validation', ROW_VAL_Y);
+        labels.test  = mkLabel('Testing', ROW_TEST_Y);
+        stage.appendChild(labels.train); stage.appendChild(labels.val); stage.appendChild(labels.test);
 
-        // sliding window overlay (analysis + assessment segments)
-        win = mk('sw-window');
-        win.style.width = (A_W + GAP + S_W + 12) + 'px';
-        win.style.height = (BOX + 12) + 'px';
-        win.style.opacity = 0;
-        const segA = mk('sw-seg sw-seg-a');
-        segA.style.left = '6px'; segA.style.width = A_W + 'px'; segA.style.height = BOX + 'px';
-        const segS = mk('sw-seg sw-seg-s');
-        segS.style.left = (6 + A_W + GAP) + 'px'; segS.style.width = S_W + 'px'; segS.style.height = BOX + 'px';
-        win.appendChild(segA); win.appendChild(segS);
-        anime.set(win, { translateX: analysisX(0) - 6, translateY: TOP_Y - 6 });
-        stage.appendChild(win);
-
-        // staircase rows: the window's observations as individual cells — analysis
-        // (blue) then assessment (orange) — plus a label. Built hidden at the top;
-        // they drop to their row when filed.
-        for (let r = 0; r < RES; r++) {
-          const pts = [];
-          for (let k = 0; k < ANALYSIS + ASSESS; k++) {
-            const idx = winStart(r) + k;
-            const p = mk('sw-pt ' + (k < ANALYSIS ? 'sw-bar-a' : 'sw-bar-s'));
-            p.style.width = BOX + 'px'; p.style.height = BOX + 'px';
-            p.style.opacity = 0;
-            anime.set(p, { translateX: cellX(idx), translateY: TOP_Y });
-            stage.appendChild(p);
-            pts.push(p);
-          }
-
-          const label = mk('sw-label');
-          label.textContent = 'Resample ' + (r + 1);
-          label.style.lineHeight = BOX + 'px';
-          label.style.opacity = 0;
-          anime.set(label, { translateX: LABEL_X, translateY: ROWS_Y[r] });
-          stage.appendChild(label);
-
-          rows.push({ pts, label });
-        }
+        vault = mkBox('tvt-vault');
+        vault.style.opacity = 0;
+        vault.innerHTML = '<div class="tvt-lock">🔒</div>' +
+                          '<div class="tvt-lock-text">Locked away until the end</div>';
+        stage.appendChild(vault);
 
         return true;
       }
 
-      function fileRow(r, on) {
-        const { pts, label } = rows[r];
+      function ensureCopies() {
+        if (copies.length) return;
+        const stage = document.getElementById('tvt-stage');
+        for (let i = 0; i < N; i++) {
+          const b = mkBox('tvt-box');
+          b.style.backgroundColor = classColor(i);
+          b.style.opacity = 0;
+          anime.set(b, { translateX: topX(i), translateY: ROW_DATA_Y });
+          stage.appendChild(b);
+          copies.push(b);
+        }
+      }
+
+      function clearCopies() {
+        if (!copies.length) return;
+        const dying = copies;
+        copies = [];
         TM.anime({
-          targets: pts,
-          opacity: on ? 1 : 0,
-          translateY: on ? ROWS_Y[r] : TOP_Y,
-          duration: 500,
-          delay: on ? anime.stagger(25) : 0,   // cascade the points into place
-          easing: on ? 'easeOutCubic' : 'easeInQuad',
+          targets: dying, opacity: 0, duration: 250, easing: 'easeInOutQuad',
+          complete: () => dying.forEach(b => b.remove()),
+        });
+      }
+
+      function layoutCopies(compact) {
+        copies.forEach((b, i) => {
+          TM.anime({
+            targets: b,
+            opacity: 1,
+            translateX: compact ? packX[i] : topX(i),
+            translateY: rowY(i),
+            duration: 700,
+            easing: 'easeInOutCubic',
+            delay: anime.stagger(18),
+          });
+        });
+      }
+
+      // "Roll the dice": tumble through the three set colours, then settle on the
+      // assigned one with a little pop. Cascaded left-to-right.
+      function rollColour(b, i, delay) {
+        const order = [COLORS[(i) % 3], COLORS[(i + 1) % 3], COLORS[(i + 2) % 3]];
+        const final = classColor(i);
+        TM.anime({
+          targets: b,
+          backgroundColor: [
+            { value: order[0], duration: 60 }, { value: order[1], duration: 60 },
+            { value: order[2], duration: 60 }, { value: order[0], duration: 60 },
+            { value: order[1], duration: 60 }, { value: final, duration: 150 },
+          ],
+          delay,
+          easing: 'linear',
         });
         TM.anime({
-          targets: label,
-          opacity: on ? 1 : 0,
-          duration: 400,
-          easing: 'easeInOutQuad',
+          targets: b,
+          scale: [{ value: 1.22, duration: 120 }, { value: 1, duration: 200 }],
+          delay: delay + 330,
+          easing: 'easeOutBack',
         });
+      }
+
+      function applyColour(on) {
+        if (on === coloured) return;
+        coloured = on;
+        if (!on) {
+          boxes.forEach(b => { anime.remove(b); anime.set(b, { scale: 1 }); b.style.backgroundColor = DATA; });
+          return;
+        }
+        boxes.forEach((b, i) => rollColour(b, i, i * 55));
+      }
+
+      function applyCopyMode(mode) {
+        if (mode === copyMode) return;
+        copyMode = mode;
+        if (mode === 'none') { clearCopies(); return; }
+        ensureCopies();
+        layoutCopies(mode === 'compact');
       }
 
       function render(stage) {
         if (!build()) return;
 
-        // the sliding window: shown from stage 1 on, parked at resample (stage-1)
-        const active = Math.max(0, Math.min(stage, RES) - 1);   // 0..RES-1
+        applyColour(stage >= 1);
+        applyCopyMode(stage >= 3 ? 'compact' : stage >= 2 ? 'gap' : 'none');
+
+        const labelled = stage >= 2;
         TM.anime({
-          targets: win,
-          opacity: stage >= 1 ? 1 : 0,
-          translateX: analysisX(active) - 6,
-          translateY: TOP_Y - 6,
-          duration: 650,
-          easing: 'easeInOutCubic',
+          targets: [labels.train, labels.val, labels.test],
+          opacity: labelled ? 1 : 0,
+          duration: 400, easing: 'easeInOutQuad',
         });
 
-        // staircase: file rows 0..stage-1, un-file the rest (back-nav safe)
-        const want = Math.min(stage, RES);
-        if (want > shown) for (let r = shown; r < want; r++) fileRow(r, true);
-        else if (want < shown) for (let r = want; r < shown; r++) fileRow(r, false);
-        shown = want;
+        // stage >= 4: lock the (compact) test set in the vault; hide its points
+        const locked = stage >= 4;
+        const VAULT_W = 300, VAULT_H = BOX + 28;
+        const testSpan = (TEST_COUNT - 1) * STEP + BOX;
+        vault.style.width = VAULT_W + 'px';
+        vault.style.height = VAULT_H + 'px';
+        anime.set(vault, {
+          translateX: START_X + testSpan / 2 - VAULT_W / 2,
+          translateY: ROW_TEST_Y - (VAULT_H - BOX) / 2,
+        });
+        TM.anime({
+          targets: vault, opacity: locked ? 1 : 0, scale: locked ? 1 : 0.92,
+          duration: 500, easing: 'easeOutBack',
+        });
+        if (copies.length) {
+          TM.anime({
+            targets: copies.filter((_, i) => isTest(i)),
+            opacity: locked ? 0 : 1, duration: 400, easing: 'easeInOutQuad',
+          });
+        }
 
-        const title = document.getElementById('sw-title');
+        const title = document.getElementById('tvt-title');
         if (title) {
-          const text = stage === 0 ? 'Time-ordered data — split by time, not at random'
-                     : `Slide the window forward — resample ${Math.min(stage, RES)} of ${RES}`;
+          const text = stage >= 4 ? "Don't touch the test set until the end!"
+                     : stage >= 3 ? 'Training, validation & testing sets'
+                     : stage >= 2 ? 'Split into three sets'
+                     : stage >= 1 ? 'Randomly label each observation'
+                     : 'Your data';
           title.textContent = text;
-          TM.anime({ targets: title, opacity: 1, duration: 350, easing: 'easeInOutQuad' });
+          TM.anime({ targets: title, opacity: text ? 1 : 0, duration: 350, easing: 'easeInOutQuad' });
         }
       }
 
       TM.gate({
-        markerClass: 'sw-slide',
-        fragmentIds: ['sw-r1', 'sw-r2', 'sw-r3', 'sw-r4'],
+        markerClass: 'tvt-slide',
+        fragmentIds: ['tvt-color', 'tvt-split', 'tvt-compact', 'tvt-vault'],
         render,
       });
     })();

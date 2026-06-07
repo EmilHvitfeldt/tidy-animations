@@ -1,0 +1,23 @@
+---
+title: "Time-based train/validation/test split"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/time-val-split.html
+---
+
+```{=html}
+<!-- Configure the segment colours here. -->
+<script>window.TVS_COLORS = { train: '#6aa9e0', val: '#6cbf84', test: '#e8853a' };</script>
+```
+
+## {.tvs-slide}
+
+::: {.tvs-stage-wrap}
+<div id="tvs-title" class="tvs-title"></div>
+<div id="tvs-stage"></div>
+:::
+
+[]{.fragment .tvs-frag id="tvs-r1"}
+[]{.fragment .tvs-frag id="tvs-r2"}
+[]{.fragment .tvs-frag id="tvs-r3"}

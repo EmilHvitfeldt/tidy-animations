@@ -1,0 +1,24 @@
+---
+title: "Train/validation/test split"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/train-val-test.html
+---
+
+```{=html}
+<!-- Configure the set colours here. -->
+<script>window.TVT_COLORS = { data: '#c8ccd4', train: '#6aa9e0', val: '#6cbf84', test: '#e8853a' };</script>
+```
+
+## {.tvt-slide}
+
+::: {.tvt-stage-wrap}
+<div id="tvt-title" class="tvt-title"></div>
+<div id="tvt-stage"></div>
+:::
+
+[]{.fragment .tvt-frag id="tvt-color"}
+[]{.fragment .tvt-frag id="tvt-split"}
+[]{.fragment .tvt-frag id="tvt-compact"}
+[]{.fragment .tvt-frag id="tvt-vault"}
