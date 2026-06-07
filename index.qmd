@@ -22,6 +22,24 @@ include-in-header:
         text-align: center;
         margin: 0.5rem auto 2.5rem;
         font-size: 0.9rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+      }
+      .gif-link a {
+        display: inline-block;
+        padding: 0.4rem 0.9rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: #f6f6f6;
+        color: #333;
+        text-decoration: none;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .gif-link a:hover {
+        background: #e9e9e9;
+        border-color: #999;
       }
     </style>
 ---
@@ -38,9 +56,9 @@ See `IDEAS.md` for the backlog of concepts to animate.
 <iframe class="deck-embed" src="examples/cross-validation.html" title="Cross-validation animation"></iframe>
 
 <p class="gif-link">
-[Open full deck](examples/cross-validation.html){target="_blank"} ·
-[View as GIF](gifs/cross-validation.gif){target="_blank"} ·
-[View as MP4](mp4/cross-validation.mp4){target="_blank"} ·
+[Open full deck](examples/cross-validation.html){target="_blank"}
+[Download GIF](gifs/cross-validation.gif){download=""}
+[Download MP4](mp4/cross-validation.mp4){download=""}
 [Download reusable bundle](bundles/cross-validation.zip)
 </p>
 
@@ -49,8 +67,8 @@ See `IDEAS.md` for the backlog of concepts to animate.
 <iframe class="deck-embed" src="examples/bootstrap.html" title="Bootstrap resampling animation"></iframe>
 
 <p class="gif-link">
-[Open full deck](examples/bootstrap.html){target="_blank"} ·
-[View as GIF](gifs/bootstrap.gif){target="_blank"} ·
-[View as MP4](mp4/bootstrap.mp4){target="_blank"} ·
+[Open full deck](examples/bootstrap.html){target="_blank"}
+[Download GIF](gifs/bootstrap.gif){download=""}
+[Download MP4](mp4/bootstrap.mp4){download=""}
 [Download reusable bundle](bundles/bootstrap.zip)
 </p>
