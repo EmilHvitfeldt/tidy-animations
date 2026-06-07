@@ -3,7 +3,7 @@ title: "Bootstrap resampling"
 format:
   revealjs:
     include-after-body:
-      - js/bootstrap.html
+      - ../js/bootstrap.html
 ---
 
 ```{=html}

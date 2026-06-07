@@ -9,7 +9,7 @@
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – Cross-validation</title>
+  <title>tidymodels, animated – ideas</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -31,7 +31,7 @@
       vertical-align: middle;
     }
   </style>
-  <link rel="stylesheet" href="site_libs/revealjs/dist/theme/quarto-9ac26bfa60145b3b63a7d7a058a10443.css">
+  <link rel="stylesheet" href="site_libs/revealjs/dist/theme/quarto-447ff51ddbdf3e681ec78ae79ef57cdb.css">
   <link href="site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="site_libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="site_libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
@@ -129,32 +129,64 @@
   <div class="reveal">
     <div class="slides">
 
-<section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">Cross-validation</h1>
 
-<div class="quarto-title-authors">
-</div>
-
+<section>
+<section id="animation-ideas-tidymodels-concepts" class="title-slide slide level1 center">
+<h1>Animation ideas: tidymodels concepts</h1>
+<p>A backlog of tidymodels concepts that animate well in Quarto RevealJS (anime.js + fragments). Grouped by where they sit in the modeling workflow.</p>
 </section>
-<section class="slide level2">
-
-<!-- Configure the three fold colours here (one per fold). -->
-<script>window.CV_COLORS = ['#8ecae6', '#90be6d', '#f9c74f'];</script>
+<section id="data-spending" class="slide level2">
+<h2>Data spending</h2>
+<ul>
+<li><strong>Initial train/test split</strong> — a block of rows sliding apart; test set “locked in a vault”.</li>
+<li><strong>Cross-validation / V-fold</strong> — rows partition into V folds; each fold takes a turn as the assessment set (the classic rotating-highlight animation). ← <strong>building first</strong></li>
+<li><strong>Bootstrap resampling</strong> — rows sampled <em>with replacement</em>; some rows duplicated, some left out (OOB) bouncing into an out-of-bag pile.</li>
+<li><strong>Validation set / <code>initial_validation_split</code></strong> — three-way split.</li>
+<li><strong>Time-based / rolling-origin resampling</strong> — a window sliding forward through time-ordered data.</li>
+</ul>
 </section>
-<section id="section" class="slide level2 cv-slide">
-<h2></h2>
-<div class="cv-stage-wrap">
-<div id="cv-title" class="cv-title">
-
-</div>
-<div id="cv-stage">
-
-</div>
-</div>
-<p><span id="cv-color" class="fragment cv-frag"></span> <span id="cv-split" class="fragment cv-frag"></span> <span id="cv-fold1" class="fragment cv-frag"></span> <span id="cv-fold2" class="fragment cv-frag"></span> <span id="cv-fold3" class="fragment cv-frag"></span></p>
-
-
+<section id="preprocessing-recipes" class="slide level2">
+<h2>Preprocessing (recipes)</h2>
+<ul>
+<li><strong>Recipe pipeline</strong> — data flowing through <code>step_*()</code> one fragment at a time.</li>
+<li><strong><code>step_dummy()</code></strong> — a categorical column fanning out into multiple 0/1 columns.</li>
+<li><strong><code>step_normalize()</code></strong> — a column’s values squishing toward mean 0, sd 1.</li>
+<li><strong><code>step_pca()</code></strong> — points rotating onto new principal-component axes.</li>
+<li><strong>Skipping on <code>bake()</code></strong> — showing why <code>skip = TRUE</code> steps don’t run at prediction time.</li>
+</ul>
 </section>
+<section id="model-workflow" class="slide level2">
+<h2>Model / workflow</h2>
+<ul>
+<li><strong>Workflow assembly</strong> — recipe box + model box snapping together, then fitting.</li>
+<li><strong><code>parsnip</code> engine swap</strong> — same model spec, different engine plugging in underneath.</li>
+<li><strong>Prediction flow</strong> — new data entering the fitted workflow → predictions out.</li>
+</ul>
+</section>
+<section id="tuning" class="slide level2">
+<h2>Tuning</h2>
+<ul>
+<li><strong>Grid search</strong> — a grid of hyperparameter combos lighting up one cell at a time, each scored.</li>
+<li><strong><code>tune_grid()</code> over resamples</strong> — the grid × folds matrix filling in (every combo on every fold).</li>
+<li><strong>Bayesian / iterative search</strong> — points appearing one at a time, each guided toward better regions.</li>
+<li><strong><code>select_best()</code></strong> — the winning grid cell rising to the top.</li>
+</ul>
+</section>
+<section id="punchline-motivational" class="slide level2">
+<h2>“Punchline” / motivational</h2>
+<ul>
+<li><strong>“Just normalize the whole dataset”</strong> → data leakage seeping from test into train (cautionary).</li>
+<li><strong><code>workflow_set</code></strong> — a matrix of model × recipe combinations all training at once.</li>
+</ul>
+</section>
+<section id="distribution-tooling" class="slide level2">
+<h2>Distribution / tooling</h2>
+<ul>
+<li><strong>Quarto extension per animation</strong> — bundle each animation (infra + module + CSS) as a Quarto extension so end users install with <code>quarto add</code> and drop it in via a one-line shortcode (e.g.&nbsp;<code>{{&lt; cv-animation &gt;}}</code>) instead of hand-copying files. Cleaner for reuse than the manual “copy four pieces” recipe in the README.</li>
+</ul>
+
+
+</section></section>
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
 <div class="footer footer-default">
@@ -453,198 +485,6 @@
         })();
       });
     };
-    </script>
-    <script>
-    /* ---- Cross-validation animation ----
-     * Marker slide: .cv-slide   Stage container: #cv-stage
-     * render(stage) is idempotent (stage = number of visible gating fragments).
-     */
-    (function () {
-      const COLS = 6, ROWS = 5, N = COLS * ROWS;   // 30 points
-      const BOX = 56, GAP = 14;
-      const START_X = 40;                          // left-hand side
-      const GRID_H = ROWS * BOX + (ROWS - 1) * GAP;
-      const START_Y = (520 - GRID_H) / 2;          // vertically centred in the stage
-
-      // Colours are configurable from the .qmd via `window.CV_COLORS` (one per fold).
-      const COLORS = window.CV_COLORS || ['#8ecae6', '#90be6d', '#f9c74f'];
-
-      // Hardcoded colour assignment: rolled the dice once. Looks scattered, but is
-      // exactly balanced — ten boxes of each colour (10/10/10). Row-major, 6 per row.
-      const ASSIGN = [
-        1, 1, 2, 0, 2, 0,
-        0, 2, 1, 2, 1, 1,
-        2, 0, 0, 1, 0, 2,
-        1, 2, 1, 0, 2, 0,
-        2, 0, 1, 2, 1, 0,
-      ];
-
-      // transparent version of a hex colour, so the fill fades in within its own
-      // hue instead of passing through grey (transparent-black) on the way up
-      function fade(hex) {
-        const n = parseInt(hex.slice(1), 16);
-        return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, 0)`;
-      }
-
-      // right-hand split grids
-      const RIGHT_X = 640;
-      const ANALYSIS  = { x: RIGHT_X, y: 40,  cols: 5, n: 20, label: 'Analysis',   labelY: 0   };
-      const ASSESS    = { x: RIGHT_X, y: 370, cols: 5, n: 10, label: 'Assessment', labelY: 330 };
-
-      let boxes = [];          // the 30 source points on the left
-      let rightBoxes = [];     // analysis + assessment grids (empty outline targets)
-      let rightLabels = [];
-      let clones = [];         // copies that fly from the left into the right grids
-      let placedFold = 0;      // which fold's copies are currently shown (0 = none)
-
-      function cellXY(i) {
-        const c = i % COLS, r = Math.floor(i / COLS);
-        return { x: START_X + c * (BOX + GAP), y: START_Y + r * (BOX + GAP) };
-      }
-      function slotXY(spec, i) {
-        const c = i % spec.cols, r = Math.floor(i / spec.cols);
-        return { x: spec.x + c * (BOX + GAP), y: spec.y + r * (BOX + GAP) };
-      }
-      function colorOf(i) { return COLORS[ASSIGN[i]]; }
-
-      function buildGrid(stage, spec) {
-        for (let i = 0; i < spec.n; i++) {
-          const c = i % spec.cols, r = Math.floor(i / spec.cols);
-          const b = document.createElement('div');
-          b.className = 'cv-box';
-          b.style.opacity = 0;
-          b.style.transform = `translate(${spec.x + c * (BOX + GAP)}px, ${spec.y + r * (BOX + GAP)}px)`;
-          stage.appendChild(b);
-          rightBoxes.push(b);
-        }
-        const lab = document.createElement('div');
-        lab.className = 'cv-label';
-        lab.textContent = spec.label;
-        lab.style.opacity = 0;
-        lab.style.transform = `translate(${spec.x}px, ${spec.labelY}px)`;
-        stage.appendChild(lab);
-        rightLabels.push(lab);
-      }
-
-      function build() {
-        const stage = document.getElementById('cv-stage');
-        if (!stage || boxes.length) return !!stage;
-        for (let i = 0; i < N; i++) {
-          const b = document.createElement('div');
-          b.className = 'cv-box';
-          b.textContent = i + 1;          // number the source points 1..30
-          const { x, y } = cellXY(i);
-          b.style.transform = `translate(${x}px, ${y}px)`;
-          stage.appendChild(b);
-          boxes.push(b);
-        }
-        buildGrid(stage, ANALYSIS);
-        buildGrid(stage, ASSESS);
-        return true;
-      }
-
-      function render(stage) {
-        if (!build()) return;
-        // stage 0: bare grid   |   stage 1: each box filled, 1/3 per colour
-        const filled = stage >= 1;
-        boxes.forEach((b, i) => {
-          const c = colorOf(i);
-          TM.anime({
-            targets: b,
-            backgroundColor: filled ? c : fade(c),
-            duration: 500,
-            easing: 'easeInOutQuad',
-            delay: filled ? anime.stagger(20) : 0,
-          });
-        });
-
-        // stage 2: reveal the analysis (20) and assessment (10) grids on the right
-        const shown = stage >= 2;
-        TM.anime({
-          targets: [...rightBoxes, ...rightLabels],
-          opacity: shown ? 1 : 0,
-          duration: 400,
-          easing: 'easeInOutQuad',
-          delay: shown ? anime.stagger(15) : 0,
-        });
-
-        // stages 3+: one iteration per fold. Fold f holds out colour (f-1) as the
-        // assessment set; the other two colours form the analysis set.
-        const title = document.getElementById('cv-title');
-        if (stage >= 3) {
-          const fold = stage - 2;            // stage 3 -> fold 1, stage 4 -> fold 2, ...
-          if (title) {
-            title.textContent = `Fold ${fold} Iteration`;
-            TM.anime({ targets: title, opacity: 1, duration: 400, easing: 'easeInOutQuad' });
-          }
-          ensureFold(fold);
-        } else {
-          if (title) TM.anime({ targets: title, opacity: 0, duration: 400, easing: 'easeInOutQuad' });
-          placedFold = 0;
-          clearClones();
-        }
-      }
-
-      // Place the right-hand copies for a fold, swapping out the previous fold's
-      // copies first (they disappear, then the new pattern flies in).
-      function ensureFold(fold) {
-        if (placedFold === fold) return;       // already showing this fold — stay stable
-        placedFold = fold;
-        const assessColor = fold - 1;
-        // pause after the old copies vanish before the new colour flies in.
-        // TM.pause keeps the deck "busy" through the gap (so a recorder waits for it).
-        if (clones.length) clearClones(() => TM.pause(350, () => placeClones(assessColor)));
-        else placeClones(assessColor);
-      }
-
-      function placeClones(assessColor) {
-        if (clones.length) return;
-        const stage = document.getElementById('cv-stage');
-        const assessIdx = [], analysisIdx = [];
-        for (let i = 0; i < N; i++) (ASSIGN[i] === assessColor ? assessIdx : analysisIdx).push(i);
-
-        function fly(idx, dest, order) {
-          const s = cellXY(idx);
-          const b = document.createElement('div');
-          b.className = 'cv-box';
-          b.textContent = idx + 1;
-          b.style.backgroundColor = colorOf(idx);
-          stage.appendChild(b);
-          clones.push(b);
-          anime.set(b, { translateX: s.x, translateY: s.y });
-          TM.anime({
-            targets: b,
-            translateX: dest.x,
-            translateY: dest.y,
-            duration: 750,
-            easing: 'easeInOutCubic',
-            delay: order * 40,
-          });
-        }
-
-        assessIdx.forEach((idx, k) => fly(idx, slotXY(ASSESS, k), k));
-        analysisIdx.forEach((idx, j) => fly(idx, slotXY(ANALYSIS, j), j));
-      }
-
-      function clearClones(cb) {
-        if (!clones.length) { if (cb) cb(); return; }
-        const dying = clones;
-        clones = [];
-        TM.anime({
-          targets: dying,
-          opacity: 0,
-          duration: 250,
-          easing: 'easeInOutQuad',
-          complete: () => { dying.forEach(b => b.remove()); if (cb) cb(); },
-        });
-      }
-
-      TM.gate({
-        markerClass: 'cv-slide',
-        fragmentIds: ['cv-color', 'cv-split', 'cv-fold1', 'cv-fold2', 'cv-fold3'],
-        render,
-      });
-    })();
     </script>
     <script id="quarto-html-after-body" type="application/javascript">
       window.document.addEventListener("DOMContentLoaded", function (event) {

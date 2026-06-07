@@ -6,21 +6,22 @@ Self-contained animated explainers for tidymodels concepts, built with
 
 ## Convention: one `.qmd` per animation
 
-Each concept lives in **its own `.qmd` deck** at the project root (plus a matching
+Each concept lives in **its own `.qmd` deck** under `examples/` (plus a matching
 animation module in `js/`). This keeps every animation copy-pasteable into a real
 talk and avoids fragment ids cross-firing between concepts.
 
 ```
 tidymodels-animated/
-├── _quarto.yml            # shared format defaults + anime.js + js/infra.html (loaded everywhere)
-├── index.qmd              # landing page linking to each deck
-├── cross-validation.qmd   # one concept = one deck
-├── IDEAS.md               # backlog of concepts to animate
+├── _quarto.yml                    # shared format defaults + anime.js + js/infra.html (loaded everywhere)
+├── index.qmd                      # landing page linking to each deck
+├── IDEAS.md                       # backlog of concepts to animate
+├── examples/
+│   └── cross-validation.qmd       # one concept = one deck
 ├── css/
-│   └── demos.css          # shared styles + per-animation classes
+│   └── demos.css                  # shared styles + per-animation classes
 └── js/
-    ├── infra.html         # shared helpers: TM.onReveal, TM.cssToSlide, TM.sectionFor, TM.gate
-    └── cv-resampling.html  # the CV animation module (one per deck)
+    ├── infra.html                 # shared helpers: TM.onReveal, TM.cssToSlide, TM.sectionFor, TM.gate
+    └── cross-validation.html      # the CV animation module (one per deck)
 ```
 
 ### Adding a new animation
@@ -30,8 +31,8 @@ tidymodels-animated/
    `TM.gate({ markerClass, fragmentIds, render })`. Write `render(stage)` to be
    **idempotent**: given the number of visible fragments, it sets the target
    state. That makes forward nav, back nav, and direct-link arrival all work.
-3. Create `<concept>.qmd` whose YAML pulls the module in via its own
-   `include-after-body: [js/<concept>.html]`. (Shared `infra.html` is already
+3. Create `examples/<concept>.qmd` whose YAML pulls the module in via its own
+   `include-after-body: [../js/<concept>.html]`. (Shared `infra.html` is already
    loaded globally from `_quarto.yml`.)
 4. Mark the animated slide with a unique class (e.g. `{.cv-slide}`) and add
    invisible `.fragment` markers with ids the module gates on.
@@ -41,7 +42,7 @@ tidymodels-animated/
 ## Build / preview
 
 ```bash
-quarto preview cross-validation.qmd   # single deck with live reload
+quarto preview examples/cross-validation.qmd   # single deck with live reload
 quarto render                          # build the whole site
 ```
 
@@ -63,10 +64,10 @@ this way vs ~6 MB from a video capture).
 ```bash
 pip install playwright && playwright install chromium   # one-time
 # also requires ffmpeg, and gifsicle for the lossless pass (brew install gifsicle)
-quarto render cross-validation.qmd                       # GIF records the rendered _site/ output
+quarto render examples/cross-validation.qmd              # GIF records the rendered _site/ output
 
 python tools/capture_gif.py \
-    --deck _site/cross-validation.html \
+    --deck _site/examples/cross-validation.html \
     --slide 2 --steps 5 \
     --out gifs/cross-validation.gif
 ```

@@ -3,7 +3,7 @@ title: "Cross-validation"
 format:
   revealjs:
     include-after-body:
-      - js/cross-validation.html
+      - ../js/cross-validation.html
 ---
 
 ```{=html}

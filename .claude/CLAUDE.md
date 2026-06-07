@@ -5,7 +5,7 @@ by RevealJS fragments.
 
 ## Core convention: ONE `.qmd` PER ANIMATION
 
-Every concept is its own self-contained deck at the project root, with a matching
+Every concept is its own self-contained deck under `examples/`, with a matching
 `js/<concept>.html` animation module. Do **not** put multiple unrelated
 animations in one deck — it lets fragment ids cross-fire and breaks the
 "copy this slide into a real talk" goal.
@@ -14,8 +14,8 @@ animations in one deck — it lets fragment ids cross-fire and breaks the
 
 - `_quarto.yml` — shared format defaults (theme, 1280×720 size), loads anime.js
   and the shared `js/infra.html` for *every* deck.
-- `<concept>.qmd` — one deck per concept. Its YAML adds the concept's own module
-  via `include-after-body: [js/<concept>.html]`.
+- `examples/<concept>.qmd` — one deck per concept. Its YAML adds the concept's own
+  module via `include-after-body: [../js/<concept>.html]`.
 - `js/infra.html` — shared helpers under the `TM` namespace: `TM.onReveal`,
   `TM.cssToSlide`, `TM.sectionFor`, `TM.gate`.
 - `js/<concept>.html` — the animation: builds DOM, calls `TM.gate(...)`.
@@ -91,7 +91,7 @@ The body script runs before the after-body module, so the value is ready at init
 
 ## Build / preview
 
-- `quarto preview <concept>.qmd` — single deck, live reload (use for iterating).
+- `quarto preview examples/<concept>.qmd` — single deck, live reload (use for iterating).
 - `quarto render` — whole site.
 
 Always verify animations in a real browser — surface checks (HTTP 200, classes
@@ -100,9 +100,9 @@ present) won't catch behavioural bugs in shared helpers.
 ## Capturing a GIF (`tools/capture_gif.py`)
 
 ```bash
-quarto render <concept>.qmd            # capture from the rendered _site/ copy
+quarto render examples/<concept>.qmd   # capture from the rendered _site/ copy
 python3 tools/capture_gif.py \
-  --deck _site/<concept>.html --slide 1 \
+  --deck _site/examples/<concept>.html --slide 1 \
   --steps <fragments + 1> \
   --selector .<concept>-stage-wrap \
   --out gifs/<concept>.gif

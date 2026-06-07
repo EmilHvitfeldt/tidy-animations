@@ -1,0 +1,51 @@
+[
+  {
+    "objectID": "index.html#tidymodels-animated",
+    "href": "index.html#tidymodels-animated",
+    "title": "tidymodels, animated",
+    "section": "tidymodels, animated",
+    "text": "tidymodels, animated\nSelf-contained animated explainers for tidymodels concepts, built with Quarto RevealJS + anime.js. Each concept is its own deck.\nAvailable decks\n\nCross-validation\nBootstrap resampling\n\nSee IDEAS.md for the backlog of concepts to animate."
+  },
+  {
+    "objectID": "IDEAS.html#data-spending",
+    "href": "IDEAS.html#data-spending",
+    "title": "tidymodels, animated",
+    "section": "Data spending",
+    "text": "Data spending\n\nInitial train/test split — a block of rows sliding apart; test set “locked in a vault”.\nCross-validation / V-fold — rows partition into V folds; each fold takes a turn as the assessment set (the classic rotating-highlight animation). ← building first\nBootstrap resampling — rows sampled with replacement; some rows duplicated, some left out (OOB) bouncing into an out-of-bag pile.\nValidation set / initial_validation_split — three-way split.\nTime-based / rolling-origin resampling — a window sliding forward through time-ordered data."
+  },
+  {
+    "objectID": "IDEAS.html#preprocessing-recipes",
+    "href": "IDEAS.html#preprocessing-recipes",
+    "title": "tidymodels, animated",
+    "section": "Preprocessing (recipes)",
+    "text": "Preprocessing (recipes)\n\nRecipe pipeline — data flowing through step_*() one fragment at a time.\nstep_dummy() — a categorical column fanning out into multiple 0/1 columns.\nstep_normalize() — a column’s values squishing toward mean 0, sd 1.\nstep_pca() — points rotating onto new principal-component axes.\nSkipping on bake() — showing why skip = TRUE steps don’t run at prediction time."
+  },
+  {
+    "objectID": "IDEAS.html#model-workflow",
+    "href": "IDEAS.html#model-workflow",
+    "title": "tidymodels, animated",
+    "section": "Model / workflow",
+    "text": "Model / workflow\n\nWorkflow assembly — recipe box + model box snapping together, then fitting.\nparsnip engine swap — same model spec, different engine plugging in underneath.\nPrediction flow — new data entering the fitted workflow → predictions out."
+  },
+  {
+    "objectID": "IDEAS.html#tuning",
+    "href": "IDEAS.html#tuning",
+    "title": "tidymodels, animated",
+    "section": "Tuning",
+    "text": "Tuning\n\nGrid search — a grid of hyperparameter combos lighting up one cell at a time, each scored.\ntune_grid() over resamples — the grid × folds matrix filling in (every combo on every fold).\nBayesian / iterative search — points appearing one at a time, each guided toward better regions.\nselect_best() — the winning grid cell rising to the top."
+  },
+  {
+    "objectID": "IDEAS.html#punchline-motivational",
+    "href": "IDEAS.html#punchline-motivational",
+    "title": "tidymodels, animated",
+    "section": "“Punchline” / motivational",
+    "text": "“Punchline” / motivational\n\n“Just normalize the whole dataset” → data leakage seeping from test into train (cautionary).\nworkflow_set — a matrix of model × recipe combinations all training at once."
+  },
+  {
+    "objectID": "IDEAS.html#distribution-tooling",
+    "href": "IDEAS.html#distribution-tooling",
+    "title": "tidymodels, animated",
+    "section": "Distribution / tooling",
+    "text": "Distribution / tooling\n\nQuarto extension per animation — bundle each animation (infra + module + CSS) as a Quarto extension so end users install with quarto add and drop it in via a one-line shortcode (e.g. {{&lt; cv-animation &gt;}}) instead of hand-copying files. Cleaner for reuse than the manual “copy four pieces” recipe in the README."
+  }
+]
