@@ -1,0 +1,18 @@
+---
+title: "tidymodels, animated"
+subtitle: "Showing how the concepts actually move"
+format:
+  revealjs:
+    minimal: true
+---
+
+## tidymodels, animated
+
+Self-contained animated explainers for tidymodels concepts, built with
+Quarto RevealJS + anime.js. Each concept is its own deck.
+
+### Available decks
+
+- [Cross-validation](cross-validation.qmd)
+
+See `IDEAS.md` for the backlog of concepts to animate.

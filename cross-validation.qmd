@@ -1,0 +1,25 @@
+---
+title: "Cross-validation"
+format:
+  revealjs:
+    include-after-body:
+      - js/cross-validation.html
+---
+
+```{=html}
+<!-- Configure the three fold colours here (one per fold). -->
+<script>window.CV_COLORS = ['#8ecae6', '#90be6d', '#f9c74f'];</script>
+```
+
+## {.cv-slide}
+
+::: {.cv-stage-wrap}
+<div id="cv-title" class="cv-title"></div>
+<div id="cv-stage"></div>
+:::
+
+[]{.fragment .cv-frag id="cv-color"}
+[]{.fragment .cv-frag id="cv-split"}
+[]{.fragment .cv-frag id="cv-fold1"}
+[]{.fragment .cv-frag id="cv-fold2"}
+[]{.fragment .cv-frag id="cv-fold3"}

@@ -1,0 +1,23 @@
+project:
+  type: website
+
+website:
+  title: "tidymodels, animated"
+
+format:
+  revealjs:
+    theme: [default, css/demos.css]
+    width: 1280
+    height: 720
+    transition: fade
+    controls: true
+    progress: true
+    hash: true
+    # anime.js is shared by every animation deck
+    include-in-header:
+      text: |
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+    # shared infrastructure (coord conversion, fragment gating) loads everywhere;
+    # each deck adds its own animation module via its own `include-after-body`.
+    include-after-body:
+      - js/infra.html
