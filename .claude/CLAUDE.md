@@ -13,14 +13,25 @@ animations in one deck — it lets fragment ids cross-fire and breaks the
 ## Where things live
 
 - `_quarto.yml` — shared format defaults (theme, 1280×720 size), loads anime.js
-  and the shared `js/infra.html` for *every* deck.
+  and the shared `js/infra.html` for *every* deck. Also has a `pre-render:
+  tools/make_bundle.py --all` hook (rebuilds reuse bundles on every render) and
+  `resources: [gifs/, bundles/]` (ships the GIFs and zips into `_site/`).
 - `examples/<concept>.qmd` — one deck per concept. Its YAML adds the concept's own
   module via `include-after-body: [../js/<concept>.html]`.
 - `js/infra.html` — shared helpers under the `TM` namespace: `TM.onReveal`,
   `TM.cssToSlide`, `TM.sectionFor`, `TM.gate`.
 - `js/<concept>.html` — the animation: builds DOM, calls `TM.gate(...)`.
 - `css/demos.css` — shared styles + per-concept classes.
-- `index.qmd` — landing page linking each deck.
+- `index.qmd` — the landing page, an **HTML website page** (`format: html`, not a
+  deck). One `##` section per concept: an `<iframe class="deck-embed">` embedding
+  the rendered deck, followed by a `.gif-link` line with three links — *Open full
+  deck*, *View as GIF* (`gifs/<concept>.gif`), and *Download reusable bundle*
+  (`bundles/<concept>.zip`).
+- `gifs/<concept>.gif` — committed GIF capture (see capture section).
+- `bundles/<concept>.zip` — **generated, but committed** (we push the rendered
+  site). Built by `tools/make_bundle.py` from `js/infra.html`, `js/<concept>.html`,
+  `css/demos.css`, and `examples/<concept>.qmd`. Don't edit by hand — re-run the
+  script (the pre-render hook does this automatically on `quarto render`).
 - `IDEAS.md` — backlog of concepts to animate.
 
 ## How an animation module works
@@ -88,6 +99,22 @@ const COLORS = window.CV_COLORS || ['#8ecae6', '#90be6d', '#f9c74f'];
 ```
 
 The body script runs before the after-body module, so the value is ready at init.
+
+## Adding a new example (keep the site in sync)
+
+When you add `examples/<concept>.qmd` + `js/<concept>.html`, also do these so the
+website, GIF, and bundle stay complete — it's easy to forget the last three:
+
+1. Build the deck + module + any `.<concept>-*` CSS in `css/demos.css`.
+2. **Capture the GIF** → `gifs/<concept>.gif` (see capture section below).
+3. **Add a `##` section to `index.qmd`** — copy an existing section and swap the
+   concept name in the iframe `src` and all three links (deck, gif, bundle).
+4. **No `_quarto.yml` change needed** for the bundle: `make_bundle.py --all`
+   auto-discovers any `examples/*.qmd` that has a matching `js/*.html`, and the
+   pre-render hook runs it. Just `quarto render` and commit the new
+   `bundles/<concept>.zip`.
+5. Run `quarto render` and verify the new section renders, the iframe loads, and
+   all three links resolve (`_site/gifs/...`, `_site/bundles/...`).
 
 ## Build / preview
 
