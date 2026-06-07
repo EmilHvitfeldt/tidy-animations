@@ -96,3 +96,24 @@ The body script runs before the after-body module, so the value is ready at init
 
 Always verify animations in a real browser — surface checks (HTTP 200, classes
 present) won't catch behavioural bugs in shared helpers.
+
+## Capturing a GIF (`tools/capture_gif.py`)
+
+```bash
+quarto render <concept>.qmd            # capture from the rendered _site/ copy
+python3 tools/capture_gif.py \
+  --deck _site/<concept>.html --slide 1 \
+  --steps <fragments + 1> \
+  --selector .<concept>-stage-wrap \
+  --out gifs/<concept>.gif
+```
+
+- **`--steps` must be `(number of gating fragments) + 1`.** The first `ArrowRight`
+  lands on the slide (stage 0) rather than advancing a fragment, so a 4-fragment
+  deck needs `--steps 5` to reach the final stage. If the last frame stops one
+  stage short, this is why.
+- `--slide 1` is the content slide (slide 0 is Quarto's title slide).
+- `--selector` is the deck's stage wrapper (e.g. `.bs-stage-wrap`); the GIF is
+  cropped to it.
+- Verify the result by extracting frames with ffmpeg (first/mid/last) and reading
+  them — don't trust that the run "succeeded".

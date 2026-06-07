@@ -1,0 +1,24 @@
+---
+title: "Bootstrap resampling"
+format:
+  revealjs:
+    include-after-body:
+      - js/bootstrap.html
+---
+
+```{=html}
+<!-- Configure the analysis (in-bag) and assessment (out-of-bag) colours here. -->
+<script>window.BS_COLORS = { analysis: '#6aa9e0', oob: '#e8853a', neutral: '#c8ccd4' };</script>
+```
+
+## {.bs-slide}
+
+::: {.bs-stage-wrap}
+<div id="bs-title" class="bs-title"></div>
+<div id="bs-stage"></div>
+:::
+
+[]{.fragment .bs-frag id="bs-split"}
+[]{.fragment .bs-frag id="bs-r1"}
+[]{.fragment .bs-frag id="bs-r2"}
+[]{.fragment .bs-frag id="bs-r3"}

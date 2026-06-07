@@ -67,3 +67,65 @@ section:has(.cv-slide) { overflow: hidden; }
   color: var(--tm-ink);
   will-change: transform, opacity, background-color;
 }
+
+/* ---- bootstrap ---- */
+section:has(.bs-slide) { overflow: hidden; }
+
+.bs-stage-wrap { position: relative; margin-top: 10px; }
+
+.bs-title {
+  text-align: center;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  min-height: 52px;   /* reserve space so revealing the text causes no layout shift */
+  opacity: 0;
+}
+
+/* fixed-size coordinate box; JS positions children in this same space */
+#bs-stage {
+  position: relative;
+  width: 1100px;
+  height: 520px;
+  margin: 0 auto;
+}
+
+/* invisible markers — they only exist to advance Reveal fragments */
+.bs-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+.bs-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+.bs-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  border: 2px solid var(--tm-ink);
+  background: transparent;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  will-change: transform, opacity, background-color;
+}
+
+/* stacked duplicate copies get a drop shadow so the depth reads as a pile */
+.bs-box.bs-stacked { box-shadow: 2px 2px 0 rgba(29, 36, 51, 0.25); }

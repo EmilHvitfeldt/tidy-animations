@@ -14,5 +14,6 @@ Quarto RevealJS + anime.js. Each concept is its own deck.
 ### Available decks
 
 - [Cross-validation](cross-validation.qmd)
+- [Bootstrap resampling](bootstrap.qmd)
 
 See `IDEAS.md` for the backlog of concepts to animate.
