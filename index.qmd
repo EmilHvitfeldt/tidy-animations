@@ -2,18 +2,51 @@
 title: "tidymodels, animated"
 subtitle: "Showing how the concepts actually move"
 format:
-  revealjs:
-    minimal: true
+  html:
+    page-layout: full
+    toc: true
+    toc-title: "Concepts"
+include-in-header:
+  text: |
+    <style>
+      .deck-embed {
+        width: 100%;
+        max-width: 1280px;
+        aspect-ratio: 16 / 9;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        margin: 0 auto;
+        display: block;
+      }
+      .gif-link {
+        text-align: center;
+        margin: 0.5rem auto 2.5rem;
+        font-size: 0.9rem;
+      }
+    </style>
 ---
 
-## tidymodels, animated
-
-Self-contained animated explainers for tidymodels concepts, built with
-Quarto RevealJS + anime.js. Each concept is its own deck.
-
-### Available decks
-
-- [Cross-validation](examples/cross-validation.qmd)
-- [Bootstrap resampling](examples/bootstrap.qmd)
+Self-contained animated explainers for tidymodels concepts, built with Quarto
+RevealJS + anime.js. Each concept is its own deck — embedded below, and openable
+on its own. Use the arrow keys (or the on-slide controls) inside a deck to step
+through its animation.
 
 See `IDEAS.md` for the backlog of concepts to animate.
+
+## Cross-validation
+
+<iframe class="deck-embed" src="examples/cross-validation.html" title="Cross-validation animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/cross-validation.html){target="_blank"} ·
+[View as GIF](gifs/cross-validation.gif){target="_blank"}
+</p>
+
+## Bootstrap resampling
+
+<iframe class="deck-embed" src="examples/bootstrap.html" title="Bootstrap resampling animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/bootstrap.html){target="_blank"} ·
+[View as GIF](gifs/bootstrap.gif){target="_blank"}
+</p>

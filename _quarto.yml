@@ -1,5 +1,8 @@
 project:
   type: website
+  # ship the GIF captures alongside the rendered decks so index.qmd can link them
+  resources:
+    - gifs/
 
 website:
   title: "tidymodels, animated"
