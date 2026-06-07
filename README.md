@@ -45,6 +45,39 @@ quarto preview cross-validation.qmd   # single deck with live reload
 quarto render                          # build the whole site
 ```
 
+## Capturing a deck as a GIF
+
+`tools/capture_gif.py` drives a rendered deck headlessly with Playwright,
+advancing through the fragments, then assembles a looping GIF. It does **not**
+guess delays: each animation module reports busy/idle through `TM.anime` /
+`TM.pause`, and the recorder waits for `window.TM.idle()` — so it samples densely
+*while* something is animating and lets static holds collapse to a single
+long-duration frame, paced to the real animation durations.
+
+Frames are captured as **lossless PNG screenshots** (not lossy video), so the flat
+background is pixel-identical between frames. That means no compression speckle,
+*and* it lets the final `gifsicle -O3` pass losslessly diff-compress and dedup the
+hold frames — shrinking the file dramatically (the cross-validation GIF is ~0.8 MB
+this way vs ~6 MB from a video capture).
+
+```bash
+pip install playwright && playwright install chromium   # one-time
+# also requires ffmpeg, and gifsicle for the lossless pass (brew install gifsicle)
+quarto render cross-validation.qmd                       # GIF records the rendered _site/ output
+
+python tools/capture_gif.py \
+    --deck _site/cross-validation.html \
+    --slide 2 --steps 5 \
+    --out gifs/cross-validation.gif
+```
+
+- `--slide` is the Reveal slide index the animation lives on; `--steps` is the
+  number of fragment advances to record.
+- `--selector` (default `.cv-stage-wrap`) is the element the GIF is cropped to.
+- Pacing knobs: `--dwell` (hold after each step), `--start-hold`, `--end-hold`.
+- Output knobs: `--fps`, `--scale` (output width), `--pad`. Lower `--fps`/`--scale`
+  to shrink further; `--no-optimize` skips the gifsicle pass.
+
 ## Reusing an animation in your own deck
 
 Each animation is self-contained. To drop the cross-validation slide into another

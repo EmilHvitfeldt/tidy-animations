@@ -93,7 +93,7 @@
     const filled = stage >= 1;
     boxes.forEach((b, i) => {
       const c = colorOf(i);
-      anime({
+      TM.anime({
         targets: b,
         backgroundColor: filled ? c : fade(c),
         duration: 500,
@@ -104,7 +104,7 @@
 
     // stage 2: reveal the analysis (20) and assessment (10) grids on the right
     const shown = stage >= 2;
-    anime({
+    TM.anime({
       targets: [...rightBoxes, ...rightLabels],
       opacity: shown ? 1 : 0,
       duration: 400,
@@ -119,11 +119,11 @@
       const fold = stage - 2;            // stage 3 -> fold 1, stage 4 -> fold 2, ...
       if (title) {
         title.textContent = `Fold ${fold} Iteration`;
-        anime({ targets: title, opacity: 1, duration: 400, easing: 'easeInOutQuad' });
+        TM.anime({ targets: title, opacity: 1, duration: 400, easing: 'easeInOutQuad' });
       }
       ensureFold(fold);
     } else {
-      if (title) anime({ targets: title, opacity: 0, duration: 400, easing: 'easeInOutQuad' });
+      if (title) TM.anime({ targets: title, opacity: 0, duration: 400, easing: 'easeInOutQuad' });
       placedFold = 0;
       clearClones();
     }
@@ -135,8 +135,9 @@
     if (placedFold === fold) return;       // already showing this fold — stay stable
     placedFold = fold;
     const assessColor = fold - 1;
-    // pause after the old copies vanish before the new colour flies in
-    if (clones.length) clearClones(() => setTimeout(() => placeClones(assessColor), 350));
+    // pause after the old copies vanish before the new colour flies in.
+    // TM.pause keeps the deck "busy" through the gap (so a recorder waits for it).
+    if (clones.length) clearClones(() => TM.pause(350, () => placeClones(assessColor)));
     else placeClones(assessColor);
   }
 
@@ -155,7 +156,7 @@
       stage.appendChild(b);
       clones.push(b);
       anime.set(b, { translateX: s.x, translateY: s.y });
-      anime({
+      TM.anime({
         targets: b,
         translateX: dest.x,
         translateY: dest.y,
@@ -173,7 +174,7 @@
     if (!clones.length) { if (cb) cb(); return; }
     const dying = clones;
     clones = [];
-    anime({
+    TM.anime({
       targets: dying,
       opacity: 0,
       duration: 250,

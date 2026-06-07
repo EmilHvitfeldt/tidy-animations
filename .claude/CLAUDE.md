@@ -34,6 +34,12 @@ cases.
 Property ownership: CSS owns layout/structure; anime.js owns `transform`,
 `opacity`, `background-color`. Never animate the same property from both systems.
 
+**Always drive animations through `TM.anime(...)` (not bare `anime(...)`) and time
+gaps with `TM.pause(ms, fn)` (not bare `setTimeout`).** These keep a busy counter
+so `TM.idle()` reports when the deck has settled — that's what lets
+`tools/capture_gif.py` pace a GIF to the real animation durations instead of
+guessing. `anime.set` / `anime.stagger` are instant/static and need no wrapping.
+
 ## Building a slide — the recipe that worked for cross-validation
 
 1. **Stage = a fixed-size coordinate box.** Give the slide a marker class

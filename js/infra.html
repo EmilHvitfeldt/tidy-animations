@@ -15,6 +15,27 @@ TM.onReveal = function (cb) {
   })();
 };
 
+/* ---- activity tracking (so a recorder can wait for "idle" instead of guessing
+ * delays). Every animation goes through TM.anime; intentional pauses use
+ * TM.busyInc/busyDec so they count as busy too. TM.idle() is true only when
+ * nothing is animating and no pause is pending. */
+TM._busy = 0;
+TM.busyInc = function () { TM._busy++; };
+TM.busyDec = function () { TM._busy = Math.max(0, TM._busy - 1); };
+TM.idle = function () { return TM._busy === 0; };
+TM.anime = function (params) {
+  TM.busyInc();
+  const inst = anime(params);
+  inst.finished.then(TM.busyDec, TM.busyDec);  // decrement when it settles (or errors)
+  return inst;
+};
+/* a tracked timed gap: stays "busy" for `ms`, then runs fn. Increment the next
+ * step before this decrements (do that inside fn) to avoid a momentary idle dip. */
+TM.pause = function (ms, fn) {
+  TM.busyInc();
+  setTimeout(function () { if (fn) fn(); TM.busyDec(); }, ms);
+};
+
 /* screen pixels -> slide internal coordinate units */
 TM.cssToSlide = function (px, section) {
   const w = section.getBoundingClientRect().width;
