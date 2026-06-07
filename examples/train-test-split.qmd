@@ -1,0 +1,24 @@
+---
+title: "Initial train/test split"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/train-test-split.html
+---
+
+```{=html}
+<!-- Configure the three set colours here. -->
+<script>window.TTS_COLORS = { data: '#c8ccd4', train: '#6aa9e0', test: '#e8853a' };</script>
+```
+
+## {.tts-slide}
+
+::: {.tts-stage-wrap}
+<div id="tts-title" class="tts-title"></div>
+<div id="tts-stage"></div>
+:::
+
+[]{.fragment .tts-frag id="tts-color"}
+[]{.fragment .tts-frag id="tts-split"}
+[]{.fragment .tts-frag id="tts-compact"}
+[]{.fragment .tts-frag id="tts-vault"}

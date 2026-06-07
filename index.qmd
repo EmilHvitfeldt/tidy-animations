@@ -57,6 +57,17 @@ through its animation.
 
 See `IDEAS.md` for the backlog of concepts to animate.
 
+## Initial train/test split
+
+<iframe class="deck-embed" src="examples/train-test-split.html" title="Initial train/test split animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/train-test-split.html){target="_blank"}
+[Download GIF](gifs/train-test-split.gif){download=""}
+[Download MP4](mp4/train-test-split.mp4){download=""}
+[Download reusable bundle](bundles/train-test-split.zip)
+</p>
+
 ## Cross-validation
 
 <iframe class="deck-embed" src="examples/cross-validation.html" title="Cross-validation animation"></iframe>

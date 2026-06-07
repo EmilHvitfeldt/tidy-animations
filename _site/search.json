@@ -1,26 +1,5 @@
 [
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "tidymodels, animated",
-    "section": "",
-    "text": "Self-contained animated explainers for tidymodels concepts, built with Quarto RevealJS + anime.js. Each concept is its own deck — embedded below, and openable on its own. Use the arrow keys (or the on-slide controls) inside a deck to step through its animation.\nSee IDEAS.md for the backlog of concepts to animate."
-  },
-  {
-    "objectID": "index.html#cross-validation",
-    "href": "index.html#cross-validation",
-    "title": "tidymodels, animated",
-    "section": "Cross-validation",
-    "text": "Cross-validation\n\n\n\nOpen full deck Download GIF (820 KB) Download MP4 (259 KB) Download reusable bundle (6 KB)"
-  },
-  {
-    "objectID": "index.html#bootstrap-resampling",
-    "href": "index.html#bootstrap-resampling",
-    "title": "tidymodels, animated",
-    "section": "Bootstrap resampling",
-    "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (7 KB)"
-  },
-  {
     "objectID": "IDEAS.html#data-spending",
     "href": "IDEAS.html#data-spending",
     "title": "tidymodels, animated",
@@ -61,5 +40,33 @@
     "title": "tidymodels, animated",
     "section": "Distribution / tooling",
     "text": "Distribution / tooling\n\nQuarto extension per animation — bundle each animation (infra + module + CSS) as a Quarto extension so end users install with quarto add and drop it in via a one-line shortcode (e.g. {{&lt; cv-animation &gt;}}) instead of hand-copying files. Cleaner for reuse than the manual “copy four pieces” recipe in the README."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "tidymodels, animated",
+    "section": "",
+    "text": "Self-contained animated explainers for tidymodels concepts, built with Quarto RevealJS + anime.js. Each concept is its own deck — embedded below, and openable on its own. Use the arrow keys (or the on-slide controls) inside a deck to step through its animation.\nSee IDEAS.md for the backlog of concepts to animate."
+  },
+  {
+    "objectID": "index.html#initial-traintest-split",
+    "href": "index.html#initial-traintest-split",
+    "title": "tidymodels, animated",
+    "section": "Initial train/test split",
+    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (7 KB)"
+  },
+  {
+    "objectID": "index.html#cross-validation",
+    "href": "index.html#cross-validation",
+    "title": "tidymodels, animated",
+    "section": "Cross-validation",
+    "text": "Cross-validation\n\n\n\nOpen full deck Download GIF (820 KB) Download MP4 (259 KB) Download reusable bundle (6 KB)"
+  },
+  {
+    "objectID": "index.html#bootstrap-resampling",
+    "href": "index.html#bootstrap-resampling",
+    "title": "tidymodels, animated",
+    "section": "Bootstrap resampling",
+    "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (7 KB)"
   }
 ]
