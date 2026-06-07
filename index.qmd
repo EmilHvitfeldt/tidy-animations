@@ -39,7 +39,8 @@ See `IDEAS.md` for the backlog of concepts to animate.
 
 <p class="gif-link">
 [Open full deck](examples/cross-validation.html){target="_blank"} ·
-[View as GIF](gifs/cross-validation.gif){target="_blank"}
+[View as GIF](gifs/cross-validation.gif){target="_blank"} ·
+[Download reusable bundle](bundles/cross-validation.zip)
 </p>
 
 ## Bootstrap resampling
@@ -48,5 +49,6 @@ See `IDEAS.md` for the backlog of concepts to animate.
 
 <p class="gif-link">
 [Open full deck](examples/bootstrap.html){target="_blank"} ·
-[View as GIF](gifs/bootstrap.gif){target="_blank"}
+[View as GIF](gifs/bootstrap.gif){target="_blank"} ·
+[Download reusable bundle](bundles/bootstrap.zip)
 </p>

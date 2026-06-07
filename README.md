@@ -85,6 +85,16 @@ Each animation is self-contained. To drop the cross-validation slide into anothe
 Quarto RevealJS presentation, you need four things: **anime.js**, the shared
 **`js/infra.html`**, the animation's **`js/<concept>.html`**, and its **CSS**.
 
+The quickest route is the **reusable bundle**: each concept on the landing page has
+a *Download reusable bundle* link (a zip with those files, the example `.qmd`, and a
+wiring README). Regenerate the bundles with:
+
+```bash
+python tools/make_bundle.py --all      # or name a concept, e.g. cross-validation
+```
+
+To assemble it by hand instead:
+
 **1. Copy the files** into your project:
 
 - `js/infra.html` — shared `TM` helpers (needed by every animation)
