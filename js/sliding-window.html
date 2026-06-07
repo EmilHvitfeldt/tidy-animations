@@ -1,0 +1,158 @@
+<script>
+/* ---- Time-based (sliding-window) resampling animation ----
+ * Marker slide: .sw-slide   Stage container: #sw-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * For time-ordered data you can't split at random — the test set must come
+ * *after* the training set in time. This shows rolling-origin resampling: a
+ * fixed-size window (analysis → assessment) slides forward through the data one
+ * step at a time. Each step's window is "filed" as a row in a staircase below,
+ * so the classic rolling-origin diagram builds up as the window slides.
+ */
+(function () {
+  const N = 26;                                 // time-ordered observations
+  const BOX = 26, GAP = 7, STEP = BOX + GAP;    // 33px pitch (fits 26 across)
+  const START_X = 200;                          // left gutter holds row labels
+  const LABEL_X = 18;
+
+  const ANALYSIS = 10, ASSESS = 4, SLIDE = 4;   // fixed window, slides by 4
+  const RES = 4;                                // number of resamples
+  const A_W = ANALYSIS * BOX + (ANALYSIS - 1) * GAP;   // analysis bar width
+  const S_W = ASSESS   * BOX + (ASSESS - 1)   * GAP;   // assessment bar width
+
+  const TOP_Y = 50;                             // the data row
+  const ROWS_Y = [150, 220, 290, 360];          // staircase rows (one per resample)
+
+  // Colours are configurable from the .qmd via `window.SW_COLORS`.
+  const C = window.SW_COLORS || {};
+  const ANALYSIS_C = C.analysis || '#6aa9e0';
+  const ASSESS_C   = C.assess   || '#e8853a';
+
+  function cellX(i)  { return START_X + i * STEP; }
+  function winStart(r) { return r * SLIDE; }                 // first analysis cell
+  function analysisX(r) { return cellX(winStart(r)); }
+  function assessX(r)   { return cellX(winStart(r) + ANALYSIS); }
+
+  let cells = [];          // the top data row
+  let win;                 // sliding window overlay
+  let rows = [];           // staircase: { aBar, sBar, label }
+  let shown = 0;           // how many staircase rows are currently filed (stable)
+  let built = false;
+
+  function mk(cls) { const d = document.createElement('div'); d.className = cls; return d; }
+
+  function build() {
+    const stage = document.getElementById('sw-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    for (let i = 0; i < N; i++) {
+      const c = mk('sw-cell');
+      c.style.width = BOX + 'px';
+      c.style.height = BOX + 'px';
+      anime.set(c, { translateX: cellX(i), translateY: TOP_Y });
+      stage.appendChild(c);
+      cells.push(c);
+    }
+
+    const axis = mk('sw-axis');
+    axis.textContent = 'time →';
+    axis.style.left = cellX(N - 1) + BOX - 70 + 'px';
+    axis.style.top = (TOP_Y + BOX + 8) + 'px';
+    stage.appendChild(axis);
+
+    // sliding window overlay (analysis + assessment segments)
+    win = mk('sw-window');
+    win.style.width = (A_W + GAP + S_W + 12) + 'px';
+    win.style.height = (BOX + 12) + 'px';
+    win.style.opacity = 0;
+    const segA = mk('sw-seg sw-seg-a');
+    segA.style.left = '6px'; segA.style.width = A_W + 'px'; segA.style.height = BOX + 'px';
+    const segS = mk('sw-seg sw-seg-s');
+    segS.style.left = (6 + A_W + GAP) + 'px'; segS.style.width = S_W + 'px'; segS.style.height = BOX + 'px';
+    win.appendChild(segA); win.appendChild(segS);
+    anime.set(win, { translateX: analysisX(0) - 6, translateY: TOP_Y - 6 });
+    stage.appendChild(win);
+
+    // staircase rows: the window's observations as individual cells — analysis
+    // (blue) then assessment (orange) — plus a label. Built hidden at the top;
+    // they drop to their row when filed.
+    for (let r = 0; r < RES; r++) {
+      const pts = [];
+      for (let k = 0; k < ANALYSIS + ASSESS; k++) {
+        const idx = winStart(r) + k;
+        const p = mk('sw-pt ' + (k < ANALYSIS ? 'sw-bar-a' : 'sw-bar-s'));
+        p.style.width = BOX + 'px'; p.style.height = BOX + 'px';
+        p.style.opacity = 0;
+        anime.set(p, { translateX: cellX(idx), translateY: TOP_Y });
+        stage.appendChild(p);
+        pts.push(p);
+      }
+
+      const label = mk('sw-label');
+      label.textContent = 'Resample ' + (r + 1);
+      label.style.lineHeight = BOX + 'px';
+      label.style.opacity = 0;
+      anime.set(label, { translateX: LABEL_X, translateY: ROWS_Y[r] });
+      stage.appendChild(label);
+
+      rows.push({ pts, label });
+    }
+
+    return true;
+  }
+
+  function fileRow(r, on) {
+    const { pts, label } = rows[r];
+    TM.anime({
+      targets: pts,
+      opacity: on ? 1 : 0,
+      translateY: on ? ROWS_Y[r] : TOP_Y,
+      duration: 500,
+      delay: on ? anime.stagger(25) : 0,   // cascade the points into place
+      easing: on ? 'easeOutCubic' : 'easeInQuad',
+    });
+    TM.anime({
+      targets: label,
+      opacity: on ? 1 : 0,
+      duration: 400,
+      easing: 'easeInOutQuad',
+    });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    // the sliding window: shown from stage 1 on, parked at resample (stage-1)
+    const active = Math.max(0, Math.min(stage, RES) - 1);   // 0..RES-1
+    TM.anime({
+      targets: win,
+      opacity: stage >= 1 ? 1 : 0,
+      translateX: analysisX(active) - 6,
+      translateY: TOP_Y - 6,
+      duration: 650,
+      easing: 'easeInOutCubic',
+    });
+
+    // staircase: file rows 0..stage-1, un-file the rest (back-nav safe)
+    const want = Math.min(stage, RES);
+    if (want > shown) for (let r = shown; r < want; r++) fileRow(r, true);
+    else if (want < shown) for (let r = want; r < shown; r++) fileRow(r, false);
+    shown = want;
+
+    const title = document.getElementById('sw-title');
+    if (title) {
+      const text = stage === 0 ? 'Time-ordered data — split by time, not at random'
+                 : `Slide the window forward — resample ${Math.min(stage, RES)} of ${RES}`;
+      title.textContent = text;
+      TM.anime({ targets: title, opacity: 1, duration: 350, easing: 'easeInOutQuad' });
+    }
+  }
+
+  TM.gate({
+    markerClass: 'sw-slide',
+    fragmentIds: ['sw-r1', 'sw-r2', 'sw-r3', 'sw-r4'],
+    render,
+  });
+})();
+</script>

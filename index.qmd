@@ -68,6 +68,17 @@ See `IDEAS.md` for the backlog of concepts to animate.
 [Download reusable bundle](bundles/train-test-split.zip)
 </p>
 
+## Time-based resampling
+
+<iframe class="deck-embed" src="examples/sliding-window.html" title="Time-based (sliding-window) resampling animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/sliding-window.html){target="_blank"}
+[Download GIF](gifs/sliding-window.gif){download=""}
+[Download MP4](mp4/sliding-window.mp4){download=""}
+[Download reusable bundle](bundles/sliding-window.zip)
+</p>
+
 ## Cross-validation
 
 <iframe class="deck-embed" src="examples/cross-validation.html" title="Cross-validation animation"></iframe>

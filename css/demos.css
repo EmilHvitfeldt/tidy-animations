@@ -210,3 +210,103 @@ section:has(.tts-slide) { overflow: hidden; }
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* ---- time-based (sliding-window) resampling ---- */
+section:has(.sw-slide) { overflow: hidden; }
+
+.sw-stage-wrap { position: relative; margin-top: 10px; }
+
+.sw-title {
+  text-align: center;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  min-height: 52px;   /* reserve space so revealing the text causes no layout shift */
+  opacity: 0;
+}
+
+/* fixed-size coordinate box; JS positions children in this same space */
+#sw-stage {
+  position: relative;
+  width: 1100px;
+  height: 520px;
+  margin: 0 auto;
+}
+
+/* invisible markers — they only exist to advance Reveal fragments */
+.sw-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+.sw-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 40px;
+  color: var(--tm-ink);
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+/* the time-ordered data cells along the top */
+.sw-cell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 7px;
+  border: 2px solid var(--tm-ink);
+  background: var(--tm-neutral);
+  box-sizing: border-box;
+  will-change: transform;
+}
+
+/* the "time →" axis under the data row */
+.sw-axis {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* the sliding window overlaying the data row (analysis + assessment) */
+.sw-window {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 10px;
+  border: 3px solid var(--tm-ink);
+  box-sizing: border-box;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.sw-seg {
+  position: absolute;
+  top: 6px;
+  height: 40px;
+  border-radius: 6px;
+}
+.sw-seg-a { background: rgba(106, 169, 224, 0.55); }   /* analysis (blue) */
+.sw-seg-s { background: rgba(232, 133, 58, 0.55); }    /* assessment (orange) */
+
+/* staircase points: one filed resample per row, as individual observations */
+.sw-pt {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 5px;
+  border: 2px solid var(--tm-ink);
+  box-sizing: border-box;
+  will-change: transform, opacity;
+}
+.sw-bar-a { background: var(--tm-analysis); }
+.sw-bar-s { background: var(--tm-assessment); }

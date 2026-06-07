@@ -1,0 +1,24 @@
+---
+title: "Time-based resampling"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/sliding-window.html
+---
+
+```{=html}
+<!-- Configure the analysis/assessment colours here. -->
+<script>window.SW_COLORS = { analysis: '#6aa9e0', assess: '#e8853a' };</script>
+```
+
+## {.sw-slide}
+
+::: {.sw-stage-wrap}
+<div id="sw-title" class="sw-title"></div>
+<div id="sw-stage"></div>
+:::
+
+[]{.fragment .sw-frag id="sw-r1"}
+[]{.fragment .sw-frag id="sw-r2"}
+[]{.fragment .sw-frag id="sw-r3"}
+[]{.fragment .sw-frag id="sw-r4"}
