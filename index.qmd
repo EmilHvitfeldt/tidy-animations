@@ -6,6 +6,8 @@ format:
     page-layout: full
     toc: true
     toc-title: "Concepts"
+filters:
+  - filters/download-size.lua
 include-in-header:
   text: |
     <style>
@@ -40,6 +42,10 @@ include-in-header:
       .gif-link a:hover {
         background: #e9e9e9;
         border-color: #999;
+      }
+      .gif-link .size {
+        color: #888;
+        font-size: 0.85em;
       }
     </style>
 ---
