@@ -68,6 +68,30 @@ guessing. `anime.set` / `anime.stagger` are instant/static and need no wrapping.
    (e.g. flying "copies"), track what's currently shown (`placedFold`-style flag)
    so re-rendering the same stage is a no-op and back-nav tears it down.
 
+## Build segment by segment — don't write the whole animation at once
+
+The best results come from building **one stage (segment) at a time** and
+verifying it in the browser before moving to the next. Trying to author every
+fragment in one pass produces tangled `render(stage)` logic and bugs that are
+hard to localize. Instead, work the loop below for each segment in order:
+
+1. **Agree on the segment list first.** Before writing code, lay out the ordered
+   list of stages (stage 0 = slide arrival, stage 1 = first fragment, …) and what
+   the visual should look like at each. Confirm this with the user — it's the spec
+   the rest of the work follows.
+2. **Build stage 0 only**, get the static starting layout right, verify it in the
+   browser, *then* move on. Don't scaffold later stages yet.
+3. **Add one fragment + its `render(stage)` branch at a time.** Implement the
+   transition into the new stage, leave the higher stages unhandled for now.
+4. **Verify that segment both ways before continuing:** forward nav into it, and
+   back-nav out of it (idempotence). A segment isn't done until back-nav restores
+   the previous stage cleanly.
+5. **Only then start the next segment.** Re-run `quarto preview` and repeat.
+
+When the user says "let's go segment by segment," treat each segment as a
+checkpoint: implement it, show/verify it, and pause for confirmation before
+starting the next rather than racing ahead to the final stage.
+
 ## Gotchas we actually hit (don't relearn these)
 
 - **Theme CSS must be SCSS-layered.** `css/demos.css` is loaded as a reveal theme,
