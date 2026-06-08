@@ -66,6 +66,19 @@ your deck.
 # Files every bundle ships, relative to repo root.
 SHARED = ["js/infra.html", "css/demos.css"]
 
+# Fixed timestamp for every zip entry so bundles are reproducible: identical
+# content -> identical bytes, no churn on re-render. (1980-01-01 is the earliest
+# the zip format can represent.)
+FIXED_DATE = (1980, 1, 1, 0, 0, 0)
+
+
+def _add(z: zipfile.ZipFile, arcname: str, data: bytes) -> None:
+    """Add bytes under a fixed timestamp (never the source mtime or 'now')."""
+    info = zipfile.ZipInfo(arcname, date_time=FIXED_DATE)
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.external_attr = 0o644 << 16
+    z.writestr(info, data)
+
 
 def build(concept: str) -> Path:
     module = ROOT / "js" / f"{concept}.html"
@@ -78,13 +91,10 @@ def build(concept: str) -> Path:
     out = BUNDLES / f"{concept}.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for rel in SHARED:
-            z.write(ROOT / rel, rel)
-        z.write(module, f"js/{concept}.html")
-        z.write(example, f"{concept}.qmd")
-        z.writestr(
-            "README.md",
-            README_TMPL.format(concept=concept, anime=ANIME_SRC),
-        )
+            _add(z, rel, (ROOT / rel).read_bytes())
+        _add(z, f"js/{concept}.html", module.read_bytes())
+        _add(z, f"{concept}.qmd", example.read_bytes())
+        _add(z, "README.md", README_TMPL.format(concept=concept, anime=ANIME_SRC).encode())
     print(f"wrote {out.relative_to(ROOT)}")
     return out
 
