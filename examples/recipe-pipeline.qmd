@@ -1,0 +1,21 @@
+---
+title: "Recipe pipeline"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/recipe-pipeline.html
+---
+
+## {.rec-slide}
+
+::: {.rec-stage-wrap}
+<div id="rec-title" class="rec-title"></div>
+<div id="rec-stage"></div>
+:::
+
+[]{.fragment .rec-frag id="rec-impute"}
+[]{.fragment .rec-frag id="rec-unknown"}
+[]{.fragment .rec-frag id="rec-dummy"}
+[]{.fragment .rec-frag id="rec-normalize"}
+[]{.fragment .rec-frag id="rec-pca"}
+[]{.fragment .rec-frag id="rec-final"}

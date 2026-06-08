@@ -122,3 +122,14 @@ See `IDEAS.md` for the backlog of concepts to animate.
 [Download MP4](mp4/bootstrap.mp4){download=""}
 [Download reusable bundle](bundles/bootstrap.zip)
 </p>
+
+## Recipe pipeline
+
+<iframe class="deck-embed" src="examples/recipe-pipeline.html" title="Recipe pipeline animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/recipe-pipeline.html){target="_blank"}
+[Download GIF](gifs/recipe-pipeline.gif){download=""}
+[Download MP4](mp4/recipe-pipeline.mp4){download=""}
+[Download reusable bundle](bundles/recipe-pipeline.zip)
+</p>

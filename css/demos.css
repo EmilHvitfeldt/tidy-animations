@@ -474,3 +474,152 @@ section:has(.tvs-slide) { overflow: hidden; }
 .tvs-c-a { background: var(--tm-analysis); }
 .tvs-c-v { background: var(--tm-validation); }
 .tvs-c-s { background: var(--tm-assessment); }
+
+/* ---- recipe pipeline ---- */
+section:has(.rec-slide) { overflow: hidden; }
+
+.rec-stage-wrap { position: relative; margin-top: 10px; }
+
+.rec-title {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  min-height: 48px;   /* reserve space so revealing the text causes no layout shift */
+  opacity: 0;
+}
+
+/* fixed-size coordinate box; JS positions children in this same space */
+#rec-stage {
+  position: relative;
+  width: 1220px;
+  height: 560px;
+  margin: 0 auto;
+  overflow: hidden;   /* clip snapshots that have scrolled out of the conveyor */
+}
+
+/* the vertical conveyor holding every dataset snapshot */
+.rec-scroll {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+/* SVG overlay carrying the per-column connector arrows between snapshots */
+.rec-arrows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.rec-arrow-line {
+  stroke: #2b6cb0;
+  stroke-width: 2;
+}
+/* dense many-to-many bundle (PCA): thin, translucent so it reads as a mesh */
+.rec-arrow-line.rec-arrow-faint {
+  stroke-width: 1;
+  stroke-opacity: 0.35;
+}
+
+/* invisible markers — they only exist to advance Reveal fragments */
+.rec-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+/* ---- the recipe code panel (left) ---- */
+.rec-code {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 540px;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 16px;
+  line-height: 1.35;
+  color: #58607080;   /* dimmed by default */
+}
+
+.rec-line {
+  padding: 4px 10px;
+  border-radius: 8px;
+  white-space: pre;
+  color: #6b7280;     /* dimmed */
+  transition: color 0.3s, background-color 0.3s;
+}
+
+/* the step currently "running" */
+.rec-line.rec-active {
+  color: var(--tm-ink);
+  background: rgba(106, 169, 224, 0.18);
+  font-weight: 600;
+}
+
+/* steps already applied */
+.rec-line.rec-done { color: #3f4655; }
+
+.rec-fn { color: #2b6cb0; }       /* function name */
+.rec-sel { color: #b45309; }      /* selector */
+
+/* ---- the data table (right) ---- */
+.rec-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  text-align: center;
+  box-sizing: border-box;
+  padding: 0 4px 6px;
+  line-height: 1.15;
+  border-bottom: 2px solid var(--tm-ink);   /* the header rule */
+  will-change: transform, opacity;
+}
+
+/* outcome column header gets a badge look */
+.rec-head.rec-outcome {
+  color: #166534;
+  border-bottom-color: #166534;
+}
+.rec-head .rec-badge {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #16653499;
+}
+
+.rec-cell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e3e7ee;   /* hairline row separator */
+  background: transparent;
+  box-sizing: border-box;
+  font-size: 14px;
+  color: var(--tm-ink);
+  will-change: transform, opacity, background-color;
+}
+
+/* cells are uncolored; only NA is called out, with red text */
+.rec-cell.rec-na  { color: #c0392b; font-weight: 700; }
+
+/* the "more rows" ellipsis row */
+.rec-cell.rec-dots {
+  color: #9aa1ad;
+  font-size: 20px;
+  font-weight: 700;
+  border-bottom: none;
+  align-items: flex-start;
+}

@@ -1,0 +1,299 @@
+<script>
+/* ---- Recipe pipeline animation ----
+ * Marker slide: .rec-slide   Stage container: #rec-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * Left: the recipe code, the active step highlighted. Right: a *vertical
+ * conveyor* of dataset snapshots. Each step produces a NEW full snapshot of the
+ * data, placed below the previous one and connected by a down-arrow for every
+ * row the step changed. Advancing scrolls the stack up so the newest snapshot
+ * sits at the bottom with the previous one still visible above it.
+ *
+ *   stage 0  recipe(species ~ .)            original data (row 2 here all NA)
+ *   stage 1  step_impute_mean(num)          numeric NAs -> column means
+ *   stage 2  step_unknown(nom)              sex NA -> "unknown"
+ *   stage 3  step_dummy(nom)                island/sex fan out into 0/1 dummies
+ *   stage 4  step_normalize(num)            numeric predictors -> mean 0, sd 1
+ *   stage 5  step_pca(num)                  numeric predictors collapse to PC1..PC5
+ */
+(function () {
+  // ---- geometry ----
+  const TX = 600;                   // table left edge (x)
+  const ROWH = 34, HEADH = 44;      // data-row height / header height
+  const NROW = 4;                   // visible data rows per snapshot
+  const BLOCKH = HEADH + NROW * ROWH + ROWH;  // header + rows + ellipsis row
+  const GAP = 70;                   // vertical gap (arrow lane) between snapshots
+  const PITCH = BLOCKH + GAP;       // slot-to-slot vertical distance
+
+  // recipe code lines (active line = stage)
+  const fn  = (s) => `<span class="rec-fn">${s}</span>`;
+  const sel = (s) => `<span class="rec-sel">${s}</span>`;
+  const LINES = [
+    `${fn('recipe')}(species ~ ., data = penguins) |&gt;`,
+    `  ${fn('step_impute_mean')}(${sel('all_numeric_predictors()')}) |&gt;`,
+    `  ${fn('step_unknown')}(${sel('all_nominal_predictors()')}) |&gt;`,
+    `  ${fn('step_dummy')}(${sel('all_nominal_predictors()')}) |&gt;`,
+    `  ${fn('step_normalize')}(${sel('all_numeric_predictors()')}) |&gt;`,
+    `  ${fn('step_pca')}(${sel('all_numeric_predictors()')}, num_comp = 2)`,
+  ];
+
+  // ---- the 6 snapshots (cols + rows). null = NA. Values are pre-formatted. ----
+  // Columns of the original data (rows 3-6 of palmerpenguins::penguins).
+  const C_ORIG = [
+    { label: 'species', w: 70, out: true },
+    { label: 'island',  w: 86 },
+    { label: 'bill_len', w: 64 },
+    { label: 'bill_dep', w: 64 },
+    { label: 'flipper', w: 64 },
+    { label: 'mass',    w: 60 },
+    { label: 'sex',     w: 70 },
+  ];
+  // Columns after step_dummy (island & sex fanned into 0/1 dummies, in place).
+  const C_DUMMY = [
+    { label: 'species', w: 70, out: true },
+    { label: 'island_<br>Dream', w: 64 },
+    { label: 'island_<br>Torgersen', w: 64 },
+    { label: 'bill_len', w: 62 },
+    { label: 'bill_dep', w: 62 },
+    { label: 'flipper', w: 60 },
+    { label: 'mass', w: 58 },
+    { label: 'sex_<br>male', w: 60 },
+    { label: 'sex_<br>unknown', w: 64 },
+  ];
+  const C_PCA = [
+    { label: 'species', w: 70, out: true },
+    { label: 'PC1', w: 80 }, { label: 'PC2', w: 80 },
+  ];
+
+  // `sel` = indices of columns the step SELECTS, in the *previous* snapshot's
+  // layout. One down-arrow is drawn under each, pointing into this snapshot.
+  const SNAPS = [
+    // stage 0 — original
+    { cols: C_ORIG, rows: [
+      ['Adelie', 'Torgersen', '40.3', '18.0', '195', '3250', 'female'],
+      ['Adelie', 'Torgersen', null,   null,   null,  null,   null    ],
+      ['Adelie', 'Torgersen', '36.7', '19.3', '193', '3450', 'female'],
+      ['Adelie', 'Torgersen', '39.3', '20.6', '190', '3650', 'male'  ],
+    ], sel: [] },
+    // stage 1 — step_impute_mean(all_numeric_predictors): bill_len, bill_dep, flipper, mass
+    { cols: C_ORIG, rows: [
+      ['Adelie', 'Torgersen', '40.3', '18.0', '195',   '3250', 'female'],
+      ['Adelie', 'Torgersen', '38.8', '19.3', '192.7', '3450', null    ],
+      ['Adelie', 'Torgersen', '36.7', '19.3', '193',   '3450', 'female'],
+      ['Adelie', 'Torgersen', '39.3', '20.6', '190',   '3650', 'male'  ],
+    ], sel: [2, 3, 4, 5] },
+    // stage 2 — step_unknown(all_nominal_predictors): island, sex
+    { cols: C_ORIG, rows: [
+      ['Adelie', 'Torgersen', '40.3', '18.0', '195',   '3250', 'female' ],
+      ['Adelie', 'Torgersen', '38.8', '19.3', '192.7', '3450', 'unknown'],
+      ['Adelie', 'Torgersen', '36.7', '19.3', '193',   '3450', 'female' ],
+      ['Adelie', 'Torgersen', '39.3', '20.6', '190',   '3650', 'male'   ],
+    ], sel: [1, 6] },
+    // stage 3 — step_dummy(all_nominal_predictors): island, sex -> 0/1 dummies
+    { cols: C_DUMMY, rows: [
+      ['Adelie', '0', '1', '40.3', '18.0', '195',   '3250', '0', '0'],
+      ['Adelie', '0', '1', '38.8', '19.3', '192.7', '3450', '0', '1'],
+      ['Adelie', '0', '1', '36.7', '19.3', '193',   '3450', '0', '0'],
+      ['Adelie', '0', '1', '39.3', '20.6', '190',   '3650', '1', '0'],
+    ], sel: [1, 6] },
+    // stage 4 — step_normalize(all_numeric_predictors): EVERY numeric predictor is
+    // standardised — the 4 originals AND the 4 dummies (z-scores over the full
+    // training data, where the dummies do vary).
+    { cols: C_DUMMY, rows: [
+      ['Adelie', '-0.55', ' 1.18', ' 1.01', '-1.22', ' 1.13', '-1.22', '-0.58', '-0.55'],
+      ['Adelie', '-0.55', ' 1.18', ' 0.02', ' 0.00', ' 0.01', ' 0.00', '-0.58', ' 1.73'],
+      ['Adelie', '-0.55', ' 1.18', '-1.37', ' 0.00', ' 0.16', ' 0.00', '-0.58', '-0.55'],
+      ['Adelie', '-0.55', ' 1.18', ' 0.35', ' 1.22', '-1.30', ' 1.22', ' 1.73', '-0.55'],
+    ], sel: [1, 2, 3, 4, 5, 6, 7, 8] },
+    // stage 5 — step_pca(..., num_comp = 2): 8 numeric predictors collapse to PC1, PC2
+    { cols: C_PCA, rows: [
+      ['Adelie', '-1.42', ' 0.55'],
+      ['Adelie', ' 0.10', '-0.22'],
+      ['Adelie', ' 1.05', ' 0.88'],
+      ['Adelie', ' 0.27', '-1.21'],
+    ], sel: [1, 2, 3, 4, 5, 6, 7, 8] },
+  ];
+
+  let built = false;
+  let codeLines = [];
+  let scroll = null;            // the scrolling container holding all snapshots
+  let tableEls = [];            // tableEls[s] = array of that snapshot's elements
+  let arrowEls = [];            // arrowEls[g] = array of arrow glyphs for transition g
+
+  function colXs(cols) {
+    const xs = []; let x = TX;
+    for (const c of cols) { xs.push(x); x += c.w; }
+    return xs;          // left x of each column; total width = x - TX
+  }
+  function tableWidth(cols) { return cols.reduce((a, c) => a + c.w, 0); }
+
+  function place(el, x, y) { anime.set(el, { translateX: x, translateY: y }); }
+
+  function buildTable(snap, slotY) {
+    const cols = snap.cols, xs = colXs(cols), els = [];
+    cols.forEach((c, j) => {
+      // header
+      const h = document.createElement('div');
+      h.className = 'rec-head' + (c.out ? ' rec-outcome' : '');
+      h.style.width = c.w + 'px';
+      h.style.height = HEADH + 'px';
+      h.innerHTML = c.out ? `<div>${c.label}<span class="rec-badge">outcome</span></div>` : c.label;
+      place(h, xs[j], slotY);
+      scroll.appendChild(h); els.push(h);
+      // data cells
+      for (let r = 0; r < NROW; r++) {
+        const v = snap.rows[r][j];
+        const cell = document.createElement('div');
+        cell.className = 'rec-cell' + (v === null ? ' rec-na' : '');
+        cell.style.width = c.w + 'px';
+        cell.style.height = ROWH + 'px';
+        cell.textContent = v === null ? 'NA' : v;
+        place(cell, xs[j], slotY + HEADH + r * ROWH);
+        scroll.appendChild(cell); els.push(cell);
+      }
+      // ellipsis ("more rows")
+      const d = document.createElement('div');
+      d.className = 'rec-cell rec-dots';
+      d.style.width = c.w + 'px';
+      d.style.height = ROWH + 'px';
+      d.textContent = '⋮';
+      place(d, xs[j], slotY + HEADH + NROW * ROWH);
+      scroll.appendChild(d); els.push(d);
+    });
+    return els;
+  }
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  // [srcCol, dstCol] pairs for transition g: which upper column flows into which
+  // lower column. Identity for most steps; step_dummy fans each nominal column
+  // into its TWO dummy columns.
+  function arrowPairs(g) {
+    if (g === 3) return [[1, 1], [1, 2], [6, 7], [6, 8]];  // island->Dream/Torg, sex->male/unknown
+    if (g === 5) {                                          // every predictor -> every PC
+      const pairs = [];
+      SNAPS[5].sel.forEach((s) => [1, 2].forEach((d) => pairs.push([s, d])));
+      return pairs;
+    }
+    return SNAPS[g].sel.map((i) => [i, i]);
+  }
+
+  function colCenter(cols, xs, idx) { return xs[idx] + cols[idx].w / 2; }
+
+  // arrows for transition `g`: SVG lines from each source column's bottom to its
+  // target column's top, in the gap above snapshot g. Returns the <g> wrapper.
+  function buildArrows(svg, g) {
+    const pairs = arrowPairs(g);
+    if (!pairs.length) return null;
+    const up = SNAPS[g - 1], lo = SNAPS[g];
+    const upXs = colXs(up.cols), loXs = colXs(lo.cols);
+    const y1 = (g - 1) * PITCH + BLOCKH + 4;   // just below the upper block
+    const y2 = g * PITCH - 4;                  // just above the lower block
+    const dense = pairs.length > 12;   // many-to-many (PCA): lighter, headless lines
+    const grp = document.createElementNS(SVGNS, 'g');
+    grp.style.opacity = 0;
+    pairs.forEach(([s, d]) => {
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', colCenter(up.cols, upXs, s));
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', colCenter(lo.cols, loXs, d));
+      line.setAttribute('y2', y2);
+      line.setAttribute('class', dense ? 'rec-arrow-line rec-arrow-faint' : 'rec-arrow-line');
+      line.setAttribute('marker-end', 'url(#rec-ah)');
+      grp.appendChild(line);
+    });
+    svg.appendChild(grp);
+    return grp;
+  }
+
+  function build() {
+    const stage = document.getElementById('rec-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    // recipe code panel (left)
+    const code = document.createElement('div');
+    code.className = 'rec-code';
+    place(code, 0, 150);
+    LINES.forEach((html) => {
+      const ln = document.createElement('div');
+      ln.className = 'rec-line';
+      ln.innerHTML = html;
+      code.appendChild(ln);
+      codeLines.push(ln);
+    });
+    stage.appendChild(code);
+
+    // scrolling conveyor of snapshots (right)
+    scroll = document.createElement('div');
+    scroll.className = 'rec-scroll';
+    stage.appendChild(scroll);
+
+    // one SVG overlay holds every transition's arrows (in conveyor coordinates)
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('class', 'rec-arrows');
+    svg.setAttribute('width', 1220);
+    svg.setAttribute('height', SNAPS.length * PITCH);
+    const defs = document.createElementNS(SVGNS, 'defs');
+    const marker = document.createElementNS(SVGNS, 'marker');
+    marker.setAttribute('id', 'rec-ah');
+    marker.setAttribute('markerWidth', 7); marker.setAttribute('markerHeight', 7);
+    marker.setAttribute('refX', 5.5); marker.setAttribute('refY', 3);
+    marker.setAttribute('orient', 'auto');
+    const mpath = document.createElementNS(SVGNS, 'path');
+    mpath.setAttribute('d', 'M0,0 L6,3 L0,6 Z');
+    mpath.setAttribute('fill', '#2b6cb0');
+    marker.appendChild(mpath); defs.appendChild(marker); svg.appendChild(defs);
+    scroll.appendChild(svg);
+
+    SNAPS.forEach((snap, s) => {
+      const els = buildTable(snap, s * PITCH);
+      els.forEach((e) => { if (s > 0) e.style.opacity = 0; });
+      tableEls.push(els);
+      arrowEls.push(s === 0 ? null : buildArrows(svg, s));
+    });
+
+    place(scroll, 0, offsetFor(0));
+    return true;
+  }
+
+  // scroll so the current (bottom) snapshot sits low, previous still visible.
+  // The final stage re-centres the finished snapshot like the original at stage 0.
+  function offsetFor(stage) {
+    const FINAL = SNAPS.length;          // the extra "all done" stage
+    if (stage >= FINAL) return 150 - (FINAL - 1) * PITCH;
+    const top = stage === 0 ? 150 : 300;
+    return top - stage * PITCH;
+  }
+
+  function highlightCode(stage) {
+    codeLines.forEach((ln, i) => {
+      ln.classList.toggle('rec-active', i === stage);
+      ln.classList.toggle('rec-done', i < stage);
+    });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+    highlightCode(stage);
+
+    const FINAL = SNAPS.length;       // final "all done" stage shows only the last snapshot
+    tableEls.forEach((els, s) => {
+      const vis = stage >= FINAL ? (s === FINAL - 1) : (s <= stage);
+      TM.anime({ targets: els, opacity: vis ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+    });
+    arrowEls.forEach((grp, g) => {
+      if (!grp) return;
+      const vis = stage < FINAL && g <= stage;
+      TM.anime({ targets: grp, opacity: vis ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+    });
+    TM.anime({ targets: scroll, translateY: offsetFor(stage), duration: 600, easing: 'easeInOutCubic' });
+  }
+
+  TM.gate({
+    markerClass: 'rec-slide',
+    fragmentIds: ['rec-impute', 'rec-unknown', 'rec-dummy', 'rec-normalize', 'rec-pca', 'rec-final'],
+    render,
+  });
+})();
+</script>
