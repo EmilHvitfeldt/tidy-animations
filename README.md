@@ -14,7 +14,6 @@ talk and avoids fragment ids cross-firing between concepts.
 tidymodels-animated/
 ├── _quarto.yml                    # shared format defaults + anime.js + js/infra.html (loaded everywhere)
 ├── index.qmd                      # landing page linking to each deck
-├── IDEAS.md                       # backlog of concepts to animate
 ├── examples/
 │   └── cross-validation.qmd       # one concept = one deck
 ├── css/
@@ -26,18 +25,17 @@ tidymodels-animated/
 
 ### Adding a new animation
 
-1. Add a row to `IDEAS.md` (or pick one from the backlog).
-2. Create `js/<concept>.html` — a `<script>` that builds its DOM and calls
+1. Create `js/<concept>.html` — a `<script>` that builds its DOM and calls
    `TM.gate({ markerClass, fragmentIds, render })`. Write `render(stage)` to be
    **idempotent**: given the number of visible fragments, it sets the target
    state. That makes forward nav, back nav, and direct-link arrival all work.
-3. Create `examples/<concept>.qmd` whose YAML pulls the module in via its own
+2. Create `examples/<concept>.qmd` whose YAML pulls the module in via its own
    `include-after-body: [../js/<concept>.html]`. (Shared `infra.html` is already
    loaded globally from `_quarto.yml`.)
-4. Mark the animated slide with a unique class (e.g. `{.cv-slide}`) and add
+3. Mark the animated slide with a unique class (e.g. `{.cv-slide}`) and add
    invisible `.fragment` markers with ids the module gates on.
-5. Add any concept-specific CSS to `css/demos.css`.
-6. Link the new deck from `index.qmd`.
+4. Add any concept-specific CSS to `css/demos.css`.
+5. Link the new deck from `index.qmd`.
 
 ## Build / preview
 

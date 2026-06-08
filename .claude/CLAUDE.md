@@ -33,7 +33,6 @@ animations in one deck — it lets fragment ids cross-fire and breaks the
   site). Built by `tools/make_bundle.py` from `js/infra.html`, `js/<concept>.html`,
   `css/demos.css`, and `examples/<concept>.qmd`. Don't edit by hand — re-run the
   script (the pre-render hook does this automatically on `quarto render`).
-- `IDEAS.md` — backlog of concepts to animate.
 
 ## How an animation module works
 

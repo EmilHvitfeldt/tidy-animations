@@ -46,7 +46,7 @@
     "href": "index.html",
     "title": "tidymodels, animated",
     "section": "",
-    "text": "Self-contained animated explainers for tidymodels concepts, built with Quarto RevealJS + anime.js. Each concept is its own deck — embedded below, and openable on its own. Use the arrow keys (or the on-slide controls) inside a deck to step through its animation.\nSee IDEAS.md for the backlog of concepts to animate."
+    "text": "Self-contained animated explainers for tidymodels concepts, built with Quarto RevealJS + anime.js. Each concept is its own deck — embedded below, and openable on its own. Use the arrow keys (or the on-slide controls) inside a deck to step through its animation."
   },
   {
     "objectID": "index.html#initial-traintest-split",
