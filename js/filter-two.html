@@ -1,0 +1,222 @@
+<script>
+/* ---- filter() on two columns ----
+ * Marker slide: .fr-slide   Stage container: #fr-stage
+ * Left: full dataset. Stage 1 highlights the cells satisfying each column's
+ * condition (FR_HITS, one array per column); stage 2 draws arrows + reveals the
+ * filtered result for rows where ALL conditions match.
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ */
+(function () {
+  const TITLE_PRE   = window.FR_TITLE_PRE   || 'filter(';
+  const CONDS_TEXT  = window.FR_CONDS_TEXT  || [];
+  const TITLE_POST  = window.FR_TITLE_POST  || ')';
+  const DATA  = window.FR_DATA  || [];
+  const COLS  = window.FR_COLS  || ['species', 'bill_length_mm'];
+  const HITS  = window.FR_HITS  || [];
+
+  const ROW_H = 44, HEADER_H = 40, TABLE_Y = 90;
+  const LEFT_X = 50, RIGHT_X = 720;
+  const W_SP = 158, W_VAL = 148;
+  const ROW_W = W_SP + W_VAL;
+  // one base colour (hex) per condition column, configurable via FR_COLORS.
+  // Each becomes a translucent highlight fill + a darker text shade.
+  const COND_HEX = window.FR_COLORS || ['#4a86c5', '#e8853a', '#6cbf84'];
+  function hexRGB(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  const COND_COLORS = COND_HEX.map(hex => {
+    const [r, g, b] = hexRGB(hex);
+    return {
+      fill: `rgba(${r}, ${g}, ${b}, 0.30)`,
+      ink:  `rgb(${Math.round(r * 0.62)}, ${Math.round(g * 0.62)}, ${Math.round(b * 0.62)})`,
+    };
+  });
+  const ROW_HIGHLIGHT = 'rgba(74, 134, 197, 0.14)';
+  const ROW_CLEAR = 'rgba(74, 134, 197, 0)';
+  const INK = 'rgb(29, 36, 51)';
+  // transparent version of an rgb/rgba colour, so fades stay within the hue
+  // instead of passing through grey (transparent black).
+  function clear(rgba) {
+    const n = rgba.match(/[\d.]+/g) || [0, 0, 0];
+    return `rgba(${n[0]}, ${n[1]}, ${n[2]}, 0)`;
+  }
+
+  // a row survives only if every defined column condition matches
+  const N = DATA.length;
+  const PASS = DATA.map((_, i) => HITS.every(col => col[i]));
+  const passIdx = DATA.map((_, i) => i).filter(i => PASS[i]);
+  const M = passIdx.length;
+
+  let built = false;
+  let condSpans = [];    // the condition substrings inside the title code
+  let leftRows = [];     // data rows on the left
+  let rightEls = [];     // right-table elements to fade in
+  let arrows = [];       // svg <path> per passing row
+
+  function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
+  function rowCenterY(j) { return rowY(j) + ROW_H / 2; }
+
+  function makeRow(species, value, isHead) {
+    const row = document.createElement('div');
+    row.className = 'fr-row' + (isHead ? ' fr-head' : '');
+    const c1 = document.createElement('span'); c1.className = 'fr-cell fr-species'; c1.textContent = species;
+    const c2 = document.createElement('span'); c2.className = 'fr-cell fr-value';   c2.textContent = value;
+    row.append(c1, c2);
+    return row;
+  }
+
+  function build() {
+    const stage = document.getElementById('fr-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    const title = document.createElement('div');
+    title.className = 'fr-title';
+    title.appendChild(document.createTextNode(TITLE_PRE));
+    CONDS_TEXT.forEach((t, i) => {
+      if (i) title.appendChild(document.createTextNode(', '));
+      const s = document.createElement('span');
+      s.className = 'fr-code-cond';
+      s.textContent = t;
+      title.appendChild(s);
+      condSpans.push(s);
+    });
+    title.appendChild(document.createTextNode(TITLE_POST));
+    stage.appendChild(title);
+
+    // ---- left table ----
+    const lhead = makeRow(COLS[0], COLS[1], true);
+    lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(lhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeRow(d[0], d[1], false);
+      row.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
+      stage.appendChild(row);
+      leftRows.push(row);
+    });
+
+    // ---- right table (hidden until stage 2) ----
+    const rhead = makeRow(COLS[0], COLS[1], true);
+    rhead.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    rightEls.push(rhead);
+
+    passIdx.forEach((srcI, j) => {
+      const d = DATA[srcI];
+      const row = makeRow(d[0], d[1], false);
+      row.style.transform = `translate(${RIGHT_X}px, ${rowY(j)}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      rightEls.push(row);
+    });
+
+    // ---- arrows (svg overlay) ----
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'fr-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'fr-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#4a86c5');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const sx = LEFT_X + ROW_W + 6;
+    const dx = RIGHT_X - 8;
+    passIdx.forEach((srcI, j) => {
+      const syy = rowCenterY(srcI), dyy = rowCenterY(j);
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'fr-arrow');
+      p.setAttribute('marker-end', 'url(#fr-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${syy} C ${sx + 130} ${syy}, ${dx - 130} ${dyy}, ${dx} ${dyy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    // stages 1..nConds: highlight one condition's matching cells per step
+    const nConds = HITS.length;
+    // mirror the highlight onto that condition's code in the title
+    condSpans.forEach((s, c) => {
+      const hi = stage >= c + 1;
+      const cc = COND_COLORS[c % COND_COLORS.length];
+      TM.anime({
+        targets: s,
+        backgroundColor: hi ? cc.fill : clear(cc.fill),
+        color: hi ? cc.ink : INK,
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    });
+    leftRows.forEach((row, i) => {
+      const cells = row.querySelectorAll('.fr-cell');
+      HITS.forEach((col, c) => {
+        if (!col[i]) return;                 // this cell doesn't match — leave it
+        const hi = stage >= c + 1;           // condition c reveals at stage c+1
+        const cc = COND_COLORS[c % COND_COLORS.length];
+        const cell = cells[c];
+        cell.classList.toggle('fr-hit', hi);
+        TM.anime({
+          targets: cell,
+          backgroundColor: hi ? cc.fill : clear(cc.fill),
+          color: hi ? cc.ink : INK,
+          duration: 450, easing: 'easeInOutQuad',
+        });
+      });
+    });
+
+    // next stage: keep only rows where ALL conditions match — give those rows a
+    // full-row highlight and dim the rows that fail at least one condition.
+    const both = stage >= nConds + 1;
+    leftRows.forEach((row, i) => {
+      TM.anime({
+        targets: row,
+        opacity: both && !PASS[i] ? 0.22 : 1,
+        backgroundColor: both && PASS[i] ? ROW_HIGHLIGHT : ROW_CLEAR,
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    });
+
+    // final stage: draw arrows, then reveal the filtered result right after
+    const show = stage >= nConds + 2;
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: show ? 0 : len,
+        opacity: show ? 1 : 0,
+        duration: 600, easing: 'easeInOutCubic',
+        delay: show ? k * 90 : 0,
+      });
+    });
+    TM.anime({
+      targets: rightEls,
+      opacity: show ? 1 : 0,
+      duration: 450, easing: 'easeInOutQuad',
+      delay: show ? anime.stagger(50, { start: 520 }) : 0,
+    });
+  }
+
+  TM.gate({
+    markerClass: 'fr-slide',
+    fragmentIds: ['fr-cond-1', 'fr-cond-2', 'fr-both', 'fr-arrows'],
+    render,
+  });
+})();
+</script>

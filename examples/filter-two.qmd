@@ -1,0 +1,49 @@
+---
+title: "filter() — two columns"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/filter-two.html
+---
+
+```{=html}
+<!-- Filtering on two columns. FR_HITS marks, per column, which cells satisfy
+     that column's condition; a row survives only if ALL its conditions match. -->
+<script>
+window.FR_TITLE_PRE = 'filter(';
+window.FR_CONDS_TEXT = ['species == "Chinstrap"', 'bill_length_mm > 45'];
+window.FR_TITLE_POST = ')';
+window.FR_DATA = [
+  ['Adelie',    '41.80'],
+  ['Adelie',    '36.50'],
+  ['Adelie',    '40.30'],
+  ['Chinstrap', '45.40'],
+  ['Chinstrap', '46.50'],
+  ['Chinstrap', '46'],
+  ['Gentoo',    '43.60'],
+  ['Gentoo',    '45.10'],
+  ['Gentoo',    '50.70'],
+];
+window.FR_COLS = ['species', 'bill_length_mm'];
+// one base colour per condition (highlight fill + matching code/text shade)
+window.FR_COLORS = ['#4a86c5', '#e8853a'];
+// one boolean array per column: does that cell satisfy the column's condition?
+window.FR_HITS = [
+  // species == "Chinstrap"
+  [false, false, false, true,  true,  true,  false, false, false],
+  // bill_length_mm > 45
+  [false, false, false, true,  true,  true,  false, true,  true ],
+];
+</script>
+```
+
+## {.fr-slide}
+
+::: {.fr-stage-wrap}
+<div id="fr-stage"></div>
+:::
+
+[]{.fragment .fr-frag id="fr-cond-1"}
+[]{.fragment .fr-frag id="fr-cond-2"}
+[]{.fragment .fr-frag id="fr-both"}
+[]{.fragment .fr-frag id="fr-arrows"}

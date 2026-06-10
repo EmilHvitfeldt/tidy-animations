@@ -164,3 +164,14 @@ through its animation.
 [Download MP4](mp4/filter-one.mp4){download=""}
 [Download reusable bundle](bundles/filter-one.zip)
 </p>
+
+## filter() on two columns
+
+<iframe class="deck-embed" src="examples/filter-two.html" title="filter() on two columns animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/filter-two.html){target="_blank"}
+[Download GIF](gifs/filter-two.gif){download=""}
+[Download MP4](mp4/filter-two.mp4){download=""}
+[Download reusable bundle](bundles/filter-two.zip)
+</p>
