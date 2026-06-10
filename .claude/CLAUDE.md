@@ -3,6 +3,15 @@
 Animated explainers for tidymodels concepts: Quarto RevealJS + anime.js, driven
 by RevealJS fragments.
 
+## Reusable animation recipes
+
+- **`docs/recipe-ggplot2-deconstructed.md`** — the "code-deconstructed" style
+  (ggplot2 code on the left; the plot lays down, explodes into one stacked
+  semi-transparent card per code block, walks up highlighting each line + its
+  slice, then collapses). Follow it when a user supplies a different ggplot2
+  snippet and wants this treatment. Canonical impl: `examples/ggplot2-deconstructed.qmd`
+  + `js/ggplot2-deconstructed.html`.
+
 ## Core convention: ONE `.qmd` PER ANIMATION
 
 Every concept is its own self-contained deck under `examples/`, with a matching
