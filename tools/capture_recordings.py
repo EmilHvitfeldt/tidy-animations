@@ -23,8 +23,8 @@ Prereqs: `pip install playwright`, `playwright install chromium`, ffmpeg, and
 (optional, for the lossless pass) gifsicle.
 
 Example:
-  python tools/capture_gif.py \
-      --deck _site/examples/cross-validation.html --slide 2 --steps 5 \
+  python tools/capture_recordings.py \
+      --deck _site/examples/cross-validation.html --slide 1 --steps 6 \
       --out gifs/cross-validation.gif
 """
 import argparse

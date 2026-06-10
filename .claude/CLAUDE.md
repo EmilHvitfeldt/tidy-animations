@@ -179,8 +179,8 @@ python3 tools/capture_recordings.py \
 ```
 
 - **`--steps` must be `(number of gating fragments) + 1`.** The first `ArrowRight`
-  lands on the slide (stage 0) rather than advancing a fragment, so a 4-fragment
-  deck needs `--steps 5` to reach the final stage. If the last frame stops one
+  lands on the slide (stage 0) rather than advancing a fragment, so a 5-fragment
+  deck needs `--steps 6` to reach the final stage. If the last frame stops one
   stage short, this is why.
 - `--slide 1` is the content slide (slide 0 is Quarto's title slide).
 - `--selector` is the deck's stage wrapper (e.g. `.bs-stage-wrap`); the recording

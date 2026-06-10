@@ -55,6 +55,11 @@ RevealJS + anime.js. Each concept is its own deck — embedded below, and openab
 on its own. Use the arrow keys (or the on-slide controls) inside a deck to step
 through its animation.
 
+# Splitting & resampling
+
+Carving data into train / validation / test sets, and the resampling schemes
+built on top of them.
+
 ## Initial train/test split
 
 <iframe class="deck-embed" src="examples/train-test-split.html" title="Initial train/test split animation"></iframe>
@@ -121,6 +126,10 @@ through its animation.
 [Download reusable bundle](bundles/bootstrap.zip)
 </p>
 
+# Feature engineering
+
+Transforming predictors before they reach the model.
+
 ## Recipe pipeline
 
 <iframe class="deck-embed" src="examples/recipe-pipeline.html" title="Recipe pipeline animation"></iframe>
@@ -131,6 +140,10 @@ through its animation.
 [Download MP4](mp4/recipe-pipeline.mp4){download=""}
 [Download reusable bundle](bundles/recipe-pipeline.zip)
 </p>
+
+# Visualization (ggplot2)
+
+Watching plotting code come apart layer by layer.
 
 ## ggplot2, deconstructed
 
@@ -164,6 +177,10 @@ through its animation.
 [Download MP4](mp4/ggplot2-deconstructed-mobile.mp4){download=""}
 [Download reusable bundle](bundles/ggplot2-deconstructed-mobile.zip)
 </p>
+
+# Data wrangling (dplyr)
+
+How row-wise verbs reshape a data frame.
 
 ## filter() a data frame
 

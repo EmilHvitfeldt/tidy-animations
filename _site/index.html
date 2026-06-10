@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>tidymodels, animated</title>
+<title>tidy animations – tidymodels, animated</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -123,18 +123,30 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">Concepts</h2>
    
   <ul>
-  <li><a href="#initial-traintest-split" id="toc-initial-traintest-split" class="nav-link active" data-scroll-target="#initial-traintest-split">Initial train/test split</a></li>
+  <li><a href="#splitting-resampling" id="toc-splitting-resampling" class="nav-link active" data-scroll-target="#splitting-resampling">Splitting &amp; resampling</a>
+  <ul class="collapse">
+  <li><a href="#initial-traintest-split" id="toc-initial-traintest-split" class="nav-link" data-scroll-target="#initial-traintest-split">Initial train/test split</a></li>
   <li><a href="#trainvalidationtest-split" id="toc-trainvalidationtest-split" class="nav-link" data-scroll-target="#trainvalidationtest-split">Train/validation/test split</a></li>
   <li><a href="#time-based-resampling" id="toc-time-based-resampling" class="nav-link" data-scroll-target="#time-based-resampling">Time-based resampling</a></li>
   <li><a href="#time-based-trainvalidationtest-split" id="toc-time-based-trainvalidationtest-split" class="nav-link" data-scroll-target="#time-based-trainvalidationtest-split">Time-based train/validation/test split</a></li>
   <li><a href="#cross-validation" id="toc-cross-validation" class="nav-link" data-scroll-target="#cross-validation">Cross-validation</a></li>
   <li><a href="#bootstrap-resampling" id="toc-bootstrap-resampling" class="nav-link" data-scroll-target="#bootstrap-resampling">Bootstrap resampling</a></li>
+  </ul></li>
+  <li><a href="#feature-engineering" id="toc-feature-engineering" class="nav-link" data-scroll-target="#feature-engineering">Feature engineering</a>
+  <ul class="collapse">
   <li><a href="#recipe-pipeline" id="toc-recipe-pipeline" class="nav-link" data-scroll-target="#recipe-pipeline">Recipe pipeline</a></li>
+  </ul></li>
+  <li><a href="#visualization-ggplot2" id="toc-visualization-ggplot2" class="nav-link" data-scroll-target="#visualization-ggplot2">Visualization (ggplot2)</a>
+  <ul class="collapse">
   <li><a href="#ggplot2-deconstructed" id="toc-ggplot2-deconstructed" class="nav-link" data-scroll-target="#ggplot2-deconstructed">ggplot2, deconstructed</a></li>
   <li><a href="#ggplot2-deconstructed-variant" id="toc-ggplot2-deconstructed-variant" class="nav-link" data-scroll-target="#ggplot2-deconstructed-variant">ggplot2, deconstructed (variant)</a></li>
   <li><a href="#ggplot2-deconstructed-mobile" id="toc-ggplot2-deconstructed-mobile" class="nav-link" data-scroll-target="#ggplot2-deconstructed-mobile">ggplot2, deconstructed (mobile)</a></li>
+  </ul></li>
+  <li><a href="#data-wrangling-dplyr" id="toc-data-wrangling-dplyr" class="nav-link" data-scroll-target="#data-wrangling-dplyr">Data wrangling (dplyr)</a>
+  <ul class="collapse">
   <li><a href="#filter-a-data-frame" id="toc-filter-a-data-frame" class="nav-link" data-scroll-target="#filter-a-data-frame">filter() a data frame</a></li>
   <li><a href="#filter-on-two-columns" id="toc-filter-on-two-columns" class="nav-link" data-scroll-target="#filter-on-two-columns">filter() on two columns</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -143,7 +155,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">tidymodels, animated</h1>
+<h1 class="title">tidy animations</h1>
 <p class="subtitle lead">Showing how the concepts actually move</p>
 </div>
 
@@ -162,6 +174,9 @@ ul.task-list li input[type="checkbox"] {
 
 
 <p>Self-contained animated explainers for tidymodels concepts, built with Quarto RevealJS + anime.js. Each concept is its own deck — embedded below, and openable on its own. Use the arrow keys (or the on-slide controls) inside a deck to step through its animation.</p>
+<section id="splitting-resampling" class="level1">
+<h1>Splitting &amp; resampling</h1>
+<p>Carving data into train / validation / test sets, and the resampling schemes built on top of them.</p>
 <section id="initial-traintest-split" class="level2">
 <h2 class="anchored" data-anchor-id="initial-traintest-split">Initial train/test split</h2>
 <iframe class="deck-embed" src="examples/train-test-split.html" title="Initial train/test split animation">
@@ -210,6 +225,10 @@ ul.task-list li input[type="checkbox"] {
 <a href="examples/bootstrap.html" target="_blank">Open full deck</a> <a href="gifs/bootstrap.gif" download="">Download GIF<span class="size"> (1.2 MB)</span></a> <a href="mp4/bootstrap.mp4" download="">Download MP4<span class="size"> (527 KB)</span></a> <a href="bundles/bootstrap.zip">Download reusable bundle<span class="size"> (10 KB)</span></a>
 </p>
 </section>
+</section>
+<section id="feature-engineering" class="level1">
+<h1>Feature engineering</h1>
+<p>Transforming predictors before they reach the model.</p>
 <section id="recipe-pipeline" class="level2">
 <h2 class="anchored" data-anchor-id="recipe-pipeline">Recipe pipeline</h2>
 <iframe class="deck-embed" src="examples/recipe-pipeline.html" title="Recipe pipeline animation">
@@ -218,6 +237,10 @@ ul.task-list li input[type="checkbox"] {
 <a href="examples/recipe-pipeline.html" target="_blank">Open full deck</a> <a href="gifs/recipe-pipeline.gif" download="">Download GIF<span class="size"> (836 KB)</span></a> <a href="mp4/recipe-pipeline.mp4" download="">Download MP4<span class="size"> (396 KB)</span></a> <a href="bundles/recipe-pipeline.zip">Download reusable bundle<span class="size"> (11 KB)</span></a>
 </p>
 </section>
+</section>
+<section id="visualization-ggplot2" class="level1">
+<h1>Visualization (ggplot2)</h1>
+<p>Watching plotting code come apart layer by layer.</p>
 <section id="ggplot2-deconstructed" class="level2">
 <h2 class="anchored" data-anchor-id="ggplot2-deconstructed">ggplot2, deconstructed</h2>
 <iframe class="deck-embed" src="examples/ggplot2-deconstructed.html" title="ggplot2 deconstructed animation">
@@ -242,6 +265,10 @@ ul.task-list li input[type="checkbox"] {
 <a href="examples/ggplot2-deconstructed-mobile.html" target="_blank">Open full deck</a> <a href="gifs/ggplot2-deconstructed-mobile.gif" download="">Download GIF<span class="size"> (3.9 MB)</span></a> <a href="mp4/ggplot2-deconstructed-mobile.mp4" download="">Download MP4<span class="size"> (1.0 MB)</span></a> <a href="bundles/ggplot2-deconstructed-mobile.zip">Download reusable bundle<span class="size"> (12 KB)</span></a>
 </p>
 </section>
+</section>
+<section id="data-wrangling-dplyr" class="level1">
+<h1>Data wrangling (dplyr)</h1>
+<p>How row-wise verbs reshape a data frame.</p>
 <section id="filter-a-data-frame" class="level2">
 <h2 class="anchored" data-anchor-id="filter-a-data-frame">filter() a data frame</h2>
 <iframe class="deck-embed" src="examples/filter-one.html" title="filter() a data frame animation">
@@ -259,6 +286,7 @@ ul.task-list li input[type="checkbox"] {
 </p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

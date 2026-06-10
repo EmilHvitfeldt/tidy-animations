@@ -2,91 +2,91 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "",
     "text": "Self-contained animated explainers for tidymodels concepts, built with Quarto RevealJS + anime.js. Each concept is its own deck — embedded below, and openable on its own. Use the arrow keys (or the on-slide controls) inside a deck to step through its animation."
   },
   {
     "objectID": "index.html#initial-traintest-split",
     "href": "index.html#initial-traintest-split",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "Initial train/test split",
     "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (10 KB)"
   },
   {
     "objectID": "index.html#trainvalidationtest-split",
     "href": "index.html#trainvalidationtest-split",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "Train/validation/test split",
     "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (9 KB)"
   },
   {
     "objectID": "index.html#time-based-resampling",
     "href": "index.html#time-based-resampling",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "Time-based resampling",
     "text": "Time-based resampling\n\n\n\nOpen full deck Download GIF (224 KB) Download MP4 (109 KB) Download reusable bundle (9 KB)"
   },
   {
     "objectID": "index.html#time-based-trainvalidationtest-split",
     "href": "index.html#time-based-trainvalidationtest-split",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "Time-based train/validation/test split",
     "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (9 KB)"
   },
   {
     "objectID": "index.html#cross-validation",
     "href": "index.html#cross-validation",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "Cross-validation",
     "text": "Cross-validation\n\n\n\nOpen full deck Download GIF (820 KB) Download MP4 (259 KB) Download reusable bundle (9 KB)"
   },
   {
     "objectID": "index.html#bootstrap-resampling",
     "href": "index.html#bootstrap-resampling",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "Bootstrap resampling",
     "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (10 KB)"
   },
   {
     "objectID": "index.html#recipe-pipeline",
     "href": "index.html#recipe-pipeline",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "Recipe pipeline",
     "text": "Recipe pipeline\n\n\n\nOpen full deck Download GIF (836 KB) Download MP4 (396 KB) Download reusable bundle (11 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",
     "href": "index.html#ggplot2-deconstructed",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "ggplot2, deconstructed",
     "text": "ggplot2, deconstructed\n\n\n\nOpen full deck Download GIF (1.1 MB) Download MP4 (424 KB) Download reusable bundle (12 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-variant",
     "href": "index.html#ggplot2-deconstructed-variant",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "ggplot2, deconstructed (variant)",
     "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (13 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-mobile",
     "href": "index.html#ggplot2-deconstructed-mobile",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "ggplot2, deconstructed (mobile)",
     "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (12 KB)"
   },
   {
     "objectID": "index.html#filter-a-data-frame",
     "href": "index.html#filter-a-data-frame",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "filter() a data frame",
     "text": "filter() a data frame\n\n\n\nOpen full deck Download GIF (132 KB) Download MP4 (73 KB) Download reusable bundle (9 KB)"
   },
   {
     "objectID": "index.html#filter-on-two-columns",
     "href": "index.html#filter-on-two-columns",
-    "title": "tidymodels, animated",
+    "title": "tidy animations",
     "section": "filter() on two columns",
     "text": "filter() on two columns\n\n\n\nOpen full deck Download GIF (203 KB) Download MP4 (97 KB) Download reusable bundle (10 KB)"
   },
