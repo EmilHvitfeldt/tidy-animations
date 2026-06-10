@@ -1,0 +1,22 @@
+---
+title: "ggplot2, deconstructed"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/ggplot2-deconstructed.html
+---
+
+## {.gd-slide}
+
+::: {.gd-stage-wrap}
+<div id="gd-stage"></div>
+:::
+
+[]{.fragment .gd-frag id="gd-lay"}
+[]{.fragment .gd-frag id="gd-explode"}
+[]{.fragment .gd-frag id="gd-focus-coord"}
+[]{.fragment .gd-frag id="gd-focus-points"}
+[]{.fragment .gd-frag id="gd-focus-smooth"}
+[]{.fragment .gd-frag id="gd-focus-labs"}
+[]{.fragment .gd-frag id="gd-collapse"}
+[]{.fragment .gd-frag id="gd-unrotate"}

@@ -623,3 +623,85 @@ section:has(.rec-slide) { overflow: hidden; }
   border-bottom: none;
   align-items: flex-start;
 }
+
+/* ---- ggplot2-deconstructed ---- */
+section:has(.gd-slide) { overflow: hidden; }
+
+.gd-stage-wrap { position: relative; margin-top: 10px; }
+
+/* fixed-size coordinate box; JS positions children in this same space */
+#gd-stage {
+  position: relative;
+  width: 1200px;
+  height: 600px;
+  margin: 0 auto;
+}
+
+/* invisible markers — they only exist to advance Reveal fragments */
+.gd-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+/* left-hand code listing */
+.gd-code {
+  position: absolute;
+  left: 0;
+  top: 150px;
+  width: 590px;
+  font-family: "Source Code Pro", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--tm-ink);
+  white-space: pre;
+}
+/* the focused code block when a slice is highlighted */
+.gd-code [data-blk] { border-radius: 4px; transition: background-color 0.3s ease; }
+.gd-code [data-blk].gd-hot {
+  background: rgba(255, 214, 84, 0.32);
+  box-shadow: 0 0 0 4px rgba(255, 214, 84, 0.32);
+}
+
+.gd-code .gd-fn   { color: #2563c9; }   /* function names */
+.gd-code .gd-str  { color: #2e8b57; }   /* strings */
+.gd-code .gd-arg  { color: #8a6d00; }   /* argument names */
+.gd-code .gd-num  { color: #b5651d; }   /* numbers */
+.gd-code .gd-mut  { color: #9aa1ad; }   /* punctuation / muted */
+
+/* right-hand plot lives in its own coordinate sub-box, built from SVG planes */
+#gd-plot {
+  position: absolute;
+  left: 600px;
+  top: 110px;
+  width: 600px;
+  height: 380px;
+}
+
+/* outer plane: only moved vertically (screen space) for the explode fan.
+   Each carries its own perspective so the tilt projects through a vanishing
+   point centered on this card — keeping every card's edges aligned. */
+.gd-plane { perspective: 1600px; }
+
+/* inner: the element that actually tilts */
+.gd-tilt {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* card backing — hidden while flat, fades in as the planes explode */
+.gd-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(160, 168, 184, 0.6);
+  border-radius: 6px;
+  box-shadow: 0 14px 34px rgba(20, 28, 45, 0.14);
+  opacity: 0;
+}

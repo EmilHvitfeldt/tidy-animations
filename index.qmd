@@ -131,3 +131,14 @@ through its animation.
 [Download MP4](mp4/recipe-pipeline.mp4){download=""}
 [Download reusable bundle](bundles/recipe-pipeline.zip)
 </p>
+
+## ggplot2, deconstructed
+
+<iframe class="deck-embed" src="examples/ggplot2-deconstructed.html" title="ggplot2 deconstructed animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/ggplot2-deconstructed.html){target="_blank"}
+[Download GIF](gifs/ggplot2-deconstructed.gif){download=""}
+[Download MP4](mp4/ggplot2-deconstructed.mp4){download=""}
+[Download reusable bundle](bundles/ggplot2-deconstructed.zip)
+</p>
