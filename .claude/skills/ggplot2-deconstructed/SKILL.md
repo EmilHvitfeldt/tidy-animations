@@ -1,3 +1,8 @@
+---
+name: ggplot2-deconstructed
+description: Build a "code-deconstructed" ggplot2 animation deck — ggplot2 code on the left, the plot lays down in 3D, explodes into one stacked semi-transparent paper card per code block, walks up highlighting each line and its slice, then collapses back to flat. Use when a user supplies a ggplot2 snippet and wants this treatment in the tidy-animations repo. Canonical impl: examples/ggplot2-deconstructed.qmd + js/ggplot2-deconstructed.html.
+---
+
 # Recipe: "code-deconstructed" plot animation
 
 A reusable template for the **ggplot2-deconstructed** style: a ggplot2 code
@@ -130,7 +135,7 @@ so the recorder can pace to `TM.idle()`.
    keep them after the `/*-- scss:rules --*/` boundary).
 2. `quarto render examples/<concept>.qmd`, then capture **both**:
    ```
-   python3 tools/capture_recordings.py --deck _site/examples/<concept>.html \
+   python3 tools/capture_recordings.py --deck docs/examples/<concept>.html \
      --slide 1 --steps <fragments + 1> --selector .<prefix>-stage-wrap \
      --out gifs/<concept>.gif        # repeat with --out mp4/<concept>.mp4
    ```

@@ -5,12 +5,12 @@ driven by RevealJS fragments.
 
 ## Reusable animation recipes
 
-- **`docs/recipe-ggplot2-deconstructed.md`** — the "code-deconstructed" style
-  (ggplot2 code on the left; the plot lays down, explodes into one stacked
-  semi-transparent card per code block, walks up highlighting each line + its
-  slice, then collapses). Follow it when a user supplies a different ggplot2
-  snippet and wants this treatment. Canonical impl: `examples/ggplot2-deconstructed.qmd`
-  + `js/ggplot2-deconstructed.html`.
+- **`ggplot2-deconstructed` skill** (`.claude/skills/ggplot2-deconstructed/SKILL.md`)
+  — the "code-deconstructed" style (ggplot2 code on the left; the plot lays down,
+  explodes into one stacked semi-transparent card per code block, walks up
+  highlighting each line + its slice, then collapses). The skill auto-triggers when
+  a user supplies a different ggplot2 snippet and wants this treatment. Canonical
+  impl: `examples/ggplot2-deconstructed.qmd` + `js/ggplot2-deconstructed.html`.
 
 ## Core convention: ONE `.qmd` PER ANIMATION
 
@@ -24,7 +24,9 @@ animations in one deck — it lets fragment ids cross-fire and breaks the
 - `_quarto.yml` — shared format defaults (theme, 1280×720 size), loads anime.js
   and the shared `js/infra.html` for *every* deck. Also has a `pre-render:
   tools/make_bundle.py --all` hook (rebuilds reuse bundles on every render) and
-  `resources: [gifs/, bundles/]` (ships the GIFs and zips into `_site/`).
+  `resources: [gifs/, bundles/]` (ships the GIFs and zips into `docs/`). The site
+  renders into `docs/` (`output-dir: docs`) so GitHub Pages serves it from the
+  main branch `/docs` folder.
 - `examples/<concept>.qmd` — one deck per concept. Its YAML adds the concept's own
   module via `include-after-body: [../js/<concept>.html]`.
 - `js/infra.html` — shared helpers under the `TM` namespace: `TM.onReveal`,
@@ -148,7 +150,7 @@ website, GIF, and bundle stay complete — it's easy to forget the last three:
    pre-render hook runs it. Just `quarto render` and commit the new
    `bundles/<concept>.zip`.
 5. Run `quarto render` and verify the new section renders, the iframe loads, and
-   all four links resolve (`_site/gifs/...`, `_site/mp4/...`, `_site/bundles/...`).
+   all four links resolve (`docs/gifs/...`, `docs/mp4/...`, `docs/bundles/...`).
 
 ## Build / preview
 
@@ -169,9 +171,9 @@ The output format is chosen from the `--out` extension: `.mp4` encodes H.264
 else produces a GIF. Both share the same frame capture, so commit both per deck.
 
 ```bash
-quarto render examples/<concept>.qmd   # capture from the rendered _site/ copy
+quarto render examples/<concept>.qmd   # capture from the rendered docs/ copy
 python3 tools/capture_recordings.py \
-  --deck _site/examples/<concept>.html --slide 1 \
+  --deck docs/examples/<concept>.html --slide 1 \
   --steps <fragments + 1> \
   --selector .<concept>-stage-wrap \
   --out gifs/<concept>.gif

@@ -24,7 +24,7 @@ Prereqs: `pip install playwright`, `playwright install chromium`, ffmpeg, and
 
 Example:
   python tools/capture_recordings.py \
-      --deck _site/examples/cross-validation.html --slide 1 --steps 6 \
+      --deck docs/examples/cross-validation.html --slide 1 --steps 6 \
       --out gifs/cross-validation.gif
 """
 import argparse
@@ -182,7 +182,7 @@ def have(cmd):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--deck", required=True, help="rendered .html (e.g. _site/examples/cross-validation.html) or URL")
+    ap.add_argument("--deck", required=True, help="rendered .html (e.g. docs/examples/cross-validation.html) or URL")
     ap.add_argument("--out", required=True, help="output .gif path")
     ap.add_argument("--slide", type=int, default=0, help="slide index to start on (Reveal #/N)")
     ap.add_argument("--steps", type=int, required=True, help="number of fragment advances to record")

@@ -18,8 +18,9 @@ tidy-animations/
 │   └── …                          # one .qmd per concept
 ├── css/
 │   └── demos.css                  # shared styles + per-animation classes
-├── docs/
-│   └── recipe-ggplot2-deconstructed.md  # reusable "code-deconstructed" recipe
+├── docs/                          # rendered site (GitHub Pages serves from here)
+├── .claude/skills/
+│   └── ggplot2-deconstructed/SKILL.md  # reusable "code-deconstructed" recipe skill
 ├── bundles/                       # generated reusable zips (committed)
 ├── gifs/  mp4/                    # committed deck captures
 ├── tools/
@@ -56,16 +57,16 @@ Frames are captured as **lossless PNG screenshots** (not lossy video), so the fl
 ```bash
 pip install playwright && playwright install chromium   # one-time
 # also requires ffmpeg, and gifsicle for the lossless pass (brew install gifsicle)
-quarto render examples/cross-validation.qmd              # GIF records the rendered _site/ output
+quarto render examples/cross-validation.qmd              # GIF records the rendered docs/ output
 
 python3 tools/capture_recordings.py \
-    --deck _site/examples/cross-validation.html \
+    --deck docs/examples/cross-validation.html \
     --slide 1 --steps 6 \
     --out gifs/cross-validation.gif
 
 # same command, MP4 instead — the .mp4 extension switches to H.264 encoding
 python3 tools/capture_recordings.py \
-    --deck _site/examples/cross-validation.html \
+    --deck docs/examples/cross-validation.html \
     --slide 1 --steps 6 \
     --out mp4/cross-validation.mp4
 ```

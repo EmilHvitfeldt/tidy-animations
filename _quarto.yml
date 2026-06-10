@@ -1,5 +1,7 @@
 project:
   type: website
+  # render into docs/ so GitHub Pages can serve from the main branch /docs folder
+  output-dir: docs
   # regenerate the reusable bundles from the current js/ + css/ before each build
   pre-render: tools/make_bundle.py --all
   # ship the GIF/MP4 captures and reusable bundles alongside the rendered decks
@@ -7,6 +9,8 @@ project:
     - gifs/
     - mp4/
     - bundles/
+    # keep .nojekyll in docs/ so GitHub Pages serves the site_libs/ assets verbatim
+    - .nojekyll
 
 website:
   title: "tidymodels, animated"

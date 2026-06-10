@@ -4,3 +4,6 @@
 /.quarto/
 
 **/*.quarto_ipynb
+
+# stale build dir (we now render into docs/)
+/_site/
