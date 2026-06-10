@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – Time-based resampling</title>
+  <title>tidymodels, animated – recipe-ggplot2-deconstructed</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -30,6 +30,72 @@
       margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
       vertical-align: middle;
     }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      { color: #003b4f; background-color: #f1f3f5; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span { color: #003b4f; } /* Normal */
+    code span.al { color: #ad0000; } /* Alert */
+    code span.an { color: #5e5e5e; } /* Annotation */
+    code span.at { color: #657422; } /* Attribute */
+    code span.bn { color: #ad0000; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #003b4f; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #20794d; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #5e5e5e; } /* Comment */
+    code span.cv { color: #5e5e5e; font-style: italic; } /* CommentVar */
+    code span.do { color: #5e5e5e; font-style: italic; } /* Documentation */
+    code span.dt { color: #ad0000; } /* DataType */
+    code span.dv { color: #ad0000; } /* DecVal */
+    code span.er { color: #ad0000; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #ad0000; } /* Float */
+    code span.fu { color: #4758ab; } /* Function */
+    code span.im { color: #00769e; } /* Import */
+    code span.in { color: #5e5e5e; } /* Information */
+    code span.kw { color: #003b4f; font-weight: bold; } /* Keyword */
+    code span.op { color: #5e5e5e; } /* Operator */
+    code span.ot { color: #003b4f; } /* Other */
+    code span.pp { color: #ad0000; } /* Preprocessor */
+    code span.sc { color: #5e5e5e; } /* SpecialChar */
+    code span.ss { color: #20794d; } /* SpecialString */
+    code span.st { color: #20794d; } /* String */
+    code span.va { color: #111111; } /* Variable */
+    code span.vs { color: #20794d; } /* VerbatimString */
+    code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
   <link rel="stylesheet" href="../site_libs/revealjs/dist/theme/quarto-2c0c781dd9930f108f81fa9d566406a1.css">
   <link href="../site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
@@ -129,32 +195,115 @@
   <div class="reveal">
     <div class="slides">
 
-<section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">Time-based resampling</h1>
 
-<div class="quarto-title-authors">
-</div>
-
+<section>
+<section id="recipe-code-deconstructed-plot-animation" class="title-slide slide level1 center">
+<h1>Recipe: “code-deconstructed” plot animation</h1>
+<p>A reusable template for the <strong>ggplot2-deconstructed</strong> style: a ggplot2 code snippet on the left, the produced plot on the right; the plot lays down in 3D, explodes into one stacked “paper” card per code block, then each code line is highlighted in turn while its slice is isolated, before collapsing back to flat.</p>
+<p>Use this when the user gives <strong>a different ggplot2 snippet</strong> and wants the same treatment. <code>examples/ggplot2-deconstructed.qmd</code> + <code>js/ggplot2-deconstructed.html</code> are the canonical reference — copy and adapt them.</p>
 </section>
-<section class="slide level2">
-
-<!-- Configure the analysis/assessment colours here. -->
-<script>window.SW_COLORS = { analysis: '#6aa9e0', assess: '#e8853a' };</script>
+<section id="what-you-need-from-the-user" class="slide level2">
+<h2>0. What you need from the user</h2>
+<ul>
+<li>The <strong>ggplot2 code snippet</strong> (verbatim). This drives everything: the left listing <em>and</em> the set of cards (one card per top-level block).</li>
+<li>Confirm which <strong>dataset</strong> it uses so you can render a faithful plot.</li>
+</ul>
 </section>
-<section id="section" class="slide level2 sw-slide">
-<h2></h2>
-<div class="sw-stage-wrap">
-<div id="sw-title" class="sw-title">
-
-</div>
-<div id="sw-stage">
-
-</div>
-</div>
-<p><span id="sw-r1" class="fragment sw-frag"></span> <span id="sw-r2" class="fragment sw-frag"></span> <span id="sw-r3" class="fragment sw-frag"></span> <span id="sw-r4" class="fragment sw-frag"></span></p>
-
-
+<section id="decide-the-card-decomposition-the-spec-confirm-first" class="slide level2">
+<h2>1. Decide the card decomposition (the spec — confirm first)</h2>
+<p>Split the snippet into <strong>one card per visual layer</strong>, mapping each <code>+</code>-chained call to what it draws. The default mapping that worked:</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Code block</th>
+<th>Card owns</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ggplot(data, aes(...))</code></td>
+<td>panel background, gridlines, tick marks + tick labels, <strong>legend keys</strong> (the colour/shape scale swatches)</td>
+</tr>
+<tr class="even">
+<td><code>geom_*(...)</code> (one per geom)</td>
+<td>that geom’s marks (points, line+ribbon, bars, …)</td>
+</tr>
+<tr class="odd">
+<td><code>labs(...)</code></td>
+<td><strong>only the text labs sets</strong>: plot title, axis titles, legend <em>title</em></td>
+</tr>
+</tbody>
+</table>
+<p>Rules of thumb: - Tick <em>numbers</em> belong to the coord card; axis <em>titles</em> belong to <code>labs</code>. - Legend <em>swatches</em> belong to the <code>aes()</code> card; the legend <em>title</em> to <code>labs</code>. - Each <code>geom_*</code> is its own card, stacked in code order. - Card stack order = <strong>code order, bottom → top</strong>: <code>ggplot/aes</code> at the bottom, then geoms, <code>labs</code> on top. (Index 0 = bottom.)</p>
+<p>Lay the ordered card list out and confirm it with the user before coding.</p>
 </section>
+<section id="get-faithful-plot-data-from-r" class="slide level2">
+<h2>2. Get faithful plot data from R</h2>
+<p>Don’t eyeball the plot — extract real values with <code>Rscript</code>. For a scatter + loess smooth (adapt columns/geoms as needed):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a></a><span class="fu">suppressMessages</span>(<span class="fu">library</span>(ggplot2)); <span class="fu">suppressMessages</span>(<span class="fu">library</span>(jsonlite))</span>
+<span id="cb1-2"><a></a>d <span class="ot">&lt;-</span> <span class="er">&lt;</span>dataset<span class="sc">&gt;</span></span>
+<span id="cb1-3"><a></a><span class="co"># discrete colour groups -&gt; ggplot's exact hue palette</span></span>
+<span id="cb1-4"><a></a>grp <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(d<span class="sc">$</span><span class="er">&lt;</span>colorvar<span class="sc">&gt;</span>))</span>
+<span id="cb1-5"><a></a>cols <span class="ot">&lt;-</span> scales<span class="sc">::</span><span class="fu">hue_pal</span>()(<span class="fu">length</span>(grp))</span>
+<span id="cb1-6"><a></a><span class="co"># loess like geom_smooth default (n &lt; 1000)</span></span>
+<span id="cb1-7"><a></a>lo <span class="ot">&lt;-</span> <span class="fu">loess</span>(<span class="sc">&lt;</span>y<span class="sc">&gt;</span> <span class="er">~</span> <span class="er">&lt;</span>x<span class="sc">&gt;</span>, <span class="at">data =</span> d, <span class="at">span =</span> <span class="fl">0.75</span>, <span class="at">degree =</span> <span class="dv">2</span>)</span>
+<span id="cb1-8"><a></a>xs <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fu">min</span>(d<span class="sc">$</span><span class="er">&lt;</span>x<span class="sc">&gt;</span>), <span class="fu">max</span>(d<span class="sc">$</span><span class="er">&lt;</span>x<span class="sc">&gt;</span>), <span class="at">length.out =</span> <span class="dv">80</span>)</span>
+<span id="cb1-9"><a></a>pr <span class="ot">&lt;-</span> <span class="fu">predict</span>(lo, <span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="sc">&lt;</span>x<span class="sc">&gt;</span> <span class="er">=</span> xs), <span class="at">se =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-10"><a></a><span class="co"># emit points [x, y, groupIndex], smooth [x, fit, lo, hi], ranges, palette</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Embed the arrays as JS literals in the module (see the <code>PTS</code> / <code>SMOOTH</code> / <code>COLORS</code> constants). Hardcode them — do not fetch at runtime.</p>
+</section>
+<section id="plot-geometry-svg-drawn-once" class="slide level2">
+<h2>3. Plot geometry (SVG, drawn once)</h2>
+<ul>
+<li>The plot lives in <code>#gd-plot</code>, a fixed local coordinate box (<code>W</code> × <code>H</code>). Default <code>W = 600</code>; pick <code>H</code> so the <strong>panel</strong> (<code>H − top − bottom</code>) reads landscape (≈ 386 × 260 worked well). Margins: left for y-title+labels, right for legend, top for title, bottom for x-labels+title.</li>
+<li>Scales use ggplot’s default <strong>5% additive expansion</strong> on each end: <code>expand(lo, hi) =&gt; [lo − .05·range, hi + .05·range]</code>.</li>
+<li>theme_grey look: panel <code>#EBEBEB</code>, <strong>white</strong> major gridlines (width 2) and minor (width 1); points <code>r ≈ 3.4</code>; smooth ribbon <code>#999 @ .4</code>, line black width 2.2.</li>
+<li>Build each card as its own full-size <strong>plane</strong> (<code>svgPlane</code>): an outer <code>.gd-plane</code> div → inner <code>.gd-tilt</code> div → [<code>.gd-card</code> backing + <code>&lt;svg&gt;</code>]. All planes are coincident, so at rest they overlay into one flat plot.</li>
+</ul>
+</section>
+<section id="the-3d-mechanics-the-part-thats-easy-to-get-wrong" class="slide level2">
+<h2>4. The 3D mechanics (the part that’s easy to get wrong)</h2>
+<p>These are the lessons that took iteration — keep them:</p>
+<ol type="1">
+<li><strong>Lay-down = <code>rotateX</code> + <code>rotateZ</code>.</strong> ~<code>rotateX(56) rotateZ(20)</code> lays the plot back and tilts it toward the right. (Flip <code>rotateZ</code> sign to tilt left.)</li>
+<li><strong>Per-card perspective, not a shared one.</strong> Put <code>perspective</code> on each <code>.gd-plane</code> (via CSS), <em>not</em> on the stage/parent. A single shared perspective has one vanishing point; cards far from it get a skewed projection and their edges drift. Per-card perspective centers each card’s vanishing point on itself → all cards stay edge-aligned.</li>
+<li><strong>Tilt the inner <code>.gd-tilt</code>; fan the outer <code>.gd-plane</code>.</strong> The explode separation must be a <strong>screen-space <code>translateY</code> on the outer div</strong> (composed <em>outside</em> the perspective/rotation), so cards move <strong>straight up/down only</strong> and keep the same horizontal center. Fan symmetrically about center: <code>translateY = ((N−1)/2 − i) · SPREAD</code> (≈ 75px gap).</li>
+<li><strong>Cards = semi-transparent paper.</strong> <code>.gd-card</code> backing <code>rgba(255,255,255,~0.6)</code>, light border + soft shadow, <code>opacity 0</code> until explode.</li>
+</ol>
+</section>
+<section id="fragment-sequence-render-keyed-off-stage-number" class="slide level2">
+<h2>5. Fragment sequence (render keyed off stage number)</h2>
+<p>Drive everything with <code>TM.gate</code> and an <strong>idempotent</strong> <code>render(stage)</code>. The fragments, in order (so <code>N</code> geoms → <code>N + 5</code> fragments):</p>
+<ol start="0" type="1">
+<li>arrival — flat plot, code + plot side by side</li>
+<li><code>lay</code> — tilt back (<code>laid = stage ≥ 1</code>)</li>
+<li><code>explode</code> — fan into cards, fade in card backings (<code>exploded = stage ≥ 2</code>) 3 … (3+k) <code>focus-&lt;block&gt;</code> — walk <strong>up</strong> the stack: highlight code block <code>k</code> and isolate slice <code>k</code> (dim the others to ~0.16). <code>focusIdx = stage − 3</code>. <strong>Highlight only — do not dim the code text</strong> (user preference); dim the <em>slices</em>, not the code.</li>
+<li><code>collapse</code> — merge cards back together, still tilted (<code>!exploded</code>, still <code>laid</code>)</li>
+<li><code>unrotate</code> — flatten to head-on (<code>!laid</code>)</li>
+</ol>
+<p>Implement collapse/unrotate as two booleans that override the earlier ones: <code>flat = stage ≥ LAST; collapsed = stage ≥ LAST−1;</code> <code>laid = … &amp;&amp; !flat; exploded = … &amp;&amp; !collapsed; focusIdx = … &amp;&amp; !collapsed</code>.</p>
+<p>Code highlight: wrap each code block (incl.&nbsp;the <code>library()</code> line) in <code>&lt;span data-blk="…"&gt;</code>; toggle a <code>.gd-hot</code> class (yellow marker) on the focused block only.</p>
+<p>Drive all motion through <code>TM.anime</code> / <code>TM.pause</code> (never bare <code>anime</code>/<code>setTimeout</code>) so the recorder can pace to <code>TM.idle()</code>.</p>
+</section>
+<section id="housekeeping-dont-forget-see-main-claude.md" class="slide level2">
+<h2>6. Housekeeping (don’t forget — see main CLAUDE.md)</h2>
+<ol type="1">
+<li><p>Add <code>.gd-*</code> (or your prefix) styles to <code>css/demos.css</code> (it’s SCSS-layered — keep them after the <code>/*-- scss:rules --*/</code> boundary).</p></li>
+<li><p><code>quarto render examples/&lt;concept&gt;.qmd</code>, then capture <strong>both</strong>:</p>
+<pre><code>python3 tools/capture_recordings.py --deck _site/examples/&lt;concept&gt;.html \
+  --slide 1 --steps &lt;fragments + 1&gt; --selector .&lt;prefix&gt;-stage-wrap \
+  --out gifs/&lt;concept&gt;.gif        # repeat with --out mp4/&lt;concept&gt;.mp4</code></pre>
+<p><code>--steps</code> = (number of gating fragments) + 1.</p></li>
+<li><p>Add a <code>##</code> section to <code>index.qmd</code> (iframe + 4 links: deck, GIF, MP4, bundle).</p></li>
+<li><p><code>quarto render</code> the whole site — the pre-render hook auto-builds <code>bundles/&lt;concept&gt;.zip</code>. Verify the iframe + all four links resolve.</p></li>
+</ol>
+
+
+</section></section>
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
 <div class="footer footer-default">
@@ -453,164 +602,6 @@
         })();
       });
     };
-    </script>
-    <script>
-    /* ---- Time-based (sliding-window) resampling animation ----
-     * Marker slide: .sw-slide   Stage container: #sw-stage
-     * render(stage) is idempotent (stage = number of visible gating fragments).
-     *
-     * For time-ordered data you can't split at random — the test set must come
-     * *after* the training set in time. This shows rolling-origin resampling: a
-     * fixed-size window (analysis → assessment) slides forward through the data one
-     * step at a time. Each step's window is "filed" as a row in a staircase below,
-     * so the classic rolling-origin diagram builds up as the window slides.
-     */
-    (function () {
-      const N = 26;                                 // time-ordered observations
-      const BOX = 26, GAP = 7, STEP = BOX + GAP;    // 33px pitch (fits 26 across)
-      const START_X = 200;                          // left gutter holds row labels
-      const LABEL_X = 18;
-
-      const ANALYSIS = 10, ASSESS = 4, SLIDE = 4;   // fixed window, slides by 4
-      const RES = 4;                                // number of resamples
-      const A_W = ANALYSIS * BOX + (ANALYSIS - 1) * GAP;   // analysis bar width
-      const S_W = ASSESS   * BOX + (ASSESS - 1)   * GAP;   // assessment bar width
-
-      const TOP_Y = 50;                             // the data row
-      const ROWS_Y = [150, 220, 290, 360];          // staircase rows (one per resample)
-
-      // Colours are configurable from the .qmd via `window.SW_COLORS`.
-      const C = window.SW_COLORS || {};
-      const ANALYSIS_C = C.analysis || '#6aa9e0';
-      const ASSESS_C   = C.assess   || '#e8853a';
-
-      function cellX(i)  { return START_X + i * STEP; }
-      function winStart(r) { return r * SLIDE; }                 // first analysis cell
-      function analysisX(r) { return cellX(winStart(r)); }
-      function assessX(r)   { return cellX(winStart(r) + ANALYSIS); }
-
-      let cells = [];          // the top data row
-      let win;                 // sliding window overlay
-      let rows = [];           // staircase: { aBar, sBar, label }
-      let shown = 0;           // how many staircase rows are currently filed (stable)
-      let built = false;
-
-      function mk(cls) { const d = document.createElement('div'); d.className = cls; return d; }
-
-      function build() {
-        const stage = document.getElementById('sw-stage');
-        if (!stage || built) return !!stage;
-        built = true;
-
-        for (let i = 0; i < N; i++) {
-          const c = mk('sw-cell');
-          c.style.width = BOX + 'px';
-          c.style.height = BOX + 'px';
-          anime.set(c, { translateX: cellX(i), translateY: TOP_Y });
-          stage.appendChild(c);
-          cells.push(c);
-        }
-
-        const axis = mk('sw-axis');
-        axis.textContent = 'time →';
-        axis.style.left = cellX(N - 1) + BOX - 70 + 'px';
-        axis.style.top = (TOP_Y + BOX + 8) + 'px';
-        stage.appendChild(axis);
-
-        // sliding window overlay (analysis + assessment segments)
-        win = mk('sw-window');
-        win.style.width = (A_W + GAP + S_W + 12) + 'px';
-        win.style.height = (BOX + 12) + 'px';
-        win.style.opacity = 0;
-        const segA = mk('sw-seg sw-seg-a');
-        segA.style.left = '6px'; segA.style.width = A_W + 'px'; segA.style.height = BOX + 'px';
-        const segS = mk('sw-seg sw-seg-s');
-        segS.style.left = (6 + A_W + GAP) + 'px'; segS.style.width = S_W + 'px'; segS.style.height = BOX + 'px';
-        win.appendChild(segA); win.appendChild(segS);
-        anime.set(win, { translateX: analysisX(0) - 6, translateY: TOP_Y - 6 });
-        stage.appendChild(win);
-
-        // staircase rows: the window's observations as individual cells — analysis
-        // (blue) then assessment (orange) — plus a label. Built hidden at the top;
-        // they drop to their row when filed.
-        for (let r = 0; r < RES; r++) {
-          const pts = [];
-          for (let k = 0; k < ANALYSIS + ASSESS; k++) {
-            const idx = winStart(r) + k;
-            const p = mk('sw-pt ' + (k < ANALYSIS ? 'sw-bar-a' : 'sw-bar-s'));
-            p.style.width = BOX + 'px'; p.style.height = BOX + 'px';
-            p.style.opacity = 0;
-            anime.set(p, { translateX: cellX(idx), translateY: TOP_Y });
-            stage.appendChild(p);
-            pts.push(p);
-          }
-
-          const label = mk('sw-label');
-          label.textContent = 'Resample ' + (r + 1);
-          label.style.lineHeight = BOX + 'px';
-          label.style.opacity = 0;
-          anime.set(label, { translateX: LABEL_X, translateY: ROWS_Y[r] });
-          stage.appendChild(label);
-
-          rows.push({ pts, label });
-        }
-
-        return true;
-      }
-
-      function fileRow(r, on) {
-        const { pts, label } = rows[r];
-        TM.anime({
-          targets: pts,
-          opacity: on ? 1 : 0,
-          translateY: on ? ROWS_Y[r] : TOP_Y,
-          duration: 500,
-          delay: on ? anime.stagger(25) : 0,   // cascade the points into place
-          easing: on ? 'easeOutCubic' : 'easeInQuad',
-        });
-        TM.anime({
-          targets: label,
-          opacity: on ? 1 : 0,
-          duration: 400,
-          easing: 'easeInOutQuad',
-        });
-      }
-
-      function render(stage) {
-        if (!build()) return;
-
-        // the sliding window: shown from stage 1 on, parked at resample (stage-1)
-        const active = Math.max(0, Math.min(stage, RES) - 1);   // 0..RES-1
-        TM.anime({
-          targets: win,
-          opacity: stage >= 1 ? 1 : 0,
-          translateX: analysisX(active) - 6,
-          translateY: TOP_Y - 6,
-          duration: 650,
-          easing: 'easeInOutCubic',
-        });
-
-        // staircase: file rows 0..stage-1, un-file the rest (back-nav safe)
-        const want = Math.min(stage, RES);
-        if (want > shown) for (let r = shown; r < want; r++) fileRow(r, true);
-        else if (want < shown) for (let r = want; r < shown; r++) fileRow(r, false);
-        shown = want;
-
-        const title = document.getElementById('sw-title');
-        if (title) {
-          const text = stage === 0 ? 'Time-ordered data — split by time, not at random'
-                     : `Slide the window forward — resample ${Math.min(stage, RES)} of ${RES}`;
-          title.textContent = text;
-          TM.anime({ targets: title, opacity: 1, duration: 350, easing: 'easeInOutQuad' });
-        }
-      }
-
-      TM.gate({
-        markerClass: 'sw-slide',
-        fragmentIds: ['sw-r1', 'sw-r2', 'sw-r3', 'sw-r4'],
-        render,
-      });
-    })();
     </script>
     <script id="quarto-html-after-body" type="application/javascript">
       window.document.addEventListener("DOMContentLoaded", function (event) {

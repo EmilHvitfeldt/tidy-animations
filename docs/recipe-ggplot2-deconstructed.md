@@ -100,10 +100,16 @@ fragments, in order (so `N` geoms → `N + 5` fragments):
 0. arrival — flat plot, code + plot side by side
 1. `lay`     — tilt back (`laid = stage ≥ 1`)
 2. `explode` — fan into cards, fade in card backings (`exploded = stage ≥ 2`)
-3 … (3+k) `focus-<block>` — walk **up** the stack: highlight code block `k` and
-   isolate slice `k` (dim the others to ~0.16). `focusIdx = stage − 3`.
-   **Highlight only — do not dim the code text** (user preference); dim the
-   *slices*, not the code.
+3 … (3+k) `focus-<block>` — walk **up** the stack: highlight code block `k`
+   (`focusIdx = stage − 3`) and call out slice `k`. **Highlight the code only —
+   never dim the code text** (user preference); the *slice* treatment is where
+   the two known variants differ (pick one, or ask):
+   - **A — dim others** (`ggplot2-deconstructed`): focused slice stays at
+     `opacity 1`, the rest fade to ~0.16. Everything keeps its tilt + fan spot.
+   - **B — part & flatten** (`ggplot2-deconstructed-2`): no dimming; the
+     non-focused slices slide out of the way (`fan += PART` for `i < focusIdx`,
+     `−PART` for `i > focusIdx`, `PART ≈ 280`) and the focused slice **un-rotates
+     to head-on** (`rotateX/rotateZ → 0`) so it reads as a clean standalone plot.
 4. `collapse`  — merge cards back together, still tilted (`!exploded`, still `laid`)
 5. `unrotate`  — flatten to head-on (`!laid`)
 
