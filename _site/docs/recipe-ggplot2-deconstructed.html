@@ -97,7 +97,7 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="../site_libs/revealjs/dist/theme/quarto-2c0c781dd9930f108f81fa9d566406a1.css">
+  <link rel="stylesheet" href="../site_libs/revealjs/dist/theme/quarto-3415f182240c37b81d216fff0132081e.css">
   <link href="../site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="../site_libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="../site_libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
@@ -281,7 +281,11 @@
 <ol start="0" type="1">
 <li>arrival — flat plot, code + plot side by side</li>
 <li><code>lay</code> — tilt back (<code>laid = stage ≥ 1</code>)</li>
-<li><code>explode</code> — fan into cards, fade in card backings (<code>exploded = stage ≥ 2</code>) 3 … (3+k) <code>focus-&lt;block&gt;</code> — walk <strong>up</strong> the stack: highlight code block <code>k</code> and isolate slice <code>k</code> (dim the others to ~0.16). <code>focusIdx = stage − 3</code>. <strong>Highlight only — do not dim the code text</strong> (user preference); dim the <em>slices</em>, not the code.</li>
+<li><code>explode</code> — fan into cards, fade in card backings (<code>exploded = stage ≥ 2</code>) 3 … (3+k) <code>focus-&lt;block&gt;</code> — walk <strong>up</strong> the stack: highlight code block <code>k</code> (<code>focusIdx = stage − 3</code>) and call out slice <code>k</code>. <strong>Highlight the code only — never dim the code text</strong> (user preference); the <em>slice</em> treatment is where the two known variants differ (pick one, or ask):
+<ul>
+<li><strong>A — dim others</strong> (<code>ggplot2-deconstructed</code>): focused slice stays at <code>opacity 1</code>, the rest fade to ~0.16. Everything keeps its tilt + fan spot.</li>
+<li><strong>B — part &amp; flatten</strong> (<code>ggplot2-deconstructed-2</code>): no dimming; the non-focused slices slide out of the way (<code>fan += PART</code> for <code>i &lt; focusIdx</code>, <code>−PART</code> for <code>i &gt; focusIdx</code>, <code>PART ≈ 280</code>) and the focused slice <strong>un-rotates to head-on</strong> (<code>rotateX/rotateZ → 0</code>) so it reads as a clean standalone plot.</li>
+</ul></li>
 <li><code>collapse</code> — merge cards back together, still tilted (<code>!exploded</code>, still <code>laid</code>)</li>
 <li><code>unrotate</code> — flatten to head-on (<code>!laid</code>)</li>
 </ol>

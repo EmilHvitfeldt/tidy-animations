@@ -1,0 +1,36 @@
+---
+title: "filter()"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/filter-one.html
+---
+
+```{=html}
+<!-- Configure the data + condition here. PASS marks rows meeting the condition. -->
+<script>
+window.FR_TITLE = 'filter(bill_length_mm > 45)';
+window.FR_DATA = [
+  ['Adelie',    '41.80'],
+  ['Adelie',    '36.50'],
+  ['Adelie',    '40.30'],
+  ['Chinstrap', '45.40'],
+  ['Chinstrap', '46.50'],
+  ['Chinstrap', '46'],
+  ['Gentoo',    '43.60'],
+  ['Gentoo',    '45.10'],
+  ['Gentoo',    '50.70'],
+];
+window.FR_PASS = [false, false, false, true, true, true, false, true, true];
+window.FR_COLS = ['species', 'bill_length_mm'];
+</script>
+```
+
+## {.fr-slide}
+
+::: {.fr-stage-wrap}
+<div id="fr-stage"></div>
+:::
+
+[]{.fragment .fr-frag id="fr-highlight"}
+[]{.fragment .fr-frag id="fr-arrows"}

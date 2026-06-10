@@ -160,6 +160,10 @@ present) won't catch behavioural bugs in shared helpers.
 
 ## Capturing a GIF or MP4 (`tools/capture_recordings.py`)
 
+**Don't capture the GIF or MP4 until the user has confirmed they're happy with
+the final design.** Iterate on the animation in the browser first; only run the
+recorder once the design is signed off.
+
 The output format is chosen from the `--out` extension: `.mp4` encodes H.264
 (`libx264`, `yuv420p`, faststart; `--crf` tunes quality, default 18); anything
 else produces a GIF. Both share the same frame capture, so commit both per deck.

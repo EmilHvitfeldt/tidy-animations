@@ -1,0 +1,167 @@
+<script>
+/* ---- filter() animation ----
+ * Marker slide: .fr-slide   Stage container: #fr-stage
+ * Left: full dataset. Stage 1 highlights rows meeting the condition; stage 2
+ * draws arrows to their destinations; stage 3 reveals the filtered result.
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ */
+(function () {
+  const TITLE = window.FR_TITLE || 'filter(x > 0)';
+  const DATA  = window.FR_DATA  || [];
+  const PASS  = window.FR_PASS  || [];
+  const COLS  = window.FR_COLS  || ['species', 'bill_length_mm'];
+
+  const ROW_H = 44, HEADER_H = 40, TABLE_Y = 90;
+  const LEFT_X = 50, RIGHT_X = 720;
+  const W_IDX = 0, W_SP = 158, W_VAL = 148;
+  const ROW_W = W_IDX + W_SP + W_VAL;          // 358
+  const BOX_X = W_IDX + W_SP;                   // value column offset within a row
+  const HIGHLIGHT = 'rgba(74, 134, 197, 0.28)';
+
+  const passIdx = DATA.map((_, i) => i).filter(i => PASS[i]);
+  const N = DATA.length, M = passIdx.length;
+
+  let built = false;
+  let leftRows = [];     // data rows on the left (index -> element)
+  let rightEls = [];     // right-table elements to fade in (rows, header, colbox)
+  let arrows = [];       // svg <path> per passing row
+
+  function rowCenterY(j) { return TABLE_Y + HEADER_H + j * ROW_H + ROW_H / 2; }
+
+  function makeRow(cls, idxText, species, value, isHead) {
+    const row = document.createElement('div');
+    row.className = 'fr-row' + (isHead ? ' fr-head' : '') + (cls ? ' ' + cls : '');
+    const c2 = document.createElement('span'); c2.className = 'fr-cell fr-species'; c2.textContent = species;
+    const c3 = document.createElement('span'); c3.className = 'fr-cell fr-value';   c3.textContent = value;
+    row.append(c2, c3);
+    return row;
+  }
+
+  function makeColbox(x, rows) {
+    const box = document.createElement('div');
+    box.className = 'fr-colbox';
+    box.style.transform = `translate(${x + BOX_X}px, ${TABLE_Y}px)`;
+    box.style.width  = W_VAL + 'px';
+    box.style.height = (HEADER_H + rows * ROW_H) + 'px';
+    return box;
+  }
+
+  function build() {
+    const stage = document.getElementById('fr-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+
+    // title
+    const title = document.createElement('div');
+    title.className = 'fr-title';
+    title.textContent = TITLE;
+    stage.appendChild(title);
+
+    // ---- left table ----
+    const lhead = makeRow('', '', COLS[0], COLS[1], true);
+    lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
+    stage.appendChild(lhead);
+
+    DATA.forEach((d, i) => {
+      const row = makeRow('', String(i + 1), d[0], d[1], false);
+      row.style.transform = `translate(${LEFT_X}px, ${TABLE_Y + HEADER_H + i * ROW_H}px)`;
+      stage.appendChild(row);
+      leftRows.push(row);
+    });
+
+    // ---- right table (hidden until stage 3) ----
+    const rhead = makeRow('', '', COLS[0], COLS[1], true);
+    rhead.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y}px)`;
+    rhead.style.opacity = 0;
+    stage.appendChild(rhead);
+    rightEls.push(rhead);
+
+    passIdx.forEach((srcI, j) => {
+      const d = DATA[srcI];
+      const row = makeRow('', String(j + 1), d[0], d[1], false);
+      row.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y + HEADER_H + j * ROW_H}px)`;
+      row.style.opacity = 0;
+      stage.appendChild(row);
+      rightEls.push(row);
+    });
+
+    // ---- arrows (svg overlay) ----
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'fr-arrows-svg');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', 'fr-arrowhead');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const head = document.createElementNS(svgNS, 'path');
+    head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    head.setAttribute('fill', '#4a86c5');
+    marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+    const sx = LEFT_X + ROW_W + 6;          // right edge of left value box
+    const dx = RIGHT_X - 8;                 // left edge of right table
+    passIdx.forEach((srcI, j) => {
+      const syy = leftRowY(srcI), dyy = rowCenterY(j);
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('class', 'fr-arrow');
+      p.setAttribute('marker-end', 'url(#fr-arrowhead)');
+      p.setAttribute('d', `M ${sx} ${syy} C ${sx + 130} ${syy}, ${dx - 130} ${dyy}, ${dx} ${dyy}`);
+      svg.appendChild(p);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.opacity = 0;
+      arrows.push({ p, len });
+    });
+    stage.appendChild(svg);
+
+    return true;
+  }
+
+  function leftRowY(i) { return TABLE_Y + HEADER_H + i * ROW_H + ROW_H / 2; }
+
+  function render(stage) {
+    if (!build()) return;
+
+    // stage 1: highlight the matching values (pill + bolder, darker-blue text)
+    const hi = stage >= 1;
+    passIdx.forEach(i => {
+      const cell = leftRows[i].querySelector('.fr-value');
+      cell.classList.toggle('fr-hit', hi);
+      TM.anime({
+        targets: cell,
+        backgroundColor: hi ? HIGHLIGHT : 'rgba(74, 134, 197, 0)',
+        color: hi ? '#1f5e9b' : 'rgb(29, 36, 51)',
+        duration: 450, easing: 'easeInOutQuad',
+      });
+    });
+
+    // stage 2: draw arrows, then reveal the filtered result right after
+    const show = stage >= 2;
+    arrows.forEach(({ p, len }, k) => {
+      TM.anime({
+        targets: p,
+        strokeDashoffset: show ? 0 : len,
+        opacity: show ? 1 : 0,
+        duration: 600, easing: 'easeInOutCubic',
+        delay: show ? k * 90 : 0,
+      });
+    });
+    TM.anime({
+      targets: rightEls,
+      opacity: show ? 1 : 0,
+      duration: 450, easing: 'easeInOutQuad',
+      delay: show ? anime.stagger(50, { start: 520 }) : 0,
+    });
+  }
+
+  TM.gate({
+    markerClass: 'fr-slide',
+    fragmentIds: ['fr-highlight', 'fr-arrows', 'fr-result'],
+    render,
+  });
+})();
+</script>

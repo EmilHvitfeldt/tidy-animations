@@ -788,3 +788,94 @@ section:has(.gd2-slide) { overflow: hidden; }
   opacity: 0;
 }
 
+
+/* ---- filter() ---- */
+section:has(.fr-slide) { overflow: hidden; }
+
+.fr-stage-wrap { position: relative; margin-top: 10px; }
+
+#fr-stage {
+  position: relative;
+  width: 1100px;
+  height: 560px;
+  margin: 0 auto;
+}
+
+.fr-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+.fr-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: "Source Code Pro", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--tm-ink);
+  white-space: nowrap;
+}
+
+/* a table row, absolutely positioned in stage coordinates */
+.fr-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  border-radius: 6px;
+  will-change: transform, opacity;
+}
+
+.fr-cell {
+  font-size: 24px;
+  color: var(--tm-ink);
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+.fr-idx     { width: 52px;  text-align: right; color: #9aa0ac; }
+.fr-species { width: 158px; text-align: left; }
+.fr-value   {
+  width: 148px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border-radius: 8px;
+  background-color: rgba(74, 134, 197, 0);
+  will-change: background-color, color;
+}
+.fr-value.fr-hit { font-weight: 700; }
+
+.fr-head .fr-cell {
+  font-size: 22px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* the bordered box drawn around the data column(s), like the screenshot */
+.fr-colbox {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1.5px solid #4a86c5;
+  border-radius: 4px;
+  box-sizing: border-box;
+  will-change: opacity;
+}
+
+#fr-arrows-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1100px;
+  height: 560px;
+  pointer-events: none;
+  overflow: visible;
+}
+.fr-arrow {
+  fill: none;
+  stroke: #4a86c5;
+  stroke-width: 2;
+}
