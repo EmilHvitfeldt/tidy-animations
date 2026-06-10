@@ -154,6 +154,17 @@ through its animation.
 [Download reusable bundle](bundles/ggplot2-deconstructed-2.zip)
 </p>
 
+## ggplot2, deconstructed (mobile)
+
+<iframe class="deck-embed" src="examples/ggplot2-deconstructed-mobile.html" title="ggplot2 deconstructed (mobile) animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/ggplot2-deconstructed-mobile.html){target="_blank"}
+[Download GIF](gifs/ggplot2-deconstructed-mobile.gif){download=""}
+[Download MP4](mp4/ggplot2-deconstructed-mobile.mp4){download=""}
+[Download reusable bundle](bundles/ggplot2-deconstructed-mobile.zip)
+</p>
+
 ## filter() a data frame
 
 <iframe class="deck-embed" src="examples/filter-one.html" title="filter() a data frame animation"></iframe>

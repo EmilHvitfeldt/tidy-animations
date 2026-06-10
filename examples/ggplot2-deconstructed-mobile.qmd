@@ -1,0 +1,22 @@
+---
+title: "ggplot2, deconstructed (mobile)"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/ggplot2-deconstructed-mobile.html
+---
+
+## {.gdm-slide}
+
+::: {.gdm-stage-wrap}
+<div id="gdm-stage"></div>
+:::
+
+[]{.fragment .gdm-frag id="gdm-lay"}
+[]{.fragment .gdm-frag id="gdm-explode"}
+[]{.fragment .gdm-frag id="gdm-focus-coord"}
+[]{.fragment .gdm-frag id="gdm-focus-points"}
+[]{.fragment .gdm-frag id="gdm-focus-smooth"}
+[]{.fragment .gdm-frag id="gdm-focus-labs"}
+[]{.fragment .gdm-frag id="gdm-collapse"}
+[]{.fragment .gdm-frag id="gdm-unrotate"}

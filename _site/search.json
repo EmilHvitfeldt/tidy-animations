@@ -1,54 +1,5 @@
 [
   {
-    "objectID": "docs/recipe-ggplot2-deconstructed.html#what-you-need-from-the-user",
-    "href": "docs/recipe-ggplot2-deconstructed.html#what-you-need-from-the-user",
-    "title": "tidymodels, animated",
-    "section": "0. What you need from the user",
-    "text": "0. What you need from the user\n\nThe ggplot2 code snippet (verbatim). This drives everything: the left listing and the set of cards (one card per top-level block).\nConfirm which dataset it uses so you can render a faithful plot."
-  },
-  {
-    "objectID": "docs/recipe-ggplot2-deconstructed.html#decide-the-card-decomposition-the-spec-confirm-first",
-    "href": "docs/recipe-ggplot2-deconstructed.html#decide-the-card-decomposition-the-spec-confirm-first",
-    "title": "tidymodels, animated",
-    "section": "1. Decide the card decomposition (the spec — confirm first)",
-    "text": "1. Decide the card decomposition (the spec — confirm first)\nSplit the snippet into one card per visual layer, mapping each +-chained call to what it draws. The default mapping that worked:\n\n\n\n\n\n\n\nCode block\nCard owns\n\n\n\n\nggplot(data, aes(...))\npanel background, gridlines, tick marks + tick labels, legend keys (the colour/shape scale swatches)\n\n\ngeom_*(...) (one per geom)\nthat geom’s marks (points, line+ribbon, bars, …)\n\n\nlabs(...)\nonly the text labs sets: plot title, axis titles, legend title\n\n\n\nRules of thumb: - Tick numbers belong to the coord card; axis titles belong to labs. - Legend swatches belong to the aes() card; the legend title to labs. - Each geom_* is its own card, stacked in code order. - Card stack order = code order, bottom → top: ggplot/aes at the bottom, then geoms, labs on top. (Index 0 = bottom.)\nLay the ordered card list out and confirm it with the user before coding."
-  },
-  {
-    "objectID": "docs/recipe-ggplot2-deconstructed.html#get-faithful-plot-data-from-r",
-    "href": "docs/recipe-ggplot2-deconstructed.html#get-faithful-plot-data-from-r",
-    "title": "tidymodels, animated",
-    "section": "2. Get faithful plot data from R",
-    "text": "2. Get faithful plot data from R\nDon’t eyeball the plot — extract real values with Rscript. For a scatter + loess smooth (adapt columns/geoms as needed):\nsuppressMessages(library(ggplot2)); suppressMessages(library(jsonlite))\nd &lt;- &lt;dataset&gt;\n# discrete colour groups -&gt; ggplot's exact hue palette\ngrp &lt;- sort(unique(d$&lt;colorvar&gt;))\ncols &lt;- scales::hue_pal()(length(grp))\n# loess like geom_smooth default (n &lt; 1000)\nlo &lt;- loess(&lt;y&gt; ~ &lt;x&gt;, data = d, span = 0.75, degree = 2)\nxs &lt;- seq(min(d$&lt;x&gt;), max(d$&lt;x&gt;), length.out = 80)\npr &lt;- predict(lo, newdata = data.frame(&lt;x&gt; = xs), se = TRUE)\n# emit points [x, y, groupIndex], smooth [x, fit, lo, hi], ranges, palette\nEmbed the arrays as JS literals in the module (see the PTS / SMOOTH / COLORS constants). Hardcode them — do not fetch at runtime."
-  },
-  {
-    "objectID": "docs/recipe-ggplot2-deconstructed.html#plot-geometry-svg-drawn-once",
-    "href": "docs/recipe-ggplot2-deconstructed.html#plot-geometry-svg-drawn-once",
-    "title": "tidymodels, animated",
-    "section": "3. Plot geometry (SVG, drawn once)",
-    "text": "3. Plot geometry (SVG, drawn once)\n\nThe plot lives in #gd-plot, a fixed local coordinate box (W × H). Default W = 600; pick H so the panel (H − top − bottom) reads landscape (≈ 386 × 260 worked well). Margins: left for y-title+labels, right for legend, top for title, bottom for x-labels+title.\nScales use ggplot’s default 5% additive expansion on each end: expand(lo, hi) =&gt; [lo − .05·range, hi + .05·range].\ntheme_grey look: panel #EBEBEB, white major gridlines (width 2) and minor (width 1); points r ≈ 3.4; smooth ribbon #999 @ .4, line black width 2.2.\nBuild each card as its own full-size plane (svgPlane): an outer .gd-plane div → inner .gd-tilt div → [.gd-card backing + &lt;svg&gt;]. All planes are coincident, so at rest they overlay into one flat plot."
-  },
-  {
-    "objectID": "docs/recipe-ggplot2-deconstructed.html#the-3d-mechanics-the-part-thats-easy-to-get-wrong",
-    "href": "docs/recipe-ggplot2-deconstructed.html#the-3d-mechanics-the-part-thats-easy-to-get-wrong",
-    "title": "tidymodels, animated",
-    "section": "4. The 3D mechanics (the part that’s easy to get wrong)",
-    "text": "4. The 3D mechanics (the part that’s easy to get wrong)\nThese are the lessons that took iteration — keep them:\n\nLay-down = rotateX + rotateZ. ~rotateX(56) rotateZ(20) lays the plot back and tilts it toward the right. (Flip rotateZ sign to tilt left.)\nPer-card perspective, not a shared one. Put perspective on each .gd-plane (via CSS), not on the stage/parent. A single shared perspective has one vanishing point; cards far from it get a skewed projection and their edges drift. Per-card perspective centers each card’s vanishing point on itself → all cards stay edge-aligned.\nTilt the inner .gd-tilt; fan the outer .gd-plane. The explode separation must be a screen-space translateY on the outer div (composed outside the perspective/rotation), so cards move straight up/down only and keep the same horizontal center. Fan symmetrically about center: translateY = ((N−1)/2 − i) · SPREAD (≈ 75px gap).\nCards = semi-transparent paper. .gd-card backing rgba(255,255,255,~0.6), light border + soft shadow, opacity 0 until explode."
-  },
-  {
-    "objectID": "docs/recipe-ggplot2-deconstructed.html#fragment-sequence-render-keyed-off-stage-number",
-    "href": "docs/recipe-ggplot2-deconstructed.html#fragment-sequence-render-keyed-off-stage-number",
-    "title": "tidymodels, animated",
-    "section": "5. Fragment sequence (render keyed off stage number)",
-    "text": "5. Fragment sequence (render keyed off stage number)\nDrive everything with TM.gate and an idempotent render(stage). The fragments, in order (so N geoms → N + 5 fragments):\n\narrival — flat plot, code + plot side by side\nlay — tilt back (laid = stage ≥ 1)\nexplode — fan into cards, fade in card backings (exploded = stage ≥ 2) 3 … (3+k) focus-&lt;block&gt; — walk up the stack: highlight code block k (focusIdx = stage − 3) and call out slice k. Highlight the code only — never dim the code text (user preference); the slice treatment is where the two known variants differ (pick one, or ask):\n\nA — dim others (ggplot2-deconstructed): focused slice stays at opacity 1, the rest fade to ~0.16. Everything keeps its tilt + fan spot.\nB — part & flatten (ggplot2-deconstructed-2): no dimming; the non-focused slices slide out of the way (fan += PART for i &lt; focusIdx, −PART for i &gt; focusIdx, PART ≈ 280) and the focused slice un-rotates to head-on (rotateX/rotateZ → 0) so it reads as a clean standalone plot.\n\ncollapse — merge cards back together, still tilted (!exploded, still laid)\nunrotate — flatten to head-on (!laid)\n\nImplement collapse/unrotate as two booleans that override the earlier ones: flat = stage ≥ LAST; collapsed = stage ≥ LAST−1; laid = … && !flat; exploded = … && !collapsed; focusIdx = … && !collapsed.\nCode highlight: wrap each code block (incl. the library() line) in &lt;span data-blk=\"…\"&gt;; toggle a .gd-hot class (yellow marker) on the focused block only.\nDrive all motion through TM.anime / TM.pause (never bare anime/setTimeout) so the recorder can pace to TM.idle()."
-  },
-  {
-    "objectID": "docs/recipe-ggplot2-deconstructed.html#housekeeping-dont-forget-see-main-claude.md",
-    "href": "docs/recipe-ggplot2-deconstructed.html#housekeeping-dont-forget-see-main-claude.md",
-    "title": "tidymodels, animated",
-    "section": "6. Housekeeping (don’t forget — see main CLAUDE.md)",
-    "text": "6. Housekeeping (don’t forget — see main CLAUDE.md)\n\nAdd .gd-* (or your prefix) styles to css/demos.css (it’s SCSS-layered — keep them after the /*-- scss:rules --*/ boundary).\nquarto render examples/&lt;concept&gt;.qmd, then capture both:\npython3 tools/capture_recordings.py --deck _site/examples/&lt;concept&gt;.html \\\n  --slide 1 --steps &lt;fragments + 1&gt; --selector .&lt;prefix&gt;-stage-wrap \\\n  --out gifs/&lt;concept&gt;.gif        # repeat with --out mp4/&lt;concept&gt;.mp4\n--steps = (number of gating fragments) + 1.\nAdd a ## section to index.qmd (iframe + 4 links: deck, GIF, MP4, bundle).\nquarto render the whole site — the pre-render hook auto-builds bundles/&lt;concept&gt;.zip. Verify the iframe + all four links resolve."
-  },
-  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "tidymodels, animated",
@@ -116,7 +67,14 @@
     "href": "index.html#ggplot2-deconstructed-variant",
     "title": "tidymodels, animated",
     "section": "ggplot2, deconstructed (variant)",
-    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (12 KB)"
+    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (13 KB)"
+  },
+  {
+    "objectID": "index.html#ggplot2-deconstructed-mobile",
+    "href": "index.html#ggplot2-deconstructed-mobile",
+    "title": "tidymodels, animated",
+    "section": "ggplot2, deconstructed (mobile)",
+    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (12 KB)"
   },
   {
     "objectID": "index.html#filter-a-data-frame",
@@ -131,5 +89,54 @@
     "title": "tidymodels, animated",
     "section": "filter() on two columns",
     "text": "filter() on two columns\n\n\n\nOpen full deck Download GIF (203 KB) Download MP4 (97 KB) Download reusable bundle (10 KB)"
+  },
+  {
+    "objectID": "docs/recipe-ggplot2-deconstructed.html#what-you-need-from-the-user",
+    "href": "docs/recipe-ggplot2-deconstructed.html#what-you-need-from-the-user",
+    "title": "tidymodels, animated",
+    "section": "0. What you need from the user",
+    "text": "0. What you need from the user\n\nThe ggplot2 code snippet (verbatim). This drives everything: the left listing and the set of cards (one card per top-level block).\nConfirm which dataset it uses so you can render a faithful plot."
+  },
+  {
+    "objectID": "docs/recipe-ggplot2-deconstructed.html#decide-the-card-decomposition-the-spec-confirm-first",
+    "href": "docs/recipe-ggplot2-deconstructed.html#decide-the-card-decomposition-the-spec-confirm-first",
+    "title": "tidymodels, animated",
+    "section": "1. Decide the card decomposition (the spec — confirm first)",
+    "text": "1. Decide the card decomposition (the spec — confirm first)\nSplit the snippet into one card per visual layer, mapping each +-chained call to what it draws. The default mapping that worked:\n\n\n\n\n\n\n\nCode block\nCard owns\n\n\n\n\nggplot(data, aes(...))\npanel background, gridlines, tick marks + tick labels, legend keys (the colour/shape scale swatches)\n\n\ngeom_*(...) (one per geom)\nthat geom’s marks (points, line+ribbon, bars, …)\n\n\nlabs(...)\nonly the text labs sets: plot title, axis titles, legend title\n\n\n\nRules of thumb: - Tick numbers belong to the coord card; axis titles belong to labs. - Legend swatches belong to the aes() card; the legend title to labs. - Each geom_* is its own card, stacked in code order. - Card stack order = code order, bottom → top: ggplot/aes at the bottom, then geoms, labs on top. (Index 0 = bottom.)\nLay the ordered card list out and confirm it with the user before coding."
+  },
+  {
+    "objectID": "docs/recipe-ggplot2-deconstructed.html#get-faithful-plot-data-from-r",
+    "href": "docs/recipe-ggplot2-deconstructed.html#get-faithful-plot-data-from-r",
+    "title": "tidymodels, animated",
+    "section": "2. Get faithful plot data from R",
+    "text": "2. Get faithful plot data from R\nDon’t eyeball the plot — extract real values with Rscript. For a scatter + loess smooth (adapt columns/geoms as needed):\nsuppressMessages(library(ggplot2)); suppressMessages(library(jsonlite))\nd &lt;- &lt;dataset&gt;\n# discrete colour groups -&gt; ggplot's exact hue palette\ngrp &lt;- sort(unique(d$&lt;colorvar&gt;))\ncols &lt;- scales::hue_pal()(length(grp))\n# loess like geom_smooth default (n &lt; 1000)\nlo &lt;- loess(&lt;y&gt; ~ &lt;x&gt;, data = d, span = 0.75, degree = 2)\nxs &lt;- seq(min(d$&lt;x&gt;), max(d$&lt;x&gt;), length.out = 80)\npr &lt;- predict(lo, newdata = data.frame(&lt;x&gt; = xs), se = TRUE)\n# emit points [x, y, groupIndex], smooth [x, fit, lo, hi], ranges, palette\nEmbed the arrays as JS literals in the module (see the PTS / SMOOTH / COLORS constants). Hardcode them — do not fetch at runtime."
+  },
+  {
+    "objectID": "docs/recipe-ggplot2-deconstructed.html#plot-geometry-svg-drawn-once",
+    "href": "docs/recipe-ggplot2-deconstructed.html#plot-geometry-svg-drawn-once",
+    "title": "tidymodels, animated",
+    "section": "3. Plot geometry (SVG, drawn once)",
+    "text": "3. Plot geometry (SVG, drawn once)\n\nThe plot lives in #gd-plot, a fixed local coordinate box (W × H). Default W = 600; pick H so the panel (H − top − bottom) reads landscape (≈ 386 × 260 worked well). Margins: left for y-title+labels, right for legend, top for title, bottom for x-labels+title.\nScales use ggplot’s default 5% additive expansion on each end: expand(lo, hi) =&gt; [lo − .05·range, hi + .05·range].\ntheme_grey look: panel #EBEBEB, white major gridlines (width 2) and minor (width 1); points r ≈ 3.4; smooth ribbon #999 @ .4, line black width 2.2.\nBuild each card as its own full-size plane (svgPlane): an outer .gd-plane div → inner .gd-tilt div → [.gd-card backing + &lt;svg&gt;]. All planes are coincident, so at rest they overlay into one flat plot."
+  },
+  {
+    "objectID": "docs/recipe-ggplot2-deconstructed.html#the-3d-mechanics-the-part-thats-easy-to-get-wrong",
+    "href": "docs/recipe-ggplot2-deconstructed.html#the-3d-mechanics-the-part-thats-easy-to-get-wrong",
+    "title": "tidymodels, animated",
+    "section": "4. The 3D mechanics (the part that’s easy to get wrong)",
+    "text": "4. The 3D mechanics (the part that’s easy to get wrong)\nThese are the lessons that took iteration — keep them:\n\nLay-down = rotateX + rotateZ. ~rotateX(56) rotateZ(20) lays the plot back and tilts it toward the right. (Flip rotateZ sign to tilt left.)\nPer-card perspective, not a shared one. Put perspective on each .gd-plane (via CSS), not on the stage/parent. A single shared perspective has one vanishing point; cards far from it get a skewed projection and their edges drift. Per-card perspective centers each card’s vanishing point on itself → all cards stay edge-aligned.\nTilt the inner .gd-tilt; fan the outer .gd-plane. The explode separation must be a screen-space translateY on the outer div (composed outside the perspective/rotation), so cards move straight up/down only and keep the same horizontal center. Fan symmetrically about center: translateY = ((N−1)/2 − i) · SPREAD (≈ 75px gap).\nCards = semi-transparent paper. .gd-card backing rgba(255,255,255,~0.6), light border + soft shadow, opacity 0 until explode."
+  },
+  {
+    "objectID": "docs/recipe-ggplot2-deconstructed.html#fragment-sequence-render-keyed-off-stage-number",
+    "href": "docs/recipe-ggplot2-deconstructed.html#fragment-sequence-render-keyed-off-stage-number",
+    "title": "tidymodels, animated",
+    "section": "5. Fragment sequence (render keyed off stage number)",
+    "text": "5. Fragment sequence (render keyed off stage number)\nDrive everything with TM.gate and an idempotent render(stage). The fragments, in order (so N geoms → N + 5 fragments):\n\narrival — flat plot, code + plot side by side\nlay — tilt back (laid = stage ≥ 1)\nexplode — fan into cards, fade in card backings (exploded = stage ≥ 2) 3 … (3+k) focus-&lt;block&gt; — walk up the stack: highlight code block k (focusIdx = stage − 3) and call out slice k. Highlight the code only — never dim the code text (user preference); the slice treatment is where the two known variants differ (pick one, or ask):\n\nA — dim others (ggplot2-deconstructed): focused slice stays at opacity 1, the rest fade to ~0.16. Everything keeps its tilt + fan spot.\nB — part & flatten (ggplot2-deconstructed-2): no dimming; the non-focused slices slide out of the way (fan += PART for i &lt; focusIdx, −PART for i &gt; focusIdx, PART ≈ 280) and the focused slice un-rotates to head-on (rotateX/rotateZ → 0) so it reads as a clean standalone plot.\n\ncollapse — merge cards back together, still tilted (!exploded, still laid)\nunrotate — flatten to head-on (!laid)\n\nImplement collapse/unrotate as two booleans that override the earlier ones: flat = stage ≥ LAST; collapsed = stage ≥ LAST−1; laid = … && !flat; exploded = … && !collapsed; focusIdx = … && !collapsed.\nCode highlight: wrap each code block (incl. the library() line) in &lt;span data-blk=\"…\"&gt;; toggle a .gd-hot class (yellow marker) on the focused block only.\nDrive all motion through TM.anime / TM.pause (never bare anime/setTimeout) so the recorder can pace to TM.idle()."
+  },
+  {
+    "objectID": "docs/recipe-ggplot2-deconstructed.html#housekeeping-dont-forget-see-main-claude.md",
+    "href": "docs/recipe-ggplot2-deconstructed.html#housekeeping-dont-forget-see-main-claude.md",
+    "title": "tidymodels, animated",
+    "section": "6. Housekeeping (don’t forget — see main CLAUDE.md)",
+    "text": "6. Housekeeping (don’t forget — see main CLAUDE.md)\n\nAdd .gd-* (or your prefix) styles to css/demos.css (it’s SCSS-layered — keep them after the /*-- scss:rules --*/ boundary).\nquarto render examples/&lt;concept&gt;.qmd, then capture both:\npython3 tools/capture_recordings.py --deck _site/examples/&lt;concept&gt;.html \\\n  --slide 1 --steps &lt;fragments + 1&gt; --selector .&lt;prefix&gt;-stage-wrap \\\n  --out gifs/&lt;concept&gt;.gif        # repeat with --out mp4/&lt;concept&gt;.mp4\n--steps = (number of gating fragments) + 1.\nAdd a ## section to index.qmd (iframe + 4 links: deck, GIF, MP4, bundle).\nquarto render the whole site — the pre-render hook auto-builds bundles/&lt;concept&gt;.zip. Verify the iframe + all four links resolve."
   }
 ]

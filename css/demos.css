@@ -788,6 +788,87 @@ section:has(.gd2-slide) { overflow: hidden; }
   opacity: 0;
 }
 
+/* ---- ggplot2-deconstructed (mobile / phone-shaped) ---- */
+section:has(.gdm-slide) { overflow: hidden; }
+
+.gdm-stage-wrap { position: relative; margin-top: 10px; }
+
+/* portrait phone-aspect (9:16) box — captures cropped to this come out as a
+   phone-shaped gif/mp4. JS positions children in this same coordinate space. */
+#gdm-stage {
+  position: relative;
+  width: 405px;
+  height: 720px;
+  margin: 0 auto;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* invisible markers — they only exist to advance Reveal fragments */
+.gdm-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+/* code listing across the top of the screen */
+.gdm-code {
+  position: absolute;
+  left: 22px;
+  top: 30px;
+  width: 360px;
+  font-family: "Source Code Pro", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tm-ink);
+  white-space: pre;
+  z-index: 2;
+}
+.gdm-code [data-blk] { border-radius: 4px; transition: background-color 0.3s ease; }
+.gdm-code [data-blk].gdm-hot {
+  background: rgba(255, 214, 84, 0.32);
+  box-shadow: 0 0 0 3px rgba(255, 214, 84, 0.32);
+}
+
+.gdm-code .gdm-fn   { color: #2563c9; }
+.gdm-code .gdm-str  { color: #2e8b57; }
+.gdm-code .gdm-arg  { color: #8a6d00; }
+.gdm-code .gdm-num  { color: #b5651d; }
+.gdm-code .gdm-mut  { color: #9aa1ad; }
+
+/* plot lives in the lower part of the screen */
+#gdm-plot {
+  position: absolute;
+  left: 50%;
+  top: 240px;
+  transform: translateX(-50%);
+  width: 348px;
+  height: 300px;
+}
+
+.gdm-plane { perspective: 1100px; }
+
+.gdm-tilt {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.gdm-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(160, 168, 184, 0.6);
+  border-radius: 6px;
+  box-shadow: 0 10px 26px rgba(20, 28, 45, 0.16);
+  opacity: 0;
+}
+
 
 /* ---- filter() ---- */
 section:has(.fr-slide) { overflow: hidden; }
