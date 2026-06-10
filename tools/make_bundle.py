@@ -25,7 +25,7 @@ README_TMPL = """\
 # {concept} — reusable animation bundle
 
 Everything needed to drop the **{concept}** animation into your own Quarto
-RevealJS deck. Extracted from https://github.com/EmilHvitfeldt/tidymodels-animated
+RevealJS deck. Extracted from https://github.com/EmilHvitfeldt/tidy-animations
 
 ## Contents
 

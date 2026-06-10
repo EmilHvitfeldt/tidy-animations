@@ -1,6 +1,6 @@
-# tidymodels, animated
+# tidy animations
 
-Self-contained animated explainers for tidymodels concepts, built with
+Self-contained animated explainers for data science and ML concepts, built with
 [Quarto RevealJS](https://quarto.org/docs/presentations/revealjs/) +
 [anime.js](https://animejs.com/) and driven by RevealJS **fragments**.
 
@@ -11,7 +11,7 @@ animation module in `js/`). This keeps every animation copy-pasteable into a rea
 talk and avoids fragment ids cross-firing between concepts.
 
 ```
-tidymodels-animated/
+tidy-animations/
 ├── _quarto.yml                    # shared format defaults + anime.js + js/infra.html (loaded everywhere)
 ├── index.qmd                      # landing page linking to each deck
 ├── examples/

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture a tidymodels-animated deck as a (small, crisp) GIF or MP4.
+"""Capture a tidy-animations deck as a (small, crisp) GIF or MP4.
 
 The output format is chosen from the `--out` extension: `.mp4` encodes H.264
 (libx264, yuv420p, faststart) from the same lossless PNG frames; anything else

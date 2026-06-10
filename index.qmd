@@ -1,5 +1,5 @@
 ---
-title: "tidymodels, animated"
+title: "tidy animations"
 subtitle: "Showing how the concepts actually move"
 format:
   html:

@@ -1,7 +1,7 @@
-# tidymodels-animated — project instructions
+# tidy-animations — project instructions
 
-Animated explainers for tidymodels concepts: Quarto RevealJS + anime.js, driven
-by RevealJS fragments.
+Animated explainers for data science / ML concepts: Quarto RevealJS + anime.js,
+driven by RevealJS fragments.
 
 ## Reusable animation recipes
 
