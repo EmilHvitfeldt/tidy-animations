@@ -2,10 +2,6 @@
 
 Self-contained animated explainers for data science and ML concepts, built with [Quarto RevealJS](https://quarto.org/docs/presentations/revealjs/) + [anime.js](https://animejs.com/) and driven by RevealJS **fragments**.
 
-<video src="https://github.com/EmilHvitfeldt/tidy-animations/raw/main/mp4/grid-combined-6.mp4" controls muted width="100%"></video>
-
-> A sampler of six decks (cross-validation, ggplot2-deconstructed, filter, recipe pipeline, sliding window, train/test split). If the player doesn't load, [watch it here](https://github.com/EmilHvitfeldt/tidy-animations/raw/main/mp4/grid-combined-6.mp4).
-
 ## Convention: one `.qmd` per animation
 
 Each concept lives in **its own `.qmd` deck** under `examples/` (plus a matching animation module in `js/`). This keeps every animation copy-pasteable into a real talk and avoids fragment ids cross-firing between concepts.
