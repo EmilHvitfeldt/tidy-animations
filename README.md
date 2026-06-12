@@ -1,154 +1,46 @@
-# tidy animations
+# tidymodels, animated
 
-Self-contained animated explainers for data science and ML concepts, built with [Quarto RevealJS](https://quarto.org/docs/presentations/revealjs/) + [anime.js](https://animejs.com/) and driven by RevealJS **fragments**.
+Self-contained animated explainers for data science and machine learning concepts, built with [Quarto RevealJS](https://quarto.org/docs/presentations/revealjs/) and [anime.js](https://animejs.com/).
 
-## Convention: one `.qmd` per animation
+**▶ Watch them live: <https://emilhvitfeldt.github.io/tidy-animations/>**
 
-Each concept lives in **its own `.qmd` deck** under `examples/` (plus a matching animation module in `js/`). This keeps every animation copy-pasteable into a real talk and avoids fragment ids cross-firing between concepts.
+Each animation is a single, self-contained slide you can drop straight into your own talk. Browse them on the site above — every concept has a live embed plus links to open the full deck, view it as a GIF or MP4, and download a reusable bundle.
 
-```
-tidy-animations/
-├── _quarto.yml                    # shared format defaults + anime.js + js/infra.html (loaded everywhere)
-├── index.qmd                      # landing page linking to each deck
-├── examples/
-│   ├── cross-validation.qmd       # one concept = one deck
-│   ├── bootstrap.qmd
-│   ├── train-test-split.qmd
-│   ├── ggplot2-deconstructed.qmd
-│   └── …                          # one .qmd per concept
-├── css/
-│   └── demos.css                  # shared styles + per-animation classes
-├── docs/                          # rendered site (GitHub Pages serves from here)
-├── .claude/skills/
-│   └── ggplot2-deconstructed/SKILL.md  # reusable "code-deconstructed" recipe skill
-├── bundles/                       # generated reusable zips (committed)
-├── gifs/  mp4/                    # committed deck captures
-├── tools/
-│   ├── capture_recordings.py      # headless GIF/MP4 recorder
-│   └── make_bundle.py             # builds the reusable bundles (pre-render hook)
-└── js/
-    ├── infra.html                 # shared helpers: TM.onReveal, TM.cssToSlide, TM.sectionFor, TM.gate
-    ├── cross-validation.html      # the CV animation module (one per deck)
-    └── …                          # one js/<concept>.html per deck
-```
+## What's in here
 
-### Adding a new animation
+| Concept | Deck |
+|---|---|
+| Cross-validation | `examples/cross-validation.qmd` |
+| Bootstrap resampling | `examples/bootstrap.qmd` |
+| Train/test split | `examples/train-test-split.qmd` |
+| Train/validation/test split | `examples/train-val-test.qmd` |
+| Time-based validation split | `examples/time-val-split.qmd` |
+| Sliding window | `examples/sliding-window.qmd` |
+| Recipe pipeline | `examples/recipe-pipeline.qmd` |
+| `filter()` (one & two conditions) | `examples/filter-one.qmd`, `examples/filter-two.qmd` |
+| ggplot2 deconstructed | `examples/ggplot2-deconstructed.qmd` |
 
-1. Create `js/<concept>.html` — a `<script>` that builds its DOM and calls `TM.gate({ markerClass, fragmentIds, render })`. Write `render(stage)` to be **idempotent**: given the number of visible fragments, it sets the target state. That makes forward nav, back nav, and direct-link arrival all work.
-2. Create `examples/<concept>.qmd` whose YAML pulls the module in via its own `include-after-body: [../js/<concept>.html]`. (Shared `infra.html` is already loaded globally from `_quarto.yml`.)
-3. Mark the animated slide with a unique class (e.g. `{.cv-slide}`) and add invisible `.fragment` markers with ids the module gates on.
-4. Add any concept-specific CSS to `css/demos.css`.
-5. Link the new deck from `index.qmd`.
-6. Capture `gifs/<concept>.gif` + `mp4/<concept>.mp4` (see below) once the design is signed off. The reusable bundle is regenerated automatically — `make_bundle.py --all` runs on every `quarto render` via the `pre-render` hook in `_quarto.yml` and auto-discovers any `examples/*.qmd` with a matching `js/*.html`.
+The convention is **one `.qmd` deck per concept** (under `examples/`) with a matching animation module (`js/<concept>.html`). Keeping them separate means any slide copies cleanly into a real presentation without animations interfering with each other.
 
-## Build / preview
+## Using an animation in your own talk
+
+The easiest path: on the [landing page](https://emilhvitfeldt.github.io/tidy-animations/), find the concept you want and click **Download reusable bundle**. The zip contains the slide, its JavaScript, its CSS, and a short README showing how to wire it into your own Quarto RevealJS deck.
+
+## Viewing locally
+
+You'll need [Quarto](https://quarto.org/docs/get-started/) installed.
 
 ```bash
-quarto preview examples/cross-validation.qmd   # single deck with live reload
-quarto render                          # build the whole site
+quarto preview examples/cross-validation.qmd   # one deck, with live reload
+quarto render                                  # build the whole site into docs/
 ```
 
-## Capturing a deck as a GIF or MP4
+## Creating a new animation
 
-`tools/capture_recordings.py` drives a rendered deck headlessly with Playwright, advancing through the fragments, then assembles a looping GIF (or an MP4 — pick the format with the `--out` extension). It does **not** guess delays: each animation module reports busy/idle through `TM.anime` / `TM.pause`, and the recorder waits for `window.TM.idle()` — so it samples densely *while* something is animating and lets static holds collapse to a single long-duration frame, paced to the real animation durations.
+This repo is built with [Claude Code](https://claude.com/claude-code) — the conventions, build process, and hard-won gotchas all live in `.claude/CLAUDE.md`, which Claude reads automatically. So the best way to make a new animation is to **open Claude Code in this repo and describe the concept you want to animate.** A few tips for getting good results:
 
-Frames are captured as **lossless PNG screenshots** (not lossy video), so the flat background is pixel-identical between frames. That means no compression speckle, *and* it lets the final `gifsicle -O3` pass losslessly diff-compress and dedup the hold frames — shrinking the file dramatically (the cross-validation GIF is ~0.8 MB this way vs ~6 MB from a video capture).
-
-```bash
-pip install playwright && playwright install chromium   # one-time
-# also requires ffmpeg, and gifsicle for the lossless pass (brew install gifsicle)
-quarto render examples/cross-validation.qmd              # GIF records the rendered docs/ output
-
-python3 tools/capture_recordings.py \
-    --deck docs/examples/cross-validation.html \
-    --slide 1 --steps 6 \
-    --out gifs/cross-validation.gif
-
-# same command, MP4 instead — the .mp4 extension switches to H.264 encoding
-python3 tools/capture_recordings.py \
-    --deck docs/examples/cross-validation.html \
-    --slide 1 --steps 6 \
-    --out mp4/cross-validation.mp4
-```
-
-The `.mp4` path encodes H.264 (`libx264`, `yuv420p`, faststart) from the same lossless frames; `--crf` (default 18, visually lossless) tunes quality.
-
-- `--slide` is the Reveal slide index the animation lives on (slide 0 is Quarto's title slide, so the first content slide is `1`).
-- `--steps` must be **`(number of gating fragments) + 1`** — the first `ArrowRight` lands on the slide (stage 0) rather than advancing a fragment, so a 5-fragment deck needs `--steps 6` to reach the final stage.
-- `--selector` (default `.cv-stage-wrap`) is the element the GIF is cropped to — pass `.<concept>-stage-wrap` for any other deck.
-- Pacing knobs: `--dwell` (hold after each step), `--start-hold`, `--end-hold`.
-- Output knobs: `--fps`, `--scale` (output width), `--pad`. Lower `--fps`/`--scale` to shrink further; `--no-optimize` skips the gifsicle pass.
-
-## Reusing an animation in your own deck
-
-Each animation is self-contained. To drop the cross-validation slide into another Quarto RevealJS presentation, you need four things: **anime.js**, the shared **`js/infra.html`**, the animation's **`js/<concept>.html`**, and its **CSS**.
-
-The quickest route is the **reusable bundle**: each concept on the landing page has a *Download reusable bundle* link (a zip with those files, the example `.qmd`, and a wiring README). The bundles are committed but regenerated on every `quarto render` by a `pre-render` hook in `_quarto.yml`. To rebuild them by hand:
-
-```bash
-python3 tools/make_bundle.py --all      # or name a concept, e.g. cross-validation
-```
-
-To assemble it by hand instead:
-
-**1. Copy the files** into your project:
-
-- `js/infra.html` — shared `TM` helpers (needed by every animation)
-- `js/cross-validation.html` — the animation module
-- the `.cv-*` rules and `:root` colour variables from `css/demos.css` (paste them into your own theme, or copy `demos.css` wholesale)
-
-**2. Wire them up in your deck's YAML** (or `_quarto.yml`):
-
-```yaml
-format:
-  revealjs:
-    theme: [default, css/demos.css]   # or merge the .cv-* rules into your theme
-    width: 1280
-    height: 720
-    include-in-header:
-      text: |
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
-    include-after-body:
-      - js/infra.html
-      - js/cross-validation.html
-```
-
-**3. Add the slide** wherever you want it in your deck:
-
-````markdown
-```{=html}
-<script>window.CV_COLORS = ['#8ecae6', '#90be6d', '#f9c74f'];</script>
-```
-
-## {.cv-slide}
-
-::: {.cv-stage-wrap}
-<div id="cv-title" class="cv-title"></div>
-<div id="cv-stage"></div>
-:::
-
-[]{.fragment .cv-frag id="cv-color"}
-[]{.fragment .cv-frag id="cv-split"}
-[]{.fragment .cv-frag id="cv-fold1"}
-[]{.fragment .cv-frag id="cv-fold2"}
-[]{.fragment .cv-frag id="cv-fold3"}
-````
-
-That's the whole dependency set: **`infra.html` + `cross-validation.html` + the `.cv-*` CSS + that slide block.**
-
-### Things to watch
-
-- **Keep `width: 1280, height: 720`.** The module lays elements out in absolute coordinates against a fixed-size stage (`#cv-stage`, sized in CSS). Reveal scales the whole slide to fit, so it survives different displays, but a very different aspect ratio could crop the edges.
-- **If you load the CSS as a reveal theme,** it must keep the `/*-- scss:rules --*/` boundary. Pasting the `.cv-*` rules into your existing theme avoids that requirement.
-- **Fragment ids must be unique within your deck** — don't reuse the `cv-*` ids on another slide.
-- **Position-independent.** `TM.gate` keys off the `.cv-slide` marker class and the count of visible fragments, so the slide works at any position and survives back-navigation and reloads.
-- **Recolour** by editing the `window.CV_COLORS` array (one colour per fold).
-
-## Key implementation lessons
-
-Drawn from building anime.js animations on top of RevealJS:
-
-- **Coordinate spaces** — RevealJS scales the slide with a CSS transform; child `translateX/Y` are in the slide's internal units (here 1280×720), which is what you want. Convert screen measurements with `TM.cssToSlide`.
-- **Idempotent `render(stage)`** — never script "play forward" transitions imperatively; compute the target state from how many fragments are visible. Back-navigation and reloads then need no special handling.
-- **Clean ownership of properties** — let CSS own structural/layout properties and let anime.js own `transform`, `opacity`, `background-color`. Never animate the same property from both.
-- **Register listeners without waiting for `ready`** — `include-after-body` scripts often load after Reveal initialises, so `Reveal.on('ready', …)` may never fire. `TM.onReveal` registers nav listeners immediately and polls for the current slide on boot.
+- **Describe the steps, not the code.** Say what should appear and move at each click ("the data splits into 5 folds, then one lights up as the test set…"). Claude turns that into the fragments and animation.
+- **Build it segment by segment.** Start with just the first frame — the static starting layout, before anything animates — and get it looking right. Then add one segment at a time, confirming each in the browser before moving on (`say "let's go segment by segment"`). Trying to author the whole animation in one shot produces tangled, buggy code; this is the single biggest lever on quality.
+- **Iterate in the browser.** Keep `quarto preview examples/<concept>.qmd` running and check forward *and* backward navigation at each step.
+- **Reuse a recipe.** For a ggplot2 walkthrough, just hand Claude a code snippet — the `ggplot2-deconstructed` skill kicks in automatically. Pointing Claude at an existing deck ("make it like cross-validation") is a great starting point for anything else.
+- **Capture last.** Only once you're happy with the design, ask Claude to capture the GIF/MP4 and wire the deck into the landing page.

@@ -189,3 +189,13 @@ python3 tools/capture_recordings.py \
   is cropped to it.
 - Verify the result by extracting frames with ffmpeg (first/mid/last) and reading
   them — don't trust that the run "succeeded".
+
+Pacing/output knobs (rarely needed; defaults are tuned): `--dwell` (hold after
+each step), `--start-hold` / `--end-hold` (holds on the first/last frame),
+`--fps`, `--scale` (output width), `--pad`, and `--no-optimize` (skip the
+gifsicle pass). Lower `--fps`/`--scale` to shrink a GIF further.
+
+Frames are captured as **lossless PNG screenshots** (not lossy video), so the
+flat background is pixel-identical between frames — no compression speckle, and
+the final `gifsicle -O3` pass can losslessly diff/dedup the hold frames (the
+cross-validation GIF is ~0.8 MB this way vs ~6 MB from a video capture).
