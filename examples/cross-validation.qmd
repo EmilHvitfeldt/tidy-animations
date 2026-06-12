@@ -7,8 +7,7 @@ format:
 ---
 
 ```{=html}
-<!-- Configure the three fold colours here (one per fold). -->
-<script>window.CV_COLORS = ['#8ecae6', '#90be6d', '#f9c74f'];</script>
+<script>window.CV_COLORS = ['#6aa9e0', '#6cbf84', '#e8853a'];</script>
 ```
 
 ## {.cv-slide}
@@ -16,8 +15,10 @@ format:
 ::: {.cv-stage-wrap}
 <div id="cv-title" class="cv-title"></div>
 <div id="cv-stage"></div>
+<div id="cv-equation-output" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 26px; font-weight: 600; color: var(--tm-ink); opacity: 0; white-space: nowrap;"></div>
 :::
 
+[]{.fragment .cv-frag id="cv-choose"}
 []{.fragment .cv-frag id="cv-color"}
 []{.fragment .cv-frag id="cv-split"}
 []{.fragment .cv-frag id="cv-fold1"}

@@ -6,8 +6,8 @@
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="../site_libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
-  <meta name="generator" content="quarto-1.9.35">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-845c23b38eaddc0f92fda52bfe77a8c8.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.9.36">
 
   <title>tidymodels, animated – Cross-validation</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -138,8 +138,7 @@
 </section>
 <section class="slide level2">
 
-<!-- Configure the three fold colours here (one per fold). -->
-<script>window.CV_COLORS = ['#8ecae6', '#90be6d', '#f9c74f'];</script>
+<script>window.CV_COLORS = ['#6aa9e0', '#6cbf84', '#e8853a'];</script>
 </section>
 <section id="section" class="slide level2 cv-slide">
 <h2></h2>
@@ -150,8 +149,11 @@
 <div id="cv-stage">
 
 </div>
+<div id="cv-equation-output" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 26px; font-weight: 600; color: var(--tm-ink); opacity: 0; white-space: nowrap;">
+
 </div>
-<p><span id="cv-color" class="fragment cv-frag"></span> <span id="cv-split" class="fragment cv-frag"></span> <span id="cv-fold1" class="fragment cv-frag"></span> <span id="cv-fold2" class="fragment cv-frag"></span> <span id="cv-fold3" class="fragment cv-frag"></span></p>
+</div>
+<p><span id="cv-choose" class="fragment cv-frag"></span> <span id="cv-color" class="fragment cv-frag"></span> <span id="cv-split" class="fragment cv-frag"></span> <span id="cv-fold1" class="fragment cv-frag"></span> <span id="cv-fold2" class="fragment cv-frag"></span> <span id="cv-fold3" class="fragment cv-frag"></span></p>
 
 
 </section>
@@ -377,7 +379,7 @@
      * that drives a single idempotent render(stage) per animation.
      */
     window.TM = window.TM || {};
-
+    
     /* Register listeners as soon as Reveal exists — do NOT wait for 'ready',
      * because include-after-body scripts often load after Reveal initialises. */
     TM.onReveal = function (cb) {
@@ -386,7 +388,7 @@
         cb();
       })();
     };
-
+    
     /* ---- activity tracking (so a recorder can wait for "idle" instead of guessing
      * delays). Every animation goes through TM.anime; intentional pauses use
      * TM.busyInc/busyDec so they count as busy too. TM.idle() is true only when
@@ -407,19 +409,19 @@
       TM.busyInc();
       setTimeout(function () { if (fn) fn(); TM.busyDec(); }, ms);
     };
-
+    
     /* screen pixels -> slide internal coordinate units */
     TM.cssToSlide = function (px, section) {
       const w = section.getBoundingClientRect().width;
       return px * (Reveal.getConfig().width / w);
     };
-
+    
     /* find the <section> carrying a marker class (querySelector won't match self) */
     TM.sectionFor = function (markerClass) {
       const el = document.querySelector('.' + markerClass);
       return el ? el.closest('section') : null;
     };
-
+    
     /* Gate an animation behind a slide + ordered fragment ids.
      *   markerClass : class on the slide section
      *   fragmentIds : array of fragment element ids, in advancing order
@@ -460,17 +462,17 @@
      * render(stage) is idempotent (stage = number of visible gating fragments).
      */
     (function () {
+      const K = 3;                                 // Explicitly set k = 3
       const COLS = 6, ROWS = 5, N = COLS * ROWS;   // 30 points
       const BOX = 56, GAP = 14;
       const START_X = 40;                          // left-hand side
       const GRID_H = ROWS * BOX + (ROWS - 1) * GAP;
       const START_Y = (520 - GRID_H) / 2;          // vertically centred in the stage
-
+    
       // Colours are configurable from the .qmd via `window.CV_COLORS` (one per fold).
-      const COLORS = window.CV_COLORS || ['#8ecae6', '#90be6d', '#f9c74f'];
-
-      // Hardcoded colour assignment: rolled the dice once. Looks scattered, but is
-      // exactly balanced — ten boxes of each colour (10/10/10). Row-major, 6 per row.
+      const COLORS = window.CV_COLORS || ['#6aa9e0', '#6cbf84', '#e8853a'];
+    
+      // Hardcoded colour assignment: balanced — ten boxes of each colour (10/10/10).
       const ASSIGN = [
         1, 1, 2, 0, 2, 0,
         0, 2, 1, 2, 1, 1,
@@ -478,25 +480,25 @@
         1, 2, 1, 0, 2, 0,
         2, 0, 1, 2, 1, 0,
       ];
-
-      // transparent version of a hex colour, so the fill fades in within its own
-      // hue instead of passing through grey (transparent-black) on the way up
+    
+      let r2Scores = [];
+    
       function fade(hex) {
         const n = parseInt(hex.slice(1), 16);
         return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, 0)`;
       }
-
+    
       // right-hand split grids
       const RIGHT_X = 640;
       const ANALYSIS  = { x: RIGHT_X, y: 40,  cols: 5, n: 20, label: 'Analysis',   labelY: 0   };
       const ASSESS    = { x: RIGHT_X, y: 370, cols: 5, n: 10, label: 'Assessment', labelY: 330 };
-
-      let boxes = [];          // the 30 source points on the left
-      let rightBoxes = [];     // analysis + assessment grids (empty outline targets)
+    
+      let boxes = [];          
+      let rightBoxes = [];     
       let rightLabels = [];
-      let clones = [];         // copies that fly from the left into the right grids
-      let placedFold = 0;      // which fold's copies are currently shown (0 = none)
-
+      let clones = [];         
+      let placedFold = 0;      
+    
       function cellXY(i) {
         const c = i % COLS, r = Math.floor(i / COLS);
         return { x: START_X + c * (BOX + GAP), y: START_Y + r * (BOX + GAP) };
@@ -506,7 +508,7 @@
         return { x: spec.x + c * (BOX + GAP), y: spec.y + r * (BOX + GAP) };
       }
       function colorOf(i) { return COLORS[ASSIGN[i]]; }
-
+    
       function buildGrid(stage, spec) {
         for (let i = 0; i < spec.n; i++) {
           const c = i % spec.cols, r = Math.floor(i / spec.cols);
@@ -525,14 +527,34 @@
         stage.appendChild(lab);
         rightLabels.push(lab);
       }
-
+    
+      // Safe programmatic builder injection for equation display layout container
+      function getOrCreateEquationElement(stage) {
+        let eqBox = document.getElementById('cv-equation-output');
+        if (!eqBox) {
+          eqBox = document.createElement('div');
+          eqBox.id = 'cv-equation-output';
+          eqBox.style.position = 'absolute';
+          eqBox.style.bottom = '-35px';
+          eqBox.style.left = '50%';
+          eqBox.style.transform = 'translateX(-50%)';
+          eqBox.style.fontSize = '26px';
+          eqBox.style.fontWeight = '600';
+          eqBox.style.color = 'var(--tm-ink)';
+          eqBox.style.opacity = '0';
+          eqBox.style.whiteSpace = 'nowrap';
+          stage.appendChild(eqBox);
+        }
+        return eqBox;
+      }
+    
       function build() {
         const stage = document.getElementById('cv-stage');
         if (!stage || boxes.length) return !!stage;
         for (let i = 0; i < N; i++) {
           const b = document.createElement('div');
           b.className = 'cv-box';
-          b.textContent = i + 1;          // number the source points 1..30
+          b.textContent = i + 1;          
           const { x, y } = cellXY(i);
           b.style.transform = `translate(${x}px, ${y}px)`;
           stage.appendChild(b);
@@ -540,13 +562,58 @@
         }
         buildGrid(stage, ANALYSIS);
         buildGrid(stage, ASSESS);
+        getOrCreateEquationElement(stage);
         return true;
       }
-
+    
+      // Dynamic helper function to perform smooth opacity text transitions
+      function animateTextTransition(element, newText) {
+        if (!element || element.textContent === newText) return;
+        TM.anime({
+          targets: element,
+          opacity: 0,
+          duration: 180,
+          easing: 'easeInOutQuad',
+          complete: () => {
+            element.textContent = newText;
+            TM.anime({
+              targets: element,
+              opacity: 1,
+              duration: 250,
+              easing: 'easeInOutQuad'
+            });
+          }
+        });
+      }
+    
       function render(stage) {
         if (!build()) return;
-        // stage 0: bare grid   |   stage 1: each box filled, 1/3 per colour
-        const filled = stage >= 1;
+        const title = document.getElementById('cv-title');
+        const stageEl = document.getElementById('cv-stage');
+        const eqBox = getOrCreateEquationElement(stageEl);
+    
+        // Color validation flag controls (Stage 0 and 1 remain bare)
+        const filled = stage >= 2;
+    
+        // Stage Engine Pipeline Updates
+        if (title) {
+          if (stage === 0) {
+            animateTextTransition(title, "Unsplit Original Dataset");
+            TM.anime({ targets: title, opacity: 1, duration: 400 });
+            TM.anime({ targets: eqBox, opacity: 0, duration: 200 });
+          } else if (stage === 1) {
+            animateTextTransition(title, "Choose 3 Folds");
+            TM.anime({ targets: eqBox, opacity: 0, duration: 200 });
+          } else if (stage === 2) {
+            animateTextTransition(title, `Data Assigned to ${K} Distinct Folds`);
+            TM.anime({ targets: eqBox, opacity: 0, duration: 200 });
+          } else if (stage === 3) {
+            animateTextTransition(title, "Split Data into Analysis & Assessment Components");
+            TM.anime({ targets: eqBox, opacity: 0, duration: 200 });
+          }
+        }
+    
+        // Smooth color fill interpolation animation rules
         boxes.forEach((b, i) => {
           const c = colorOf(i);
           TM.anime({
@@ -554,55 +621,71 @@
             backgroundColor: filled ? c : fade(c),
             duration: 500,
             easing: 'easeInOutQuad',
-            delay: filled ? anime.stagger(20) : 0,
+            delay: filled ? anime.stagger(15) : 0,
           });
         });
-
-        // stage 2: reveal the analysis (20) and assessment (10) grids on the right
-        const shown = stage >= 2;
+    
+        // Reveal split training layouts on right flank
+        const shown = stage >= 3;
         TM.anime({
           targets: [...rightBoxes, ...rightLabels],
           opacity: shown ? 1 : 0,
           duration: 400,
           easing: 'easeInOutQuad',
-          delay: shown ? anime.stagger(15) : 0,
+          delay: shown ? anime.stagger(10) : 0,
         });
-
-        // stages 3+: one iteration per fold. Fold f holds out colour (f-1) as the
-        // assessment set; the other two colours form the analysis set.
-        const title = document.getElementById('cv-title');
-        if (stage >= 3) {
-          const fold = stage - 2;            // stage 3 -> fold 1, stage 4 -> fold 2, ...
+    
+        // Handle interactive fold computation logic steps (Stages 4, 5, 6)
+        if (stage >= 4) {
+          const fold = stage - 3;            // Adjust alignment offset maps
+          
+          if (!r2Scores[fold - 1]) {
+            r2Scores[fold - 1] = parseFloat((0.76 + Math.random() * 0.12).toFixed(3));
+          }
+    
           if (title) {
-            title.textContent = `Fold ${fold} Iteration`;
-            TM.anime({ targets: title, opacity: 1, duration: 400, easing: 'easeInOutQuad' });
+            animateTextTransition(title, `Fold ${fold} Iteration (k=${K})`);
+          }
+    
+          // Generate bottom equation layouts based on completed loop cycles
+          if (eqBox) {
+            let formulaText = `Fold Metrics: R²₁ = ${r2Scores[0] || '?'}`;
+            if (fold >= 2) formulaText += `, R²₂ = ${r2Scores[1] || '?'}`;
+            if (fold >= 3) formulaText += `, R²₃ = ${r2Scores[2] || '?'}`;
+    
+            if (fold === K) {
+              const avgR2 = (r2Scores.reduce((sum, val) => sum + val, 0) / K).toFixed(3);
+              formulaText += `  |  Mean R² = (R²₁ + R²₂ + R²₃) / 3 = ${avgR2}`;
+            }
+            
+            animateTextTransition(eqBox, formulaText);
           }
           ensureFold(fold);
-        } else {
-          if (title) TM.anime({ targets: title, opacity: 0, duration: 400, easing: 'easeInOutQuad' });
+        } else if (stage < 4 && stage > 0) {
           placedFold = 0;
+          r2Scores = []; 
+          clearClones();
+        } else if (stage === 0) {
+          placedFold = 0;
+          r2Scores = [];
           clearClones();
         }
       }
-
-      // Place the right-hand copies for a fold, swapping out the previous fold's
-      // copies first (they disappear, then the new pattern flies in).
+    
       function ensureFold(fold) {
-        if (placedFold === fold) return;       // already showing this fold — stay stable
+        if (placedFold === fold) return;       
         placedFold = fold;
         const assessColor = fold - 1;
-        // pause after the old copies vanish before the new colour flies in.
-        // TM.pause keeps the deck "busy" through the gap (so a recorder waits for it).
         if (clones.length) clearClones(() => TM.pause(350, () => placeClones(assessColor)));
         else placeClones(assessColor);
       }
-
+    
       function placeClones(assessColor) {
         if (clones.length) return;
         const stage = document.getElementById('cv-stage');
         const assessIdx = [], analysisIdx = [];
         for (let i = 0; i < N; i++) (ASSIGN[i] === assessColor ? assessIdx : analysisIdx).push(i);
-
+    
         function fly(idx, dest, order) {
           const s = cellXY(idx);
           const b = document.createElement('div');
@@ -618,14 +701,14 @@
             translateY: dest.y,
             duration: 750,
             easing: 'easeInOutCubic',
-            delay: order * 40,
+            delay: order * 30,
           });
         }
-
+    
         assessIdx.forEach((idx, k) => fly(idx, slotXY(ASSESS, k), k));
         analysisIdx.forEach((idx, j) => fly(idx, slotXY(ANALYSIS, j), j));
       }
-
+    
       function clearClones(cb) {
         if (!clones.length) { if (cb) cb(); return; }
         const dying = clones;
@@ -638,10 +721,10 @@
           complete: () => { dying.forEach(b => b.remove()); if (cb) cb(); },
         });
       }
-
+    
       TM.gate({
         markerClass: 'cv-slide',
-        fragmentIds: ['cv-color', 'cv-split', 'cv-fold1', 'cv-fold2', 'cv-fold3'],
+        fragmentIds: ['cv-choose', 'cv-color', 'cv-split', 'cv-fold1', 'cv-fold2', 'cv-fold3'],
         render,
       });
     })();
