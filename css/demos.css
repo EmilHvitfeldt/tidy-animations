@@ -8,6 +8,7 @@
   --tm-assessment: #e8853a;   /* assessment / testing set (orange) */
   --tm-neutral: #c8ccd4;      /* unsplit data (gray) */
   --tm-ink: #1d2433;
+  --oc-pink: #d6336c;         /* orbital-codegen highlight */
 }
 
 /* ---- cross-validation ---- */
@@ -622,6 +623,152 @@ section:has(.rec-slide) { overflow: hidden; }
   font-weight: 700;
   border-bottom: none;
   align-items: flex-start;
+}
+
+/* ---- orbital-codegen ---- */
+section:has(.oc-slide) { overflow: hidden; }
+
+.oc-stage-wrap { position: relative; margin-top: 4px; }
+
+.oc-title {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  min-height: 42px;   /* reserve space so revealing text causes no layout shift */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* fixed-size coordinate box; JS positions children in this same space */
+#oc-stage {
+  position: relative;
+  width: 1220px;
+  height: 640px;
+  margin: 0 auto;
+}
+
+/* invisible markers — they only exist to advance Reveal fragments */
+.oc-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+/* ---- the recipe pipeline as code (left) ---- */
+.oc-code-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  white-space: pre;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: #6b7280;                 /* dimmed by default */
+  padding: 3px 10px;
+  border-radius: 8px;
+  will-change: transform, opacity;
+  transition: color 0.3s, background-color 0.3s;
+}
+/* the step currently emitting its generated code */
+.oc-code-line.oc-active {
+  color: var(--tm-ink);
+  background: rgba(214, 51, 108, 0.16);
+  font-weight: 600;
+}
+/* steps already emitted */
+.oc-code-line.oc-done { color: #3f4655; }
+
+.oc-fn  { color: #2b6cb0; }        /* function name */
+.oc-sel { color: #b45309; }        /* selector */
+
+/* ---- phase-2 "terms to account for" panel (left) ---- */
+.oc-terms {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 340px;
+  will-change: opacity;
+}
+.oc-term-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  margin-bottom: 15px;
+}
+.oc-term-list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.oc-term {
+  box-sizing: border-box;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 2px solid;   /* colour set inline per term */
+  border-radius: 10px;
+  padding: 11px 16px;
+}
+
+/* ---- the generated code panel (right) ---- */
+.oc-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: pre;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 15px;
+  color: #2b3244;
+  padding: 0 8px;
+  border-radius: 6px;
+  will-change: transform, opacity;
+  transition: color 0.35s, background-color 0.35s, opacity 0.35s;
+}
+/* a line on the dependency path (phase 2): neutral band, tokens carry colour */
+.oc-line.oc-pink {
+  color: #2b3244;
+  background: rgba(120, 130, 150, 0.10);
+}
+/* a line the prediction does NOT depend on (phase 2) */
+.oc-line.oc-dim { color: #aeb4c0; }
+
+/* a tracked-term token inside a traced line (colour set inline per term).
+ * NOT bold — bold monospace is wider and would shift the code. */
+.oc-tok {
+  border-radius: 4px;
+  padding: 1px 0;   /* vertical only, so highlighting never shifts glyphs sideways */
+}
+
+/* a term pill flying from its code token into the list (colour set inline) */
+.oc-fly {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  white-space: nowrap;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 6px;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* connector arrow chip -> its emitted code block */
+.oc-arrows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.oc-arrow-line {
+  stroke: var(--oc-pink);
+  stroke-width: 2.5;
+  fill: none;
 }
 
 /* ---- ggplot2-deconstructed ---- */

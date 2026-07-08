@@ -141,6 +141,17 @@ Transforming predictors before they reach the model.
 [Download reusable bundle](bundles/recipe-pipeline.zip)
 </p>
 
+## Orbital codegen
+
+<iframe class="deck-embed" src="examples/orbital-codegen.html" title="Orbital codegen animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/orbital-codegen.html){target="_blank"}
+[Download GIF](gifs/orbital-codegen.gif){download=""}
+[Download MP4](mp4/orbital-codegen.mp4){download=""}
+[Download reusable bundle](bundles/orbital-codegen.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.

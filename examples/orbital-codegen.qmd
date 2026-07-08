@@ -1,0 +1,34 @@
+---
+title: "Orbital codegen"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/orbital-codegen.html
+---
+
+## {.oc-slide}
+
+::: {.oc-stage-wrap}
+<div id="oc-title" class="oc-title"></div>
+<div id="oc-stage"></div>
+:::
+
+[]{.fragment .oc-frag id="oc-unknown"}
+[]{.fragment .oc-frag id="oc-impute"}
+[]{.fragment .oc-frag id="oc-dummy"}
+[]{.fragment .oc-frag id="oc-scale"}
+[]{.fragment .oc-frag id="oc-center"}
+[]{.fragment .oc-frag id="oc-model"}
+[]{.fragment .oc-frag id="oc-terms-setup"}
+[]{.fragment .oc-frag id="oc-trace-model"}
+[]{.fragment .oc-frag id="oc-trace-center-rhs"}
+[]{.fragment .oc-frag id="oc-trace-center-lhs"}
+[]{.fragment .oc-frag id="oc-trace-scale-rhs"}
+[]{.fragment .oc-frag id="oc-trace-scale-lhs"}
+[]{.fragment .oc-frag id="oc-trace-dummy-rhs"}
+[]{.fragment .oc-frag id="oc-trace-dummy-lhs"}
+[]{.fragment .oc-frag id="oc-trace-impute-rhs"}
+[]{.fragment .oc-frag id="oc-trace-impute-lhs"}
+[]{.fragment .oc-frag id="oc-trace-unknown-rhs"}
+[]{.fragment .oc-frag id="oc-trace-unknown-lhs"}
+[]{.fragment .oc-frag id="oc-final"}
