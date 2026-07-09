@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – filter()</title>
+  <title>tidymodels, animated – Orbital: flat to nested case_when</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -130,40 +130,23 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">filter()</h1>
+  <h1 class="title">Orbital: flat to nested case_when</h1>
 
 <div class="quarto-title-authors">
 </div>
 
 </section>
-<section class="slide level2">
-
-<!-- Configure the data + condition here. PASS marks rows meeting the condition. -->
-<script>
-window.FR_TITLE = 'filter(bill_length_mm > 45)';
-window.FR_DATA = [
-  ['Adelie',    '41.80'],
-  ['Adelie',    '36.50'],
-  ['Adelie',    '40.30'],
-  ['Chinstrap', '45.40'],
-  ['Chinstrap', '46.50'],
-  ['Chinstrap', '46'],
-  ['Gentoo',    '43.60'],
-  ['Gentoo',    '45.10'],
-  ['Gentoo',    '50.70'],
-];
-window.FR_PASS = [false, false, false, true, true, true, false, true, true];
-window.FR_COLS = ['species', 'bill_length_mm'];
-</script>
-</section>
-<section id="section" class="slide level2 fr-slide">
+<section id="section" class="slide level2 ocw-slide">
 <h2></h2>
-<div class="fr-stage-wrap">
-<div id="fr-stage">
+<div class="ocw-stage-wrap">
+<div id="ocw-title" class="ocw-title">
+
+</div>
+<div id="ocw-stage">
 
 </div>
 </div>
-<p><span id="fr-highlight" class="fragment fr-frag"></span> <span id="fr-arrows" class="fragment fr-frag"></span></p>
+<p><span id="ocw-redundant" class="fragment ocw-frag"></span> <span id="ocw-copy" class="fragment ocw-frag"></span> <span id="ocw-wrap" class="fragment ocw-frag"></span> <span id="ocw-nest" class="fragment ocw-frag"></span> <span id="ocw-strip" class="fragment ocw-frag"></span> <span id="ocw-default" class="fragment ocw-frag"></span> <span id="ocw-done" class="fragment ocw-frag"></span></p>
 
 
 </section>
@@ -467,168 +450,242 @@ window.FR_COLS = ['species', 'bill_length_mm'];
     };
     </script>
     <script>
-    /* ---- filter() animation ----
-     * Marker slide: .fr-slide   Stage container: #fr-stage
-     * Left: full dataset. Stage 1 highlights rows meeting the condition; stage 2
-     * draws arrows to their destinations; stage 3 reveals the filtered result.
+    /* ---- Orbital: flat -> nested case_when ----
+     * Marker slide: .ocw-slide   Stage container: #ocw-stage
      * render(stage) is idempotent (stage = number of visible gating fragments).
+     *
+     * Left: the flat case_when() orbital used to generate (re-checks `x <= 5`).
+     * Right: a copy that morphs into the nested, tree-shaped case_when().
+     *
+     *   stage 0  arrival: flat block on the left
+     *   stage 1  spotlight the two redundant `x <= 5` conditions
+     *   stage 2  copy the flat block over to the right slot
+     *   stage 3  wrap: an empty outer `x <= 5 ~ case_when( )` shell drops in above
+     *            the arms (which stay as siblings below it); outer check goes green
+     *   stage 4  nest: the two matching arms rise up into that empty shell and
+     *            indent; their now-redundant `x <= 5 &` prefixes go red
+     *   stage 5  strip: drop the redundant `x <= 5 &` prefixes off the inner arms
+     *   stage 6  collapse each trailing arm into `.default =`
+     *   stage 7  final: each condition is evaluated at most once
+     *
+     * The right block is a fixed pool of 7 "slots" (A..G). Each stage is a pure
+     * function slot -> { row, indent, html }: a logical line keeps its element
+     * across the morph, so a slot's `indent` (in character widths) is driven by
+     * translateX — indenting the arms therefore *slides* them inward rather than
+     * jumping, which is what reads as the "move the lines inside" motion.
      */
     (function () {
-      const TITLE = window.FR_TITLE || 'filter(x > 0)';
-      const DATA  = window.FR_DATA  || [];
-      const PASS  = window.FR_PASS  || [];
-      const COLS  = window.FR_COLS  || ['species', 'bill_length_mm'];
+      // ---- geometry (1220 x 600 stage box) ----
+      const LINEH = 34;
+      const LEFT_X = 150, LEFT_Y0 = 200;
+      const RIGHT_X = 690, RIGHT_Y0 = 183;   // nested is 7 lines, nudged up to centre
+      let CH = 13.8;                          // measured character width (see build)
 
-      const ROW_H = 44, HEADER_H = 40, TABLE_Y = 90;
-      const LEFT_X = 50, RIGHT_X = 720;
-      const W_IDX = 0, W_SP = 158, W_VAL = 148;
-      const ROW_W = W_IDX + W_SP + W_VAL;          // 358
-      const BOX_X = W_IDX + W_SP;                   // value column offset within a row
-      const HIGHLIGHT = 'rgba(74, 134, 197, 0.28)';
+      const fn   = (s) => `<span class="ocw-fn">${s}</span>`;
+      const val  = (s) => `<span class="ocw-val">${s}</span>`;
+      const def  = ()  => `<span class="ocw-def">.default</span>`;
+      const cond = (s) => `<span class="ocw-cond">${s}</span>`;
+      const pre  = ()  => `<span class="ocw-pre">${cond('x <= 5')} & </span>`;
 
-      const passIdx = DATA.map((_, i) => i).filter(i => PASS[i]);
-      const N = DATA.length, M = passIdx.length;
+      // the flat block on the left, one entry per line (indentation via spaces here;
+      // the left block never animates its indentation)
+      const FLAT = [
+        { html: `${fn('case_when')}(` },
+        { html: `  ${cond('x <= 5')} & y <= 3 ~ ${val('"low"')},` },
+        { html: `  ${cond('x <= 5')} & y > 3  ~ ${val('"med"')},` },
+        { html: `  x > 5           ~ ${val('"high"')}` },
+        { html: `)` },
+      ];
+
+      // right-hand slots, in DOM/pool order
+      const SLOTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+      // flat copy of the right block (stage 2): 5 lines, slots F/G unused
+      const FLAT_RIGHT = {
+        A: { row: 0, indent: 0, html: `${fn('case_when')}(` },
+        B: { row: 1, indent: 2, html: `x <= 5 & y <= 3 ~ ${val('"low"')},` },
+        C: { row: 2, indent: 2, html: `x <= 5 & y > 3  ~ ${val('"med"')},` },
+        D: { row: 3, indent: 2, html: `x > 5           ~ ${val('"high"')}` },
+        E: { row: 4, indent: 0, html: `)` },
+      };
+
+      // right layout for a given stage (null before the copy exists). `moved` lifts
+      // the arms up into the shell (before it, they sit below as siblings); `strip`
+      // removes the redundant prefixes; `d` collapses trailing arms to `.default`.
+      //
+      // Row order differs by `moved`: the empty shell's close `),` (slot G) sits
+      // right under the open before the arms move in, and drops below them after.
+      function nested({ moved, strip, d }) {
+        const arm = moved ? 4 : 2;
+        const p = strip ? '' : pre();
+        const cComma = moved ? '' : ',';   // C is the last inner arm only once moved
+        const rows = moved ? { A: 0, F: 1, B: 2, C: 3, G: 4, D: 5, E: 6 }
+                           : { A: 0, F: 1, G: 2, B: 3, C: 4, D: 5, E: 6 };
+        return {
+          A: { row: rows.A, indent: 0, html: `${fn('case_when')}(` },
+          F: { row: rows.F, indent: 2, html: `${cond('x <= 5')} ~ ${fn('case_when')}(` },
+          B: { row: rows.B, indent: arm, html: `${p}y <= 3 ~ ${val('"low"')},` },
+          C: { row: rows.C, indent: arm, html: d ? `${def()} = ${val('"med"')}`
+                                                 : `${p}y > 3  ~ ${val('"med"')}${cComma}` },
+          G: { row: rows.G, indent: 2, html: `),` },
+          D: { row: rows.D, indent: 2, html: d ? `${def()} = ${val('"high"')}`
+                                                : `x > 5 ~ ${val('"high"')}` },
+          E: { row: rows.E, indent: 0, html: `)` },
+        };
+      }
+
+      function rightLayout(stage) {
+        if (stage < 2) return null;
+        if (stage === 2) return FLAT_RIGHT;
+        if (stage === 3) return nested({ moved: false, strip: false, d: false });
+        if (stage === 4) return nested({ moved: true,  strip: false, d: false });
+        if (stage === 5) return nested({ moved: true,  strip: true,  d: false });
+        return nested({ moved: true, strip: true, d: true });
+      }
+
+      const TITLES = [
+        'the flat case_when() re-checks the same condition',   // 0
+        'x <= 5 gets tested twice',                            // 1
+        'rewrite it as a nested case_when()',                  // 2
+        'add an empty outer branch for x <= 5',                // 3
+        'lift the two matching arms into it',                  // 4
+        'inside that branch x <= 5 is already true, so drop it',// 5
+        'the last arm of each branch becomes .default',        // 6
+        'now every condition is evaluated at most once',       // 7
+      ];
 
       let built = false;
-      let leftRows = [];     // data rows on the left (index -> element)
-      let rightEls = [];     // right-table elements to fade in (rows, header, colbox)
-      let arrows = [];       // svg <path> per passing row
-
-      function rowCenterY(j) { return TABLE_Y + HEADER_H + j * ROW_H + ROW_H / 2; }
-
-      function makeRow(cls, idxText, species, value, isHead) {
-        const row = document.createElement('div');
-        row.className = 'fr-row' + (isHead ? ' fr-head' : '') + (cls ? ' ' + cls : '');
-        const c2 = document.createElement('span'); c2.className = 'fr-cell fr-species'; c2.textContent = species;
-        const c3 = document.createElement('span'); c3.className = 'fr-cell fr-value';   c3.textContent = value;
-        row.append(c2, c3);
-        return row;
-      }
-
-      function makeColbox(x, rows) {
-        const box = document.createElement('div');
-        box.className = 'fr-colbox';
-        box.style.transform = `translate(${x + BOX_X}px, ${TABLE_Y}px)`;
-        box.style.width  = W_VAL + 'px';
-        box.style.height = (HEADER_H + rows * ROW_H) + 'px';
-        return box;
-      }
+      let stageEl = null, titleEl = null;
+      let leftEls = [], leftCondEls = [];
+      let right = {};                 // slot name -> { el, html, visible }
+      let prevStage = -1;
 
       function build() {
-        const stage = document.getElementById('fr-stage');
+        const stage = document.getElementById('ocw-stage');
         if (!stage || built) return !!stage;
         built = true;
+        stageEl = stage;
+        titleEl = document.getElementById('ocw-title');
 
-        // title
-        const title = document.createElement('div');
-        title.className = 'fr-title';
-        title.textContent = TITLE;
-        stage.appendChild(title);
+        // measure the monospace character advance in this stage's coordinate space
+        const m = document.createElement('span');
+        m.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;' +
+          'font-family:"Fira Mono","SFMono-Regular",Menlo,Consolas,monospace;font-size:23px;';
+        m.textContent = '0123456789';
+        stage.appendChild(m);
+        if (m.offsetWidth) CH = m.offsetWidth / 10;
+        m.remove();
 
-        // ---- left table ----
-        const lhead = makeRow('', '', COLS[0], COLS[1], true);
-        lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
-        stage.appendChild(lhead);
-
-        DATA.forEach((d, i) => {
-          const row = makeRow('', String(i + 1), d[0], d[1], false);
-          row.style.transform = `translate(${LEFT_X}px, ${TABLE_Y + HEADER_H + i * ROW_H}px)`;
-          stage.appendChild(row);
-          leftRows.push(row);
+        FLAT.forEach((ln, i) => {
+          const el = document.createElement('div');
+          el.className = 'ocw-line';
+          el.innerHTML = ln.html;
+          anime.set(el, { translateX: LEFT_X, translateY: LEFT_Y0 + i * LINEH });
+          stage.appendChild(el);
+          leftEls.push(el);
         });
+        leftCondEls = leftEls.map((el) => el.querySelector('.ocw-cond')).filter(Boolean);
 
-        // ---- right table (hidden until stage 3) ----
-        const rhead = makeRow('', '', COLS[0], COLS[1], true);
-        rhead.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y}px)`;
-        rhead.style.opacity = 0;
-        stage.appendChild(rhead);
-        rightEls.push(rhead);
-
-        passIdx.forEach((srcI, j) => {
-          const d = DATA[srcI];
-          const row = makeRow('', String(j + 1), d[0], d[1], false);
-          row.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y + HEADER_H + j * ROW_H}px)`;
-          row.style.opacity = 0;
-          stage.appendChild(row);
-          rightEls.push(row);
+        // right-hand pool: one element per slot, hidden at the left copy origin
+        SLOTS.forEach((name) => {
+          const el = document.createElement('div');
+          el.className = 'ocw-line';
+          el.style.opacity = 0;
+          anime.set(el, { translateX: LEFT_X, translateY: LEFT_Y0 });
+          stage.appendChild(el);
+          right[name] = { el, html: '', text: '', rowIdx: -1, visible: false };
         });
-
-        // ---- arrows (svg overlay) ----
-        const svgNS = 'http://www.w3.org/2000/svg';
-        const svg = document.createElementNS(svgNS, 'svg');
-        svg.setAttribute('id', 'fr-arrows-svg');
-        const defs = document.createElementNS(svgNS, 'defs');
-        const marker = document.createElementNS(svgNS, 'marker');
-        marker.setAttribute('id', 'fr-arrowhead');
-        marker.setAttribute('viewBox', '0 0 10 10');
-        marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
-        marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
-        marker.setAttribute('orient', 'auto-start-reverse');
-        const head = document.createElementNS(svgNS, 'path');
-        head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-        head.setAttribute('fill', '#4a86c5');
-        marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
-
-        const sx = LEFT_X + ROW_W + 6;          // right edge of left value box
-        const dx = RIGHT_X - 8;                 // left edge of right table
-        passIdx.forEach((srcI, j) => {
-          const syy = leftRowY(srcI), dyy = rowCenterY(j);
-          const p = document.createElementNS(svgNS, 'path');
-          p.setAttribute('class', 'fr-arrow');
-          p.setAttribute('marker-end', 'url(#fr-arrowhead)');
-          p.setAttribute('d', `M ${sx} ${syy} C ${sx + 130} ${syy}, ${dx - 130} ${dyy}, ${dx} ${dyy}`);
-          svg.appendChild(p);
-          const len = p.getTotalLength();
-          p.style.strokeDasharray = len;
-          p.style.strokeDashoffset = len;
-          p.style.opacity = 0;
-          arrows.push({ p, len });
-        });
-        stage.appendChild(svg);
 
         return true;
       }
 
-      function leftRowY(i) { return TABLE_Y + HEADER_H + i * ROW_H + ROW_H / 2; }
+      const stripTags = (s) => s.replace(/<[^>]*>/g, '');
+
+      function renderRight(stage) {
+        const layout = rightLayout(stage);
+        const flyIn = stage === 2 && prevStage < 2;   // first arrival of the copy
+        const forward = stage > prevStage;
+        // did any already-visible line move rows this step? (e.g. the wrap step
+        // pushes the arms down). If so, newly-shown lines wait for that to settle.
+        let linesMoving = false;
+        SLOTS.forEach((name) => {
+          const spec = layout ? layout[name] : null;
+          if (spec && right[name].visible && right[name].rowIdx !== spec.row) linesMoving = true;
+        });
+        const MOVE_MS = 520;
+
+        SLOTS.forEach((name) => {
+          const slot = right[name];
+          const spec = layout ? layout[name] : null;
+          if (!spec) {                       // slot not used at this stage: hide it
+            slot.visible = false;
+            slot.rowIdx = -1;
+            TM.anime({ targets: slot.el, opacity: 0, duration: 250, easing: 'easeOutQuad' });
+            return;
+          }
+          const x = RIGHT_X + spec.indent * CH;
+          const y = RIGHT_Y0 + spec.row * LINEH;
+          const wasVisible = slot.visible;
+          const sameRow = slot.rowIdx === spec.row;
+          const textChanged = stripTags(spec.html) !== slot.text;
+          if (spec.html !== slot.html) { slot.el.innerHTML = spec.html; slot.html = spec.html; }
+          slot.text = stripTags(spec.html);
+          slot.rowIdx = spec.row;
+          slot.visible = true;
+
+          if (flyIn) {                       // copy flies over from the left block
+            anime.set(slot.el, { translateX: LEFT_X, translateY: y, opacity: 0 });
+            TM.anime({ targets: slot.el, translateX: x, opacity: [0, 1],
+                       duration: 620, easing: 'easeInOutCubic' });
+          } else if (!wasVisible) {           // a newly shown line: fade in, in place,
+            // after the moving lines settle (so the shell appears once room is made)
+            anime.set(slot.el, { translateX: x, translateY: y, opacity: 0 });
+            TM.anime({ targets: slot.el, opacity: [0, 1], duration: 380,
+                       delay: (forward && linesMoving) ? MOVE_MS - 120 : 0,
+                       easing: 'easeOutQuad' });
+          } else {
+            // an in-place text edit (same row) crossfades so it reads as a
+            // transform; a line that only changes rows just slides (no opacity dip,
+            // which is what used to make the arms flicker when the shell appeared).
+            const fade = textChanged && sameRow && forward;
+            TM.anime({ targets: slot.el, translateX: x, translateY: y,
+                       opacity: fade ? [0.15, 1] : 1, duration: fade ? 460 : MOVE_MS,
+                       easing: 'easeInOutCubic' });
+          }
+        });
+      }
 
       function render(stage) {
         if (!build()) return;
 
-        // stage 1: highlight the matching values (pill + bolder, darker-blue text)
-        const hi = stage >= 1;
-        passIdx.forEach(i => {
-          const cell = leftRows[i].querySelector('.fr-value');
-          cell.classList.toggle('fr-hit', hi);
-          TM.anime({
-            targets: cell,
-            backgroundColor: hi ? HIGHLIGHT : 'rgba(74, 134, 197, 0)',
-            color: hi ? '#1f5e9b' : 'rgb(29, 36, 51)',
-            duration: 450, easing: 'easeInOutQuad',
-          });
+        // spotlight the two redundant `x <= 5` conditions on the left
+        const hot = stage >= 1 && stage <= 2;
+        leftCondEls.forEach((el) => el.classList.toggle('ocw-hot', hot));
+
+        renderRight(stage);
+
+        // once the outer wrapper exists (stage >= 3) the outer `x <= 5` is the
+        // single canonical check — mark it green.
+        const outer = right.F && right.F.el.querySelector('.ocw-cond');
+        if (outer) outer.classList.toggle('ocw-ok', stage >= 3);
+        // stage 4 (nest): the inner prefix copies are now redundant — flag them red.
+        ['B', 'C'].forEach((n) => {
+          const c = right[n] && right[n].el.querySelector('.ocw-pre .ocw-cond');
+          if (c) c.classList.toggle('ocw-hot', stage === 4);
         });
 
-        // stage 2: draw arrows, then reveal the filtered result right after
-        const show = stage >= 2;
-        arrows.forEach(({ p, len }, k) => {
-          TM.anime({
-            targets: p,
-            strokeDashoffset: show ? 0 : len,
-            opacity: show ? 1 : 0,
-            duration: 600, easing: 'easeInOutCubic',
-            delay: show ? k * 90 : 0,
-          });
-        });
-        TM.anime({
-          targets: rightEls,
-          opacity: show ? 1 : 0,
-          duration: 450, easing: 'easeInOutQuad',
-          delay: show ? anime.stagger(50, { start: 520 }) : 0,
-        });
+        if (titleEl) {
+          titleEl.textContent = TITLES[Math.min(stage, 7)];
+          titleEl.style.opacity = 1;
+        }
+
+        prevStage = stage;
       }
 
       TM.gate({
-        markerClass: 'fr-slide',
-        fragmentIds: ['fr-highlight', 'fr-arrows', 'fr-result'],
+        markerClass: 'ocw-slide',
+        fragmentIds: ['ocw-redundant', 'ocw-copy', 'ocw-wrap', 'ocw-nest',
+                      'ocw-strip', 'ocw-default', 'ocw-done'],
         render,
       });
     })();

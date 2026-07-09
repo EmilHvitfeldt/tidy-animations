@@ -1123,3 +1123,67 @@ section:has(.fr-slide) { overflow: hidden; }
   stroke: #4a86c5;
   stroke-width: 2;
 }
+
+/* ---- orbital-casewhen (flat -> nested case_when) ---- */
+section:has(.ocw-slide) { overflow: hidden; }
+
+.ocw-stage-wrap { position: relative; margin-top: 4px; }
+
+.ocw-title {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  min-height: 42px;   /* reserve space so revealing text causes no layout shift */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* fixed-size coordinate box; JS positions children in this same space */
+#ocw-stage {
+  position: relative;
+  width: 1220px;
+  height: 600px;
+  margin: 0 auto;
+}
+
+/* invisible markers — they only exist to advance Reveal fragments */
+.ocw-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+/* a single code line, positioned by JS in stage coordinates */
+.ocw-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: pre;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 23px;
+  line-height: 34px;
+  color: #2b3244;
+  padding: 1px 6px;
+  border-radius: 6px;
+  will-change: transform, opacity;
+}
+
+.ocw-fn  { color: #2b6cb0; }        /* case_when */
+.ocw-val { color: #b45309; }        /* result strings */
+.ocw-def { color: #7c3aed; }        /* .default */
+
+/* a condition fragment we can spotlight (e.g. the redundant `x <= 5`) */
+.ocw-cond {
+  border-radius: 5px;
+  padding: 1px 0;
+  transition: background-color 0.3s, color 0.3s;
+}
+.ocw-cond.ocw-hot {
+  background: rgba(214, 51, 108, 0.20);
+  color: var(--oc-pink);
+}
+.ocw-cond.ocw-ok {
+  background: rgba(56, 161, 105, 0.20);
+  color: #2f855a;
+}

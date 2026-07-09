@@ -152,6 +152,17 @@ Transforming predictors before they reach the model.
 [Download reusable bundle](bundles/orbital-codegen.zip)
 </p>
 
+## Orbital: flat to nested case_when
+
+<iframe class="deck-embed" src="examples/orbital-casewhen.html" title="Orbital flat to nested case_when animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/orbital-casewhen.html){target="_blank"}
+[Download GIF](gifs/orbital-casewhen.gif){download=""}
+[Download MP4](mp4/orbital-casewhen.mp4){download=""}
+[Download reusable bundle](bundles/orbital-casewhen.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.

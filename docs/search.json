@@ -11,7 +11,7 @@
     "href": "index.html#initial-traintest-split",
     "title": "tidy animations",
     "section": "Initial train/test split",
-    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (10 KB)"
+    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (11 KB)"
   },
   {
     "objectID": "index.html#trainvalidationtest-split",
@@ -32,7 +32,7 @@
     "href": "index.html#time-based-trainvalidationtest-split",
     "title": "tidy animations",
     "section": "Time-based train/validation/test split",
-    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (9 KB)"
+    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (10 KB)"
   },
   {
     "objectID": "index.html#cross-validation",
@@ -61,6 +61,13 @@
     "title": "tidy animations",
     "section": "Orbital codegen",
     "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (14 KB)"
+  },
+  {
+    "objectID": "index.html#orbital-flat-to-nested-case_when",
+    "href": "index.html#orbital-flat-to-nested-case_when",
+    "title": "tidy animations",
+    "section": "Orbital: flat to nested case_when",
+    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (11 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",

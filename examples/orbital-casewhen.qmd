@@ -1,0 +1,23 @@
+---
+title: "Orbital: flat to nested case_when"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/orbital-casewhen.html
+---
+
+## {.ocw-slide}
+
+::: {.ocw-stage-wrap}
+<div id="ocw-title" class="ocw-title"></div>
+<div id="ocw-stage"></div>
+:::
+
+[]{.fragment .ocw-frag id="ocw-redundant"}
+[]{.fragment .ocw-frag id="ocw-copy"}
+[]{.fragment .ocw-frag id="ocw-wrap"}
+[]{.fragment .ocw-frag id="ocw-nest"}
+[]{.fragment .ocw-frag id="ocw-strip"}
+[]{.fragment .ocw-frag id="ocw-default"}
+[]{.fragment .ocw-frag id="ocw-done"}
+
