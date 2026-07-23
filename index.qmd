@@ -141,6 +141,17 @@ Transforming predictors before they reach the model.
 [Download reusable bundle](bundles/recipe-pipeline.zip)
 </p>
 
+## SMOTE
+
+<iframe class="deck-embed" src="examples/smote.html" title="SMOTE animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/smote.html){target="_blank"}
+[Download GIF](gifs/smote.gif){download=""}
+[Download MP4](mp4/smote.mp4){download=""}
+[Download reusable bundle](bundles/smote.zip)
+</p>
+
 ## Orbital codegen
 
 <iframe class="deck-embed" src="examples/orbital-codegen.html" title="Orbital codegen animation"></iframe>

@@ -18,7 +18,7 @@
     "href": "index.html#trainvalidationtest-split",
     "title": "tidy animations",
     "section": "Train/validation/test split",
-    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (10 KB)"
+    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (11 KB)"
   },
   {
     "objectID": "index.html#time-based-resampling",
@@ -56,6 +56,13 @@
     "text": "Recipe pipeline\n\n\n\nOpen full deck Download GIF (836 KB) Download MP4 (396 KB) Download reusable bundle (12 KB)"
   },
   {
+    "objectID": "index.html#smote",
+    "href": "index.html#smote",
+    "title": "tidy animations",
+    "section": "SMOTE",
+    "text": "SMOTE\n\n\n\nOpen full deck Download GIF (521 KB) Download MP4 (237 KB) Download reusable bundle (13 KB)"
+  },
+  {
     "objectID": "index.html#orbital-codegen",
     "href": "index.html#orbital-codegen",
     "title": "tidy animations",
@@ -67,28 +74,28 @@
     "href": "index.html#orbital-flat-to-nested-case_when",
     "title": "tidy animations",
     "section": "Orbital: flat to nested case_when",
-    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (11 KB)"
+    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (12 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",
     "href": "index.html#ggplot2-deconstructed",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed",
-    "text": "ggplot2, deconstructed\n\n\n\nOpen full deck Download GIF (1.1 MB) Download MP4 (424 KB) Download reusable bundle (13 KB)"
+    "text": "ggplot2, deconstructed\n\n\n\nOpen full deck Download GIF (1.1 MB) Download MP4 (424 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-variant",
     "href": "index.html#ggplot2-deconstructed-variant",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed (variant)",
-    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (13 KB)"
+    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-mobile",
     "href": "index.html#ggplot2-deconstructed-mobile",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed (mobile)",
-    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (12 KB)"
+    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (13 KB)"
   },
   {
     "objectID": "index.html#filter-a-data-frame",

@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – filter()</title>
+  <title>tidymodels, animated – SMOTE</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -130,7 +130,7 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">filter()</h1>
+  <h1 class="title">SMOTE</h1>
 
 <div class="quarto-title-authors">
 </div>
@@ -138,32 +138,20 @@
 </section>
 <section class="slide level2">
 
-<!-- Configure the data + condition here. PASS marks rows meeting the condition. -->
-<script>
-window.FR_TITLE = 'filter(bill_length_mm > 45)';
-window.FR_DATA = [
-  ['Adelie',    '41.80'],
-  ['Adelie',    '36.50'],
-  ['Adelie',    '40.30'],
-  ['Chinstrap', '45.40'],
-  ['Chinstrap', '46.50'],
-  ['Chinstrap', '46'],
-  ['Gentoo',    '43.60'],
-  ['Gentoo',    '45.10'],
-  ['Gentoo',    '50.70'],
-];
-window.FR_PASS = [false, false, false, true, true, true, false, true, true];
-window.FR_COLS = ['species', 'bill_length_mm'];
-</script>
+<!-- Colours: [majority, minority, synthetic]. Synthetic is a desaturated minority. -->
+<script>window.SMOTE_COLORS = ['#c8ccd4', '#d6336c', '#e59db7'];</script>
 </section>
-<section id="section" class="slide level2 fr-slide">
+<section id="section" class="slide level2 smote-slide">
 <h2></h2>
-<div class="fr-stage-wrap">
-<div id="fr-stage">
+<div class="smote-stage-wrap">
+<div id="smote-title" class="smote-title">
+
+</div>
+<div id="smote-stage">
 
 </div>
 </div>
-<p><span id="fr-highlight" class="fragment fr-frag"></span> <span id="fr-arrows" class="fragment fr-frag"></span></p>
+<p><span id="smote-focus" class="fragment smote-frag"></span> <span id="smote-neighbors" class="fragment smote-frag"></span> <span id="smote-synth" class="fragment smote-frag"></span> <span id="smote-repeat" class="fragment smote-frag"></span> <span id="smote-balanced" class="fragment smote-frag"></span></p>
 
 
 </section>
@@ -467,168 +455,351 @@ window.FR_COLS = ['species', 'bill_length_mm'];
     };
     </script>
     <script>
-    /* ---- filter() animation ----
-     * Marker slide: .fr-slide   Stage container: #fr-stage
-     * Left: full dataset. Stage 1 highlights rows meeting the condition; stage 2
-     * draws arrows to their destinations; stage 3 reveals the filtered result.
+    /* ---- SMOTE animation ----
+     * Marker slide: .smote-slide   Stage container: #smote-stage
      * render(stage) is idempotent (stage = number of visible gating fragments).
+     *
+     * Segments (stage 0 = slide arrival):
+     *   0 imbalanced data | 1 focus minority | 2 sample point + k=5 neighbours
+     *   3 synthesise one point | 4 repeat | 5 balanced
      */
     (function () {
-      const TITLE = window.FR_TITLE || 'filter(x > 0)';
-      const DATA  = window.FR_DATA  || [];
-      const PASS  = window.FR_PASS  || [];
-      const COLS  = window.FR_COLS  || ['species', 'bill_length_mm'];
+      const W = 1100, H = 560;
 
-      const ROW_H = 44, HEADER_H = 40, TABLE_Y = 90;
-      const LEFT_X = 50, RIGHT_X = 720;
-      const W_IDX = 0, W_SP = 158, W_VAL = 148;
-      const ROW_W = W_IDX + W_SP + W_VAL;          // 358
-      const BOX_X = W_IDX + W_SP;                   // value column offset within a row
-      const HIGHLIGHT = 'rgba(74, 134, 197, 0.28)';
+      // [majority, minority, synthetic]. Synthetic = desaturated minority.
+      const COLORS = window.SMOTE_COLORS || ['#c8ccd4', '#d6336c', '#e59db7'];
+      const [C_MAJ, C_MIN, C_SYN] = COLORS;
 
-      const passIdx = DATA.map((_, i) => i).filter(i => PASS[i]);
-      const N = DATA.length, M = passIdx.length;
+      // Hardcoded coordinates (rolled once) — stable across reloads / back-nav.
+      // Majority: a broad cloud filling most of the box.
+      const MAJ = [
+        [80, 70], [180, 130], [120, 240], [70, 360], [150, 450],
+        [250, 90], [300, 300], [260, 500], [360, 180], [340, 400],
+        [420, 70], [470, 260], [430, 470], [520, 140], [560, 360],
+        [540, 520], [610, 60], [650, 230], [600, 430], [700, 130],
+        [740, 330], [690, 520], [780, 200], [820, 90], [860, 470],
+        [900, 260], [960, 120], [980, 380], [1010, 260], [1030, 500],
+        [230, 200], [390, 300], [480, 380], [660, 340], [760, 60],
+        [880, 180], [940, 490], [200, 340], [320, 210], [510, 470],
+      ];
+      // Minority: a small tight cluster (lower-right region).
+      const MIN = [
+        [820, 350], [880, 330], [910, 400], [850, 430],
+        [790, 400], [940, 360], [870, 470], [800, 470],
+      ];
+
+      const K = 5;                 // neighbours per point
+      const CHOSEN = 3;            // which minority point we sample (index into MIN)
+      // Hop order for the roulette "random draw" — visits points, lands on CHOSEN.
+      const HOP_SEQ = [0, 5, 1, 6, 2, 7, 4, 1, 5, 2, 6, 0, CHOSEN];
+
+      // Zoom: pan+scale the whole scene onto the minority cluster during the
+      // action (stages 2–4), then pull back out for the balanced view (stage 5).
+      const CLUSTER = [865, 400];       // cluster centroid, in world coords
+      const CENTER = [550, 280];        // where to place it when zoomed (stage centre)
+      const ZOOM = 1.9;
 
       let built = false;
-      let leftRows = [];     // data rows on the left (index -> element)
-      let rightEls = [];     // right-table elements to fade in (rows, header, colbox)
-      let arrows = [];       // svg <path> per passing row
+      let world = null;           // inner group that holds every element (zoom target)
+      let majDots = [];
+      let minDots = [];
+      const PICK = 4;             // which NEIGHBORS entry we synthesise along
+      const LAMBDA = 0.6;         // fraction along that segment for the new point
 
-      function rowCenterY(j) { return TABLE_Y + HEADER_H + j * ROW_H + ROW_H / 2; }
+      let ring = null;            // selection ring around the sampled point
+      let lines = [];             // neighbour connector lines
+      let scaffoldShown = false;  // is the sample+neighbour scaffolding up?
+      let synthDot = null;        // the single synthetic point (stage 3)
+      let synthShown = false;
+      let extra = [];             // the many synthetic points (stage 4)
+      let extraShown = false;
 
-      function makeRow(cls, idxText, species, value, isHead) {
-        const row = document.createElement('div');
-        row.className = 'fr-row' + (isHead ? ' fr-head' : '') + (cls ? ' ' + cls : '');
-        const c2 = document.createElement('span'); c2.className = 'fr-cell fr-species'; c2.textContent = species;
-        const c3 = document.createElement('span'); c3.className = 'fr-cell fr-value';   c3.textContent = value;
-        row.append(c2, c3);
-        return row;
+      // Stage 4 synthetic points: [minority a, minority b, fraction] — each is
+      // interpolated between two real minority points (hardcoded, so it's stable).
+      const SYNTH_SPECS = [
+        [0, 1, 0.5], [1, 5, 0.55], [5, 2, 0.45], [2, 6, 0.5], [6, 7, 0.5],
+        [7, 4, 0.5], [4, 0, 0.55], [3, 2, 0.5], [3, 6, 0.55], [1, 2, 0.5],
+        [5, 6, 0.4], [0, 4, 0.6], [2, 5, 0.6], [3, 1, 0.45],
+      ];
+
+      // k nearest minority neighbours of point `src` (indices into MIN).
+      function knn(src, k) {
+        const [sx, sy] = MIN[src];
+        return MIN
+          .map(([x, y], i) => ({ i, d: (x - sx) ** 2 + (y - sy) ** 2 }))
+          .filter(o => o.i !== src)
+          .sort((a, b) => a.d - b.d)
+          .slice(0, k)
+          .map(o => o.i);
+      }
+      const NEIGHBORS = knn(CHOSEN, K);
+      const NEIGHBOR_SET = new Set(NEIGHBORS);
+
+      function fade(hex) {
+        const n = parseInt(hex.slice(1), 16);
+        return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, 0)`;
       }
 
-      function makeColbox(x, rows) {
-        const box = document.createElement('div');
-        box.className = 'fr-colbox';
-        box.style.transform = `translate(${x + BOX_X}px, ${TABLE_Y}px)`;
-        box.style.width  = W_VAL + 'px';
-        box.style.height = (HEADER_H + rows * ROW_H) + 'px';
-        return box;
+      // `anime` controls the transform when this dot will be animated (minority):
+      // position it with anime.set so translateX/translateY compose cleanly later.
+      // Static dots (majority) just get a CSS translate() and only ever fade.
+      function makeDot(x, y, color, animated) {
+        const d = document.createElement('div');
+        d.className = 'smote-dot';
+        d.style.backgroundColor = color;
+        world.appendChild(d);
+        if (animated) anime.set(d, { translateX: x, translateY: y });
+        else d.style.transform = `translate(${x}px, ${y}px)`;
+        return d;
       }
 
       function build() {
-        const stage = document.getElementById('fr-stage');
+        const stage = document.getElementById('smote-stage');
         if (!stage || built) return !!stage;
         built = true;
-
-        // title
-        const title = document.createElement('div');
-        title.className = 'fr-title';
-        title.textContent = TITLE;
-        stage.appendChild(title);
-
-        // ---- left table ----
-        const lhead = makeRow('', '', COLS[0], COLS[1], true);
-        lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
-        stage.appendChild(lhead);
-
-        DATA.forEach((d, i) => {
-          const row = makeRow('', String(i + 1), d[0], d[1], false);
-          row.style.transform = `translate(${LEFT_X}px, ${TABLE_Y + HEADER_H + i * ROW_H}px)`;
-          stage.appendChild(row);
-          leftRows.push(row);
-        });
-
-        // ---- right table (hidden until stage 3) ----
-        const rhead = makeRow('', '', COLS[0], COLS[1], true);
-        rhead.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y}px)`;
-        rhead.style.opacity = 0;
-        stage.appendChild(rhead);
-        rightEls.push(rhead);
-
-        passIdx.forEach((srcI, j) => {
-          const d = DATA[srcI];
-          const row = makeRow('', String(j + 1), d[0], d[1], false);
-          row.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y + HEADER_H + j * ROW_H}px)`;
-          row.style.opacity = 0;
-          stage.appendChild(row);
-          rightEls.push(row);
-        });
-
-        // ---- arrows (svg overlay) ----
-        const svgNS = 'http://www.w3.org/2000/svg';
-        const svg = document.createElementNS(svgNS, 'svg');
-        svg.setAttribute('id', 'fr-arrows-svg');
-        const defs = document.createElementNS(svgNS, 'defs');
-        const marker = document.createElementNS(svgNS, 'marker');
-        marker.setAttribute('id', 'fr-arrowhead');
-        marker.setAttribute('viewBox', '0 0 10 10');
-        marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
-        marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
-        marker.setAttribute('orient', 'auto-start-reverse');
-        const head = document.createElementNS(svgNS, 'path');
-        head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-        head.setAttribute('fill', '#4a86c5');
-        marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
-
-        const sx = LEFT_X + ROW_W + 6;          // right edge of left value box
-        const dx = RIGHT_X - 8;                 // left edge of right table
-        passIdx.forEach((srcI, j) => {
-          const syy = leftRowY(srcI), dyy = rowCenterY(j);
-          const p = document.createElementNS(svgNS, 'path');
-          p.setAttribute('class', 'fr-arrow');
-          p.setAttribute('marker-end', 'url(#fr-arrowhead)');
-          p.setAttribute('d', `M ${sx} ${syy} C ${sx + 130} ${syy}, ${dx - 130} ${dyy}, ${dx} ${dyy}`);
-          svg.appendChild(p);
-          const len = p.getTotalLength();
-          p.style.strokeDasharray = len;
-          p.style.strokeDashoffset = len;
-          p.style.opacity = 0;
-          arrows.push({ p, len });
-        });
-        stage.appendChild(svg);
-
+        world = document.createElement('div');
+        world.className = 'smote-world';
+        stage.appendChild(world);
+        MAJ.forEach(([x, y]) => majDots.push(makeDot(x, y, C_MAJ, false)));
+        MIN.forEach(([x, y]) => minDots.push(makeDot(x, y, C_MIN, true)));
         return true;
       }
 
-      function leftRowY(i) { return TABLE_Y + HEADER_H + i * ROW_H + ROW_H / 2; }
+      // Pan+scale the world group. Rest state (s = 1) is the identity transform;
+      // zoomed state places CLUSTER at CENTER at scale ZOOM.
+      function zoom(on) {
+        const s = on ? ZOOM : 1;
+        // Key order matters: translate must come before scale so anime emits
+        // `translateX() translateY() scale()` — CSS then scales first and applies
+        // the (unscaled) translate last, giving p' = s*p + t (pan, not scaled pan).
+        TM.anime({
+          targets: world,
+          translateX: on ? CENTER[0] - s * CLUSTER[0] : 0,
+          translateY: on ? CENTER[1] - s * CLUSTER[1] : 0,
+          scale: s,
+          duration: 700,
+          easing: 'easeInOutCubic',
+        });
+      }
+
+      // A neighbour connector: a thin bar from CHOSEN to a neighbour, drawn behind
+      // the dots. transform-origin is its left end, so translate to the source
+      // point, rotate to the neighbour, and set width = distance.
+      function makeLine(srcXY, dstXY) {
+        const [sx, sy] = srcXY, [dx, dy] = dstXY;
+        const len = Math.hypot(dx - sx, dy - sy);
+        const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+        const el = document.createElement('div');
+        el.className = 'smote-line';
+        el.style.width = len + 'px';
+        el.style.opacity = 0;
+        world.insertBefore(el, world.firstChild);   // behind the dots
+        anime.set(el, { translateX: sx, translateY: sy, rotate: ang });
+        return el;
+      }
+
+      // Roulette "random draw": hop the ring between points, decelerating, then land
+      // on CHOSEN and call onDone. Runs only on a fresh forward entry into stage 2.
+      function spinRing(onDone) {
+        let i = 0;
+        (function step() {
+          const [x, y] = MIN[HOP_SEQ[i]];
+          anime.set(ring, { translateX: x, translateY: y });
+          i++;
+          if (i >= HOP_SEQ.length) { onDone(); return; }
+          TM.pause(70 + i * 16, step);   // slow down as it goes
+        })();
+      }
+
+      function drawLines() {
+        if (lines.length) return;
+        NEIGHBORS.forEach((j) => lines.push(makeLine(MIN[CHOSEN], MIN[j])));
+        TM.anime({ targets: lines, opacity: 1, duration: 350, easing: 'easeInOutQuad', delay: anime.stagger(60) });
+      }
+
+      function showScaffold(spin) {
+        if (scaffoldShown) return;
+        scaffoldShown = true;
+        if (!ring) {
+          ring = document.createElement('div');
+          ring.className = 'smote-ring';
+          ring.style.opacity = 0;
+          world.appendChild(ring);
+        }
+        if (spin) {
+          anime.set(ring, { translateX: MIN[HOP_SEQ[0]][0], translateY: MIN[HOP_SEQ[0]][1] });
+          TM.anime({ targets: ring, opacity: 1, duration: 200, easing: 'easeOutQuad' });
+          spinRing(() => TM.pause(150, drawLines));
+        } else {
+          anime.set(ring, { translateX: MIN[CHOSEN][0], translateY: MIN[CHOSEN][1], opacity: 1 });
+          drawLines();
+        }
+      }
+
+      function hideScaffold() {
+        if (!scaffoldShown) return;
+        scaffoldShown = false;
+        if (ring) TM.anime({ targets: ring, opacity: 0, duration: 300, easing: 'easeInOutQuad' });
+        if (lines.length) {
+          const dying = lines; lines = [];
+          TM.anime({
+            targets: dying, opacity: 0, duration: 250, easing: 'easeInOutQuad',
+            complete: () => dying.forEach(l => l.remove()),
+          });
+        }
+      }
+
+      // roulette over the neighbour lines: flicker the highlight between segments,
+      // decelerating, then land on PICK. Shows the *random neighbour* choice.
+      function lineRoulette(onDone) {
+        const seq = [0, 3, 1, 4, 2, 0, 3, 1, 4, PICK];
+        let i = 0;
+        (function step() {
+          const hop = seq[i];
+          if (lines.length) lines.forEach((l, j) => anime.set(l, { opacity: j === hop ? 1 : 0.18 }));
+          i++;
+          if (i >= seq.length) { onDone(); return; }
+          TM.pause(90 + i * 18, step);
+        })();
+      }
+
+      // Stage 3: randomly pick one neighbour segment, then slide a new synthetic
+      // point along it to a random fraction. `animate` = play it out (forward entry).
+      function showSynth(animate) {
+        if (synthShown) return;
+        synthShown = true;
+        const [cx, cy] = MIN[CHOSEN], [nx, ny] = MIN[NEIGHBORS[PICK]];
+        const fx = f => cx + f * (nx - cx), fy = f => cy + f * (ny - cy);
+
+        if (!animate) {   // idempotent re-render / back-nav arrival: jump to final
+          if (lines.length) lines.forEach((l, i) => anime.set(l, { opacity: i === PICK ? 1 : 0.18 }));
+          synthDot = makeDot(cx, cy, C_SYN, true);
+          anime.set(synthDot, { translateX: fx(LAMBDA), translateY: fy(LAMBDA), scale: 1.18 });
+          return;
+        }
+
+        // 1) roulette to pick the neighbour, then 2) slide to a random spot on it.
+        lineRoulette(() => TM.pause(150, () => {
+          synthDot = makeDot(cx, cy, C_SYN, true);
+          anime.set(synthDot, { scale: 1.18 });
+          const frames = [0.9, 0.22, LAMBDA];   // slide up/down the line, settle at LAMBDA
+          TM.anime({
+            targets: synthDot,
+            translateX: frames.map((f, i) => ({ value: fx(f), duration: i === 0 ? 550 : 450 })),
+            translateY: frames.map((f, i) => ({ value: fy(f), duration: i === 0 ? 550 : 450 })),
+            easing: 'easeInOutCubic',
+          });
+        }));
+      }
+
+      function hideSynth() {
+        if (!synthShown) return;
+        synthShown = false;
+        if (lines.length) lines.forEach(l =>
+          TM.anime({ targets: l, opacity: 1, duration: 300, easing: 'easeInOutQuad' }));
+        if (synthDot) {
+          const d = synthDot; synthDot = null;
+          TM.anime({ targets: d, opacity: 0, duration: 250, easing: 'easeInOutQuad', complete: () => d.remove() });
+        }
+      }
+
+      // Stage 4: pop in many synthetic points across the minority region.
+      function showExtra(animate) {
+        if (extraShown) return;
+        extraShown = true;
+        SYNTH_SPECS.forEach(([a, b, t]) => {
+          const x = MIN[a][0] + t * (MIN[b][0] - MIN[a][0]);
+          const y = MIN[a][1] + t * (MIN[b][1] - MIN[a][1]);
+          const d = makeDot(x, y, C_SYN, true);
+          extra.push(d);
+          anime.set(d, { scale: animate ? 0 : 1.18, opacity: animate ? 0 : 1 });
+        });
+        if (animate) {
+          TM.anime({ targets: extra, scale: 1.18, opacity: 1, duration: 450, easing: 'easeOutBack', delay: anime.stagger(70) });
+        }
+      }
+
+      function hideExtra() {
+        if (!extraShown) return;
+        extraShown = false;
+        const dying = extra; extra = [];
+        if (!dying.length) return;
+        TM.anime({
+          targets: dying, scale: 0, opacity: 0, duration: 300, easing: 'easeInQuad',
+          complete: () => dying.forEach(d => d.remove()),
+        });
+      }
+
+      function setTitle(text) {
+        const t = document.getElementById('smote-title');
+        if (!t) return;
+        t.textContent = text;
+        TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+      }
 
       function render(stage) {
         if (!build()) return;
 
-        // stage 1: highlight the matching values (pill + bolder, darker-blue text)
-        const hi = stage >= 1;
-        passIdx.forEach(i => {
-          const cell = leftRows[i].querySelector('.fr-value');
-          cell.classList.toggle('fr-hit', hi);
+        // Zoom onto the cluster while the action happens there (stages 2–4),
+        // pull back out for the balanced view (stages 0–1 and 5).
+        zoom(stage >= 2 && stage < 5);
+
+        // Dim the majority while we work the minority (stages 1–4); on the final
+        // balanced stage (5) it comes back to full strength.
+        const focus = stage >= 1;
+        const dimMaj = stage >= 1 && stage < 5;
+        TM.anime({
+          targets: majDots,
+          opacity: dimMaj ? 0.22 : 1,
+          duration: 500,
+          easing: 'easeInOutQuad',
+        });
+        // Minority emphasis: focused points scale up; the sampled point's
+        // neighbours scale a touch more while the single-point scaffolding is up.
+        const scaff = stage >= 2 && stage < 4;   // sample + neighbour lines (stages 2–3)
+        minDots.forEach((d, i) => {
+          const [x, y] = MIN[i];
+          let sc = 1;
+          if (focus) sc = 1.18;
+          if (scaff && NEIGHBOR_SET.has(i)) sc = 1.35;
           TM.anime({
-            targets: cell,
-            backgroundColor: hi ? HIGHLIGHT : 'rgba(74, 134, 197, 0)',
-            color: hi ? '#1f5e9b' : 'rgb(29, 36, 51)',
-            duration: 450, easing: 'easeInOutQuad',
+            targets: d,
+            scale: sc,
+            translateX: x, translateY: y,
+            duration: 500,
+            easing: 'easeOutBack',
           });
         });
 
-        // stage 2: draw arrows, then reveal the filtered result right after
-        const show = stage >= 2;
-        arrows.forEach(({ p, len }, k) => {
-          TM.anime({
-            targets: p,
-            strokeDashoffset: show ? 0 : len,
-            opacity: show ? 1 : 0,
-            duration: 600, easing: 'easeInOutCubic',
-            delay: show ? k * 90 : 0,
-          });
-        });
-        TM.anime({
-          targets: rightEls,
-          opacity: show ? 1 : 0,
-          duration: 450, easing: 'easeInOutQuad',
-          delay: show ? anime.stagger(50, { start: 520 }) : 0,
-        });
+        // Stage 2–3: sample one minority point (roulette) + its k neighbours.
+        if (scaff) showScaffold(!scaffoldShown);
+        else hideScaffold();
+
+        // Stage 3+: the first synthetic point (kept through the later stages).
+        const synth = stage >= 3;
+        if (synth) showSynth(!synthShown);
+        else hideSynth();
+
+        // Stage 4+: fill the minority region with many more synthetic points.
+        const many = stage >= 4;
+        if (many) showExtra(!extraShown);
+        else hideExtra();
+
+        // Stage 5: balanced.
+        const balanced = stage >= 5;
+
+        setTitle(
+          balanced ? 'Now the classes are balanced: train on this'
+          : many ? 'Repeat for the whole minority class until it is balanced'
+          : synth ? 'Interpolate a new synthetic point along the line to a random neighbour'
+          : scaff ? 'For each minority point (sampled at random), find its k = 5 nearest neighbours'
+          : focus ? 'SMOTE only synthesises the minority class'
+          : 'Imbalanced classes');
       }
 
       TM.gate({
-        markerClass: 'fr-slide',
-        fragmentIds: ['fr-highlight', 'fr-arrows', 'fr-result'],
+        markerClass: 'smote-slide',
+        fragmentIds: ['smote-focus', 'smote-neighbors', 'smote-synth', 'smote-repeat', 'smote-balanced'],
         render,
       });
     })();
