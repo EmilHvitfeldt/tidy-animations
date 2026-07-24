@@ -1,0 +1,355 @@
+<script>
+/* ---- Borderline-SMOTE2 animation ----
+ * Marker slide: .bl2-slide   Stage container: #bl2-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * Stages 0-3 match Borderline-SMOTE1 (imbalance -> neighbourhood -> classify ->
+ * keep DANGER). BL2 differs in the synthesis: it interpolates toward neighbours
+ * of BOTH classes, but only *halfway* (lambda <= 0.5) toward a majority neighbour,
+ * so synthetic points hug the minority side of the border without crossing it.
+ *
+ *   0 imbalanced data
+ *   1 look at a minority point's m nearest neighbours (both classes)
+ *   2 classify every minority point SAFE / DANGER / NOISE
+ *   3 keep only the DANGER (borderline) points  (+ zoom in)
+ *   4 synthesise toward a minority neighbour (full) AND a majority neighbour (<=0.5)
+ *   5 repeat across the border -> a band hugging the boundary  (+ zoom out)
+ */
+(function () {
+  const W = 1100, H = 560;
+
+  // [majority, minority/SAFE, synthetic, DANGER, NOISE, majority-neighbour line].
+  const COLORS = window.BL2_COLORS || ['#c8ccd4', '#d6336c', '#e59db7', '#f76707', '#868e96', '#4c6ef5'];
+  const [C_MAJ, C_MIN, C_SYN, C_DANGER, C_NOISE, C_MAJLINE] = COLORS;
+
+  // Same hardcoded layout as Borderline-SMOTE1 (verified with the classifier).
+  const MAJ = [
+    [90,80],[70,320],[130,480],[220,150],[260,430],[300,70],
+    [520,180],[600,170],[690,180],[770,200],
+    [520,400],[600,410],[690,410],[770,390],
+    [500,300],[820,300],
+    [880,110],[900,300],[880,480],[960,190],[960,400],
+    [1010,110],[1020,300],[1010,490],[1050,200],[1050,380],
+    [900,240],[900,360],[1000,300],
+    [150,540],[350,540],[520,540],[690,540],[930,540],
+    [400,120],[400,470],[830,150],[830,450],[720,300],
+    [600,375],[650,205],[625,290],[675,285],
+  ];
+  const MIN = [
+    [280,280],[320,300],[290,340],[350,270],[310,360],[360,330],   // 0-5  SAFE cluster
+    [560,250],[600,320],[650,260],[700,330],[740,270],             // 6-10 DANGER arc
+    [960,300],                                                     // 11   NOISE
+  ];
+
+  const M = 5;                 // neighbourhood size for classification (both classes)
+  const K = 6;                 // neighbours per point for interpolation (both classes)
+  const DEMO = 8;              // minority point whose neighbourhood we show in stage 1
+  const SYNTH_SRC = 7;         // DANGER point we synthesise from in stage 4
+  const LAM_MIN = 0.6;         // fraction toward the minority neighbour
+  const LAM_MAJ = 0.4;         // fraction toward the majority neighbour (capped <= 0.5)
+
+  const CLUSTER = [650, 288];
+  const CENTER = [560, 280];
+  const ZOOM = 1.7;
+
+  const NALL = MAJ.length + MIN.length;
+  function pt(gi) { return gi < MAJ.length ? MAJ[gi] : MIN[gi - MAJ.length]; }
+  function isMaj(gi) { return gi < MAJ.length; }
+
+  function mnn(mi, m) {
+    const self = MAJ.length + mi, [sx, sy] = MIN[mi];
+    const out = [];
+    for (let gi = 0; gi < NALL; gi++) {
+      if (gi === self) continue;
+      const [x, y] = pt(gi);
+      out.push({ gi, maj: isMaj(gi), d: (x - sx) ** 2 + (y - sy) ** 2 });
+    }
+    return out.sort((a, b) => a.d - b.d).slice(0, m);
+  }
+  function classify() {
+    return MIN.map((_, mi) => {
+      const majN = mnn(mi, M).filter(o => o.maj).length;
+      return majN < M / 2 ? 'SAFE' : (majN === M ? 'NOISE' : 'DANGER');
+    });
+  }
+  const LABEL = classify();
+  const DANGER_IDX = LABEL.map((l, i) => l === 'DANGER' ? i : -1).filter(i => i >= 0);
+  function colorFor(mi) {
+    return LABEL[mi] === 'DANGER' ? C_DANGER : LABEL[mi] === 'NOISE' ? C_NOISE : C_MIN;
+  }
+
+  // k nearest neighbours across BOTH classes (returns {gi, maj, xy}).
+  function knnAll(mi, k) {
+    return mnn(mi, k).map(o => ({ gi: o.gi, maj: o.maj, xy: pt(o.gi) }));
+  }
+
+  // Stage-5 specs: for each danger point, one point toward its nearest minority
+  // neighbour (full lambda) and one toward its nearest majority neighbour (<=0.5).
+  const SYNTH_SPECS = [];   // each: [x, y]
+  function farMaj(nbrs, sx, sy) {   // farthest majority neighbour in the set
+    return nbrs.filter(o => o.maj)
+      .sort((a, b) => Math.hypot(b.xy[0] - sx, b.xy[1] - sy) - Math.hypot(a.xy[0] - sx, a.xy[1] - sy))[0];
+  }
+  DANGER_IDX.forEach(d => {
+    const nbrs = knnAll(d, K), [sx, sy] = MIN[d];
+    const mn = nbrs.find(o => !o.maj), mj = farMaj(nbrs, sx, sy);
+    if (mn) SYNTH_SPECS.push([sx + 0.5 * (mn.xy[0] - sx), sy + 0.5 * (mn.xy[1] - sy)]);
+    if (mj) SYNTH_SPECS.push([sx + 0.35 * (mj.xy[0] - sx), sy + 0.35 * (mj.xy[1] - sy)]);
+  });
+
+  let built = false, world = null;
+  let majDots = [], minDots = [], legend = null;
+  let ring = null, nbrLines = [], nbrShown = false;
+  let synLines = [], midMark = null, synMin = null, synMaj = null, synth4Shown = false;
+  let extra = [], extraShown = false;
+
+  function makeDot(x, y, color, animated) {
+    const d = document.createElement('div');
+    d.className = 'bl2-dot';
+    d.style.backgroundColor = color;
+    world.appendChild(d);
+    if (animated) anime.set(d, { translateX: x, translateY: y });
+    else d.style.transform = `translate(${x}px, ${y}px)`;
+    return d;
+  }
+
+  function build() {
+    const stage = document.getElementById('bl2-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'bl2-world';
+    stage.appendChild(world);
+    MAJ.forEach(([x, y]) => majDots.push(makeDot(x, y, C_MAJ, false)));
+    MIN.forEach(([x, y]) => minDots.push(makeDot(x, y, C_MIN, true)));
+
+    legend = document.createElement('div');
+    legend.className = 'bl2-legend';
+    legend.innerHTML =
+      `<span class="chip"><span class="swatch" style="background:${C_MIN}"></span>SAFE</span>` +
+      `<span class="chip"><span class="swatch" style="background:${C_DANGER}"></span>DANGER</span>` +
+      `<span class="chip"><span class="swatch" style="background:${C_NOISE}"></span>NOISE</span>`;
+    stage.appendChild(legend);
+    return true;
+  }
+
+  function zoom(on) {
+    const s = on ? ZOOM : 1;
+    TM.anime({
+      targets: world,
+      translateX: on ? CENTER[0] - s * CLUSTER[0] : 0,
+      translateY: on ? CENTER[1] - s * CLUSTER[1] : 0,
+      scale: s, duration: 700, easing: 'easeInOutCubic',
+    });
+  }
+
+  function makeLine(srcXY, dstXY, color) {
+    const [sx, sy] = srcXY, [dx, dy] = dstXY;
+    const len = Math.hypot(dx - sx, dy - sy);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = 'bl2-line';
+    if (color) el.style.background = color;
+    el.style.width = len + 'px';
+    el.style.opacity = 0;
+    world.insertBefore(el, world.firstChild);
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang });
+    return el;
+  }
+
+  function ensureRing() {
+    if (ring) return;
+    ring = document.createElement('div');
+    ring.className = 'bl2-ring';
+    ring.style.opacity = 0;
+    world.appendChild(ring);
+  }
+  function spinRing(seq, onDone) {
+    let i = 0;
+    (function step() {
+      const [x, y] = MIN[seq[i]];
+      anime.set(ring, { translateX: x, translateY: y });
+      i++;
+      if (i >= seq.length) { onDone(); return; }
+      TM.pause(70 + i * 16, step);
+    })();
+  }
+
+  // ---- stage 1: neighbourhood of DEMO across both classes ----
+  const NBR = mnn(DEMO, M);
+  function showNbr(spin) {
+    if (nbrShown) return;
+    nbrShown = true;
+    ensureRing();
+    const draw = () => {
+      if (!nbrLines.length) NBR.forEach(o => nbrLines.push(makeLine(MIN[DEMO], pt(o.gi), null)));
+      TM.anime({ targets: nbrLines, opacity: 0.85, duration: 350, easing: 'easeInOutQuad', delay: anime.stagger(60) });
+    };
+    if (spin) {
+      const HOP = [0, 3, 7, 10, 4, 9, 1, DEMO];
+      anime.set(ring, { translateX: MIN[HOP[0]][0], translateY: MIN[HOP[0]][1] });
+      TM.anime({ targets: ring, opacity: 1, duration: 200, easing: 'easeOutQuad' });
+      spinRing(HOP, () => TM.pause(150, draw));
+    } else {
+      anime.set(ring, { translateX: MIN[DEMO][0], translateY: MIN[DEMO][1], opacity: 1 });
+      draw();
+    }
+  }
+  function hideNbr() {
+    if (!nbrShown) return;
+    nbrShown = false;
+    if (ring) TM.anime({ targets: ring, opacity: 0, duration: 250, easing: 'easeInOutQuad' });
+    if (nbrLines.length) {
+      const dying = nbrLines; nbrLines = [];
+      TM.anime({ targets: dying, opacity: 0, duration: 200, easing: 'easeInOutQuad',
+        complete: () => dying.forEach(l => l.remove()) });
+    }
+  }
+
+  // ---- stage 4: synthesise toward a minority AND a majority neighbour ----
+  const S_NBRS = knnAll(SYNTH_SRC, K);
+  const MIN_NBR = S_NBRS.find(o => !o.maj);
+  // farthest majority neighbour within the k-set -> a clearly-crossing line.
+  const MAJ_NBR = S_NBRS.filter(o => o.maj).sort((a, b) =>
+    Math.hypot(b.xy[0] - MIN[SYNTH_SRC][0], b.xy[1] - MIN[SYNTH_SRC][1]) -
+    Math.hypot(a.xy[0] - MIN[SYNTH_SRC][0], a.xy[1] - MIN[SYNTH_SRC][1]))[0];
+
+  function makeMid(srcXY, dstXY) {
+    const mx = (srcXY[0] + dstXY[0]) / 2, my = (srcXY[1] + dstXY[1]) / 2;
+    const el = document.createElement('div');
+    el.style.cssText =
+      'position:absolute;top:0;left:0;width:16px;height:16px;margin:-8px 0 0 -8px;' +
+      'border-radius:50%;border:2px dashed ' + C_MAJLINE + ';box-sizing:border-box;' +
+      'pointer-events:none;opacity:0;';
+    world.appendChild(el);
+    anime.set(el, { translateX: mx, translateY: my });
+    return el;
+  }
+
+  function showSynth4(animate) {
+    if (synth4Shown) return;
+    synth4Shown = true;
+    ensureRing();
+    const [cx, cy] = MIN[SYNTH_SRC];
+    const mnXY = MIN_NBR.xy, mjXY = MAJ_NBR.xy;
+    const build4 = () => {
+      if (!synLines.length) {
+        S_NBRS.forEach(o => synLines.push(makeLine(MIN[SYNTH_SRC], o.xy, o.maj ? C_MAJLINE : C_MIN)));
+      }
+      if (!midMark) midMark = makeMid([cx, cy], mjXY);
+    };
+    const place = () => {
+      synMin = makeDot(cx, cy, C_SYN, true);
+      synMaj = makeDot(cx, cy, C_SYN, true);
+      const mnx = cx + LAM_MIN * (mnXY[0] - cx), mny = cy + LAM_MIN * (mnXY[1] - cy);
+      const mjx = cx + LAM_MAJ * (mjXY[0] - cx), mjy = cy + LAM_MAJ * (mjXY[1] - cy);
+      if (!animate) {
+        anime.set(synMin, { translateX: mnx, translateY: mny, scale: 1.18 });
+        anime.set(synMaj, { translateX: mjx, translateY: mjy, scale: 1.18 });
+        return;
+      }
+      anime.set([synMin, synMaj], { scale: 1.18 });
+      TM.anime({ targets: synMin, translateX: mnx, translateY: mny, duration: 650, easing: 'easeInOutCubic' });
+      TM.anime({ targets: synMaj, translateX: mjx, translateY: mjy, duration: 650, delay: 250, easing: 'easeInOutCubic' });
+    };
+    if (!animate) {
+      anime.set(ring, { translateX: cx, translateY: cy, opacity: 1 });
+      build4();
+      synLines.forEach(l => anime.set(l, { opacity: 1 }));
+      anime.set(midMark, { opacity: 0.9 });
+      place();
+      return;
+    }
+    const HOP = [6, 8, 10, 9, 6, 10, SYNTH_SRC];
+    anime.set(ring, { translateX: MIN[HOP[0]][0], translateY: MIN[HOP[0]][1] });
+    TM.anime({ targets: ring, opacity: 1, duration: 200, easing: 'easeOutQuad' });
+    spinRing(HOP, () => {
+      build4();
+      TM.anime({ targets: synLines, opacity: 1, duration: 300, easing: 'easeInOutQuad', delay: anime.stagger(50) });
+      TM.anime({ targets: midMark, opacity: 0.9, duration: 300, delay: 250, easing: 'easeInOutQuad',
+        complete: () => TM.pause(120, place) });
+    });
+  }
+  function hideSynth4() {
+    if (!synth4Shown) return;
+    synth4Shown = false;
+    if (ring) TM.anime({ targets: ring, opacity: 0, duration: 250, easing: 'easeInOutQuad' });
+    const dyingLines = synLines; synLines = [];
+    const dead = [midMark, synMin, synMaj].filter(Boolean);
+    midMark = synMin = synMaj = null;
+    if (dyingLines.length) TM.anime({ targets: dyingLines, opacity: 0, duration: 200, easing: 'easeInOutQuad',
+      complete: () => dyingLines.forEach(l => l.remove()) });
+    if (dead.length) TM.anime({ targets: dead, opacity: 0, duration: 200, easing: 'easeInOutQuad',
+      complete: () => dead.forEach(d => d.remove()) });
+  }
+
+  // ---- stage 5: many synthetic points hugging the border ----
+  function showExtra(animate) {
+    if (extraShown) return;
+    extraShown = true;
+    SYNTH_SPECS.forEach(([x, y]) => {
+      const d = makeDot(x, y, C_SYN, true);
+      extra.push(d);
+      anime.set(d, { scale: animate ? 0 : 1.15, opacity: animate ? 0 : 1 });
+    });
+    if (animate) TM.anime({ targets: extra, scale: 1.15, opacity: 1, duration: 450, easing: 'easeOutBack', delay: anime.stagger(55) });
+  }
+  function hideExtra() {
+    if (!extraShown) return;
+    extraShown = false;
+    const dying = extra; extra = [];
+    if (!dying.length) return;
+    TM.anime({ targets: dying, scale: 0, opacity: 0, duration: 300, easing: 'easeInQuad',
+      complete: () => dying.forEach(d => d.remove()) });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('bl2-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const keepDanger = stage >= 3 && stage < 5;
+    zoom(keepDanger);
+
+    TM.anime({ targets: majDots, opacity: keepDanger ? 0.18 : 1, duration: 500, easing: 'easeInOutQuad' });
+
+    const classified = stage >= 2;
+    minDots.forEach((d, i) => {
+      TM.anime({ targets: d, backgroundColor: classified ? colorFor(i) : C_MIN, duration: 450, easing: 'easeInOutQuad' });
+      const dim = keepDanger && LABEL[i] !== 'DANGER';
+      const sc = (classified && LABEL[i] === 'DANGER') ? 1.2 : 1;
+      TM.anime({ targets: d, opacity: dim ? 0.18 : 1, scale: sc,
+        translateX: MIN[i][0], translateY: MIN[i][1], duration: 500, easing: 'easeOutBack' });
+    });
+
+    TM.anime({ targets: legend, opacity: stage >= 2 ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+
+    if (stage === 1) showNbr(!nbrShown); else hideNbr();
+
+    const synth = stage === 4;
+    if (synth) showSynth4(!synth4Shown); else hideSynth4();
+
+    const many = stage >= 5;
+    if (many) showExtra(!extraShown); else hideExtra();
+
+    setTitle(
+      many ? 'A band of new points hugs the border, just inside the majority'
+      : synth ? 'Interpolate toward a minority neighbour (full) AND a majority neighbour (λ ≤ 0.5)'
+      : keepDanger ? 'Borderline-SMOTE2 oversamples only the DANGER points'
+      : classified ? 'SAFE (mostly minority) · DANGER (borderline) · NOISE (all majority)'
+      : stage === 1 ? 'For each minority point, look at its m = 5 nearest neighbours (both classes)'
+      : 'Imbalanced classes');
+  }
+
+  TM.gate({
+    markerClass: 'bl2-slide',
+    fragmentIds: ['bl2-neighbourhood', 'bl2-classify', 'bl2-danger', 'bl2-synth', 'bl2-repeat'],
+    render,
+  });
+})();
+</script>

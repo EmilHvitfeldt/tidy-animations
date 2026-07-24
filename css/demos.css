@@ -152,6 +152,104 @@ section:has(.smote-slide) { overflow: hidden; }
   will-change: opacity;
 }
 
+/* ---- Borderline-SMOTE (bl1 + bl2 share the same structure) ---- */
+section:has(.bl1-slide),
+section:has(.bl2-slide) { overflow: hidden; }
+
+.bl1-stage-wrap, .bl2-stage-wrap { position: relative; margin-top: 10px; }
+
+.bl1-title, .bl2-title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  min-height: 46px;
+  opacity: 0;
+}
+
+#bl1-stage, #bl2-stage {
+  position: relative;
+  width: 1100px;
+  height: 560px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.bl1-world, .bl2-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.bl1-frag, .bl2-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+.bl1-dot, .bl2-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 2px solid var(--tm-ink);
+  box-sizing: border-box;
+  will-change: transform, opacity, background-color;
+}
+
+.bl1-ring, .bl2-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  border: 3px solid var(--tm-ink);
+  box-sizing: border-box;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.bl1-line, .bl2-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--tm-ink);
+  transform-origin: 0 50%;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+/* legend chips (SAFE / DANGER / NOISE), positioned in the stage box by JS */
+.bl1-legend, .bl2-legend {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 26px;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.bl1-legend .chip, .bl2-legend .chip { display: flex; align-items: center; gap: 8px; }
+.bl1-legend .swatch, .bl2-legend .swatch {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--tm-ink); box-sizing: border-box;
+}
+
 /* ---- bootstrap ---- */
 section:has(.bs-slide) { overflow: hidden; }
 

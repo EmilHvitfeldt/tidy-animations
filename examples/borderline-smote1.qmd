@@ -1,0 +1,25 @@
+---
+title: "Borderline-SMOTE1"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/borderline-smote1.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority/SAFE, synthetic, DANGER, NOISE]. -->
+<script>window.BL1_COLORS = ['#c8ccd4', '#d6336c', '#e59db7', '#f76707', '#868e96'];</script>
+```
+
+## {.bl1-slide}
+
+::: {.bl1-stage-wrap}
+<div id="bl1-title" class="bl1-title"></div>
+<div id="bl1-stage"></div>
+:::
+
+[]{.fragment .bl1-frag id="bl1-neighbourhood"}
+[]{.fragment .bl1-frag id="bl1-classify"}
+[]{.fragment .bl1-frag id="bl1-danger"}
+[]{.fragment .bl1-frag id="bl1-synth"}
+[]{.fragment .bl1-frag id="bl1-repeat"}
