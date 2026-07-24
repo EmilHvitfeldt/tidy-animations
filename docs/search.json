@@ -39,14 +39,14 @@
     "href": "index.html#cross-validation",
     "title": "tidy animations",
     "section": "Cross-validation",
-    "text": "Cross-validation\n\n\n\nOpen full deck Download GIF (820 KB) Download MP4 (259 KB) Download reusable bundle (10 KB)"
+    "text": "Cross-validation\n\n\n\nOpen full deck Download GIF (820 KB) Download MP4 (259 KB) Download reusable bundle (11 KB)"
   },
   {
     "objectID": "index.html#bootstrap-resampling",
     "href": "index.html#bootstrap-resampling",
     "title": "tidy animations",
     "section": "Bootstrap resampling",
-    "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (11 KB)"
+    "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (12 KB)"
   },
   {
     "objectID": "index.html#recipe-pipeline",
@@ -63,11 +63,25 @@
     "text": "SMOTE\n\n\n\nOpen full deck Download GIF (521 KB) Download MP4 (237 KB) Download reusable bundle (13 KB)"
   },
   {
+    "objectID": "index.html#borderline-smote1",
+    "href": "index.html#borderline-smote1",
+    "title": "tidy animations",
+    "section": "Borderline-SMOTE1",
+    "text": "Borderline-SMOTE1\n\n\n\nOpen full deck Download GIF (417 KB) Download MP4 (219 KB) Download reusable bundle (13 KB)"
+  },
+  {
+    "objectID": "index.html#borderline-smote2",
+    "href": "index.html#borderline-smote2",
+    "title": "tidy animations",
+    "section": "Borderline-SMOTE2",
+    "text": "Borderline-SMOTE2\n\n\n\nOpen full deck Download GIF (399 KB) Download MP4 (217 KB) Download reusable bundle (13 KB)"
+  },
+  {
     "objectID": "index.html#orbital-codegen",
     "href": "index.html#orbital-codegen",
     "title": "tidy animations",
     "section": "Orbital codegen",
-    "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (14 KB)"
+    "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#orbital-flat-to-nested-case_when",
@@ -102,7 +116,7 @@
     "href": "index.html#filter-a-data-frame",
     "title": "tidy animations",
     "section": "filter() a data frame",
-    "text": "filter() a data frame\n\n\n\nOpen full deck Download GIF (132 KB) Download MP4 (73 KB) Download reusable bundle (10 KB)"
+    "text": "filter() a data frame\n\n\n\nOpen full deck Download GIF (132 KB) Download MP4 (73 KB) Download reusable bundle (11 KB)"
   },
   {
     "objectID": "index.html#filter-on-two-columns",
