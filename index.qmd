@@ -141,6 +141,39 @@ Transforming predictors before they reach the model.
 [Download reusable bundle](bundles/recipe-pipeline.zip)
 </p>
 
+## SMOTE
+
+<iframe class="deck-embed" src="examples/smote.html" title="SMOTE animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/smote.html){target="_blank"}
+[Download GIF](gifs/smote.gif){download=""}
+[Download MP4](mp4/smote.mp4){download=""}
+[Download reusable bundle](bundles/smote.zip)
+</p>
+
+## Borderline-SMOTE1
+
+<iframe class="deck-embed" src="examples/borderline-smote1.html" title="Borderline-SMOTE1 animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/borderline-smote1.html){target="_blank"}
+[Download GIF](gifs/borderline-smote1.gif){download=""}
+[Download MP4](mp4/borderline-smote1.mp4){download=""}
+[Download reusable bundle](bundles/borderline-smote1.zip)
+</p>
+
+## Borderline-SMOTE2
+
+<iframe class="deck-embed" src="examples/borderline-smote2.html" title="Borderline-SMOTE2 animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/borderline-smote2.html){target="_blank"}
+[Download GIF](gifs/borderline-smote2.gif){download=""}
+[Download MP4](mp4/borderline-smote2.mp4){download=""}
+[Download reusable bundle](bundles/borderline-smote2.zip)
+</p>
+
 ## Orbital codegen
 
 <iframe class="deck-embed" src="examples/orbital-codegen.html" title="Orbital codegen animation"></iframe>

@@ -1,0 +1,27 @@
+---
+title: "SMOTE"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/smote.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority, synthetic]. Synthetic is a desaturated minority. -->
+<script>window.SMOTE_COLORS = ['#c8ccd4', '#d6336c', '#e59db7'];</script>
+```
+
+## {.smote-slide}
+
+::: {.smote-stage-wrap}
+<div id="smote-title" class="smote-title"></div>
+<div id="smote-stage"></div>
+:::
+
+[]{.fragment .smote-frag id="smote-focus"}
+[]{.fragment .smote-frag id="smote-neighbors"}
+[]{.fragment .smote-frag id="smote-synth"}
+[]{.fragment .smote-frag id="smote-repeat"}
+[]{.fragment .smote-frag id="smote-balanced"}
+
+
