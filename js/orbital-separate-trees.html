@@ -1,0 +1,851 @@
+<script>
+/* ---- Orbital separate_trees animation ----
+ * Marker slide: .st-slide   Stage container: #st-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * Teaches `separate_trees = TRUE`: a tree ensemble compiled as ONE deeply
+ * nested expression versus one intermediate column per tree, summed in
+ * batches of 50.
+ *
+ *   stage 0   arrival: 100 trees sitting loose in a grid
+ *   stage 1   orbital() compiles them into ONE expression: every tree summed
+ *             inline, chip + chip + chip, wrapping across five rows
+ *   stage 2   why that hurts: no parallelism, and a depth meter showing the
+ *             expression growing toward the database's parser limit
+ *   stage 3   separate_trees = TRUE: the summed chips give way to one
+ *             intermediate column per tree, all the same shallow depth
+ *   stage 4   the payoff: four cores work at once, but each core takes ONE tree
+ *             at a time — a tree flies in, is computed, leaves, and only then
+ *             does the next tree for that core depart. The four queues drain
+ *             concurrently, which is where the speed-up comes from.
+ *   stage 5   batch 1: trees 1-50 are framed and summed into .pred_batch_1
+ *             (orbital batches the summation in groups of 50)
+ *   stage 6   batch 2: the same for trees 51-100 → .pred_batch_2
+ *   stage 7   the two batch sums feed the single .pred column, and the count
+ *             resolves: 100 trees + 2 batch sums + 1 prediction = 103 columns
+ */
+(function () {
+  // ---- geometry (stage coordinate box, matches #st-stage in CSS) ----
+  const STAGE_W = 1100, STAGE_H = 560;
+  const CHIP_W = 150, CHIP_H = 34;
+  const COLS = 6, ROWS = 4;
+  const GAP_X = 18, GAP_Y = 22;
+  const GRID_W = COLS * CHIP_W + (COLS - 1) * GAP_X;
+  const GRID_H = ROWS * CHIP_H + (ROWS - 1) * GAP_Y;
+  const GRID_X = (STAGE_W - GRID_W) / 2;
+  const GRID_Y = (STAGE_H - GRID_H) / 2 - 10;
+
+  /* the single summed expression: chips laid out inline with a "+" between
+   * them, wrapping like code. SLOT_W leaves room for the operator. */
+  const SUM_COLS = 5;
+  const PLUS_W = 34;
+  const SLOT_W = CHIP_W + PLUS_W;
+  const SUM_ROW_H = CHIP_H + 20;
+  const SUM_ROWS = Math.ceil((COLS * ROWS) / SUM_COLS);
+  const SUM_W = SUM_COLS * SLOT_W - PLUS_W;
+  const SUM_H = SUM_ROWS * CHIP_H + (SUM_ROWS - 1) * 20;
+  const SUM_X = (STAGE_W - SUM_W) / 2;
+  const SUM_Y = (STAGE_H - SUM_H) / 2;
+
+  /* one intermediate column per tree: a row of tall thin cards across the top,
+   * leaving the lower half of the stage for the batch sums and the prediction */
+  const COL_W = 38, COL_GAP = 6, COL_H = 190, COL_Y = 74;
+  const COL_PITCH = COL_W + COL_GAP;
+  const COL_X = (STAGE_W - (COLS * ROWS * COL_PITCH - COL_GAP)) / 2;
+  const COL_CAPTION_Y = COL_Y + COL_H + 34;
+  const COL_BOTTOM = COL_Y + COL_H;
+
+  /* stage 4's core lanes. Columns are dealt round-robin (column i → core
+   * i % CORES), so the lanes interleave rather than carving the row into
+   * blocks — which is what makes it read as "spread across cores". */
+  const CORES = 4;
+  const TOKEN = 12;             // the flying value handed to a core
+  const LANE_X = 380, LANE_W = 390, LANE_H = 20;
+  const LANE_Y0 = 318, LANE_PITCH = 42;
+  const laneY = (n) => LANE_Y0 + n * LANE_PITCH;
+
+  /* the lower half: batch-sum row, then the single prediction, then a caption.
+   * BATCHES splits the 24 stand-in columns down the middle, mirroring the way
+   * orbital sums 100 trees in two groups of 50. */
+  const BATCH_Y = 330, CARD_H = 54, CARD_W = 230;
+  const PRED_Y = 440, PRED_W = 260;
+  const LOW_CAPTION_Y = 508;
+  const BATCHES = [
+    { from: 0,  to: 11, name: '.pred_batch_1', label: 'batch 1 (trees 1-50)' },
+    { from: 12, to: 23, name: '.pred_batch_2', label: 'batch 2 (trees 51-100)' },
+  ];
+
+  const COLORS = window.ST_COLORS || {
+    tree: '#8ecae6',
+    batch: '#90be6d',
+    pred: '#e8853a',
+    limit: '#d6336c',
+  };
+
+  // 24 chips stand in for 100 trees: 22 numbered, an ellipsis, then tree 100.
+  const N_CHIPS = COLS * ROWS;
+  const LABELS = [];
+  for (let i = 1; i <= N_CHIPS - 2; i++) LABELS.push('tree ' + String(i).padStart(3, '0'));
+  LABELS.push('•••');
+  LABELS.push('tree 100');
+
+  /* "random but stable": rolled once, hardcoded. Small per-chip jitter so the
+   * arrival grid reads as a loose pile rather than a table. */
+  const JITTER = [
+    [-4, 3], [5, -2], [-2, -5], [3, 4], [-5, -1], [2, 5],
+    [4, -4], [-3, 2], [1, -3], [-5, 4], [5, 1], [-1, -4],
+    [3, -5], [-4, -2], [2, 3], [5, -3], [-2, 4], [1, 2],
+    [-3, -3], [4, 5], [-5, 2], [2, -2], [0, 0], [-1, 3],
+  ];
+
+  // ---- element factory ----
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  /* a tiny 3-node tree glyph: root splitting to two leaves */
+  function treeGlyph() {
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('class', 'st-glyph');
+    svg.setAttribute('viewBox', '0 0 20 16');
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', 'M10 3 L4 12 M10 3 L16 12');
+    svg.appendChild(path);
+    for (const [cx, cy] of [[10, 3], [4, 12], [16, 12]]) {
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 2.2);
+      svg.appendChild(c);
+    }
+    return svg;
+  }
+
+  function makeChip(label, isDots) {
+    const el = document.createElement('div');
+    el.className = 'st-chip' + (isDots ? ' st-chip-dots' : '');
+    el.style.width = CHIP_W + 'px';
+    el.style.height = CHIP_H + 'px';
+    if (!isDots) el.appendChild(treeGlyph());
+    const txt = document.createElement('span');
+    txt.className = 'st-chip-label';
+    txt.textContent = label;
+    el.appendChild(txt);
+    return el;
+  }
+
+  /* a named intermediate column: `.pred_tree_007` down the side, value cell
+   * below. Same height for every tree — that is the whole point of stage 3. */
+  function makeColumn(label, isDots) {
+    const el = document.createElement('div');
+    el.className = 'st-col' + (isDots ? ' st-col-dots' : '');
+    el.style.width = COL_W + 'px';
+    el.style.height = COL_H + 'px';
+
+    const name = document.createElement('div');
+    name.className = 'st-col-name';
+    name.textContent = isDots ? '•••' : '.pred_tree_' + label.slice(-3);
+    el.appendChild(name);
+
+    if (!isDots) {
+      const cell = document.createElement('div');
+      cell.className = 'st-col-cell';
+      cell.style.backgroundColor = COLORS.tree;
+      el.appendChild(cell);
+    }
+    return el;
+  }
+
+  // centre of column i, in stage coordinates
+  const colCentre = (i) => COL_X + i * COL_PITCH + COL_W / 2;
+
+  /* the translucent frame drawn around one batch of columns */
+  function makeBatchFrame(b) {
+    const el = document.createElement('div');
+    el.className = 'st-batch-frame';
+    const x = colCentre(b.from) - COL_W / 2 - 7;
+    const w = (b.to - b.from) * COL_PITCH + COL_W + 14;
+    el.style.width = w + 'px';
+    el.style.height = (COL_H + 16) + 'px';
+    el.style.borderColor = COLORS.batch;
+    anime.set(el, { translateX: x, translateY: COL_Y - 8, opacity: 0 });
+
+    const label = document.createElement('div');
+    label.className = 'st-batch-label';
+    label.style.backgroundColor = COLORS.batch;
+    label.textContent = b.label;
+    el.appendChild(label);
+    return el;
+  }
+
+  /* a named result card: the batch sums and the final prediction */
+  function makeCard(name, accent, w) {
+    const el = document.createElement('div');
+    el.className = 'st-card';
+    el.style.width = w + 'px';
+    el.style.height = CARD_H + 'px';
+    el.style.borderColor = accent;
+
+    const dot = document.createElement('div');
+    dot.className = 'st-card-dot';
+    dot.style.backgroundColor = accent;
+    el.appendChild(dot);
+
+    const txt = document.createElement('div');
+    txt.className = 'st-card-name';
+    txt.textContent = name;
+    el.appendChild(txt);
+    return el;
+  }
+
+  /* thin connectors from a set of source points down into one target point */
+  function makeWires(fromPts, to, accent) {
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('class', 'st-wire-group');
+    for (const [x, y] of fromPts) {
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', x); line.setAttribute('y1', y);
+      line.setAttribute('x2', to[0]); line.setAttribute('y2', to[1]);
+      line.setAttribute('stroke', accent);
+      g.appendChild(line);
+    }
+    anime.set(g, { opacity: 0 });
+    return g;
+  }
+
+  /* one core's lane: name on the left, a track that fills, a tick at the end */
+  function makeLane(n) {
+    const wrap = document.createElement('div');
+    wrap.className = 'st-lane';
+    wrap.style.width = LANE_W + 'px';
+    wrap.style.height = LANE_H + 'px';
+
+    const name = document.createElement('div');
+    name.className = 'st-lane-name';
+    name.textContent = 'core ' + (n + 1);
+    wrap.appendChild(name);
+
+    /* the fill is full-width and scaled in X, so anime drives a transform
+     * rather than animating layout */
+    const fill = document.createElement('div');
+    fill.className = 'st-lane-fill';
+    fill.style.backgroundColor = COLORS.batch;
+    anime.set(fill, { scaleX: 0 });
+    wrap.appendChild(fill);
+
+    const tick = document.createElement('div');
+    tick.className = 'st-lane-done';
+    tick.textContent = '✓ done';
+    anime.set(tick, { opacity: 0 });
+    wrap.appendChild(tick);
+
+    return { wrap, fill, tick };
+  }
+
+  /* a pill note; stage 7 uses it (dialled down) for the depth callback */
+  function makeBadge(text) {
+    const el = document.createElement('div');
+    el.className = 'st-badge';
+    el.textContent = text;
+    return el;
+  }
+
+  /* the left-hand brace + "1 expression" label spanning the summed block */
+  function makeBrace(h) {
+    const wrap = document.createElement('div');
+    wrap.className = 'st-brace';
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 18 ' + h);
+    svg.setAttribute('width', 18);
+    svg.setAttribute('height', h);
+    const p = document.createElementNS(SVGNS, 'path');
+    p.setAttribute('d', 'M16 2 L6 2 L6 ' + (h - 2) + ' L16 ' + (h - 2));
+    svg.appendChild(p);
+    const label = document.createElement('div');
+    label.className = 'st-brace-label';
+    label.textContent = '1 expression';
+    wrap.appendChild(label);
+    wrap.appendChild(svg);
+    return wrap;
+  }
+
+  /* ---- stage 2: the two problems, plus a depth meter ----
+   * The meter's x axis is expression depth, scaled so the parser limit sits at
+   * LIMIT_FRAC of the track: a 100-tree model is comfortably short, and it is
+   * the translucent "more trees" continuation that crosses the line. */
+  const CAPTION_Y = SUM_Y + SUM_H + 26;
+  const METER_Y = 508, METER_H = 12;
+  const LIMIT_FRAC = 0.62;      // where the parser-limit tick sits
+  const TREES_FRAC = 0.11;      // depth of the 100-tree expression
+
+  function makeCallout(text) {
+    const el = document.createElement('div');
+    el.className = 'st-callout';
+    el.textContent = text;
+    return el;
+  }
+
+  function makeMeter() {
+    const wrap = document.createElement('div');
+    wrap.className = 'st-meter';
+    wrap.style.width = SUM_W + 'px';
+    wrap.style.height = METER_H + 'px';
+
+    const ghost = document.createElement('div');
+    ghost.className = 'st-meter-ghost';
+    ghost.style.left = (SUM_W * TREES_FRAC) + 'px';
+    ghost.style.width = (SUM_W * (0.97 - TREES_FRAC)) + 'px';
+    wrap.appendChild(ghost);
+
+    const fill = document.createElement('div');
+    fill.className = 'st-meter-fill';
+    fill.style.width = (SUM_W * TREES_FRAC) + 'px';
+    fill.style.backgroundColor = COLORS.tree;
+    wrap.appendChild(fill);
+
+    const tick = document.createElement('div');
+    tick.className = 'st-meter-tick';
+    tick.style.left = (SUM_W * LIMIT_FRAC) + 'px';
+    tick.style.borderColor = COLORS.limit;
+    wrap.appendChild(tick);
+
+    const tickLabel = document.createElement('div');
+    tickLabel.className = 'st-meter-tick-label';
+    tickLabel.style.left = (SUM_W * LIMIT_FRAC) + 'px';
+    tickLabel.style.color = COLORS.limit;
+    tickLabel.textContent = 'parser limit (1000)';
+    wrap.appendChild(tickLabel);
+
+    const here = document.createElement('div');
+    here.className = 'st-meter-label st-meter-here';
+    here.style.left = '0px';
+    here.textContent = '100 trees';
+    wrap.appendChild(here);
+
+    const more = document.createElement('div');
+    more.className = 'st-meter-label st-meter-more';
+    more.style.left = (SUM_W * (TREES_FRAC + 0.02)) + 'px';
+    more.textContent = 'more trees →';
+    wrap.appendChild(more);
+
+    return wrap;
+  }
+
+  /* the "+" operators joining the chips; one after every chip but the last */
+  function makePlus() {
+    const el = document.createElement('div');
+    el.className = 'st-plus';
+    el.textContent = '+';
+    return el;
+  }
+
+  // ---- state ----
+  let built = false;
+  let stageEl = null, titleEl = null, chips = [], pluses = [], captionEl = null;
+  let braceEl = null, fadeEl = null, problemEl = null, calloutEls = [];
+  let cols = [], realCols = [], cells = [];
+  let batchFrames = [], batchCards = [], batchWires = [];
+  let predCard = null, predWires = null, depthPill = null;
+  let lanes = [], coreWires = null, tokens = [], laneCounts = [];
+  let arrangement = null;   // 'grid' | 'sum' — null until the first render
+  let showingCols = null;   // whether the columns (not the chips) are on stage
+  let pulsing = false;
+
+  const COL_BG = '#f7f8fa';   // the columns' resting fill (matches CSS)
+
+  /* ---- stage 4's scheduler ----
+   * Trees are dispatched ONE at a time, each to whichever core frees up first,
+   * and a tree only sets off once that core actually has room. So which core
+   * gets which tree is a result of the simulation below, not a fixed pattern —
+   * exactly the point being made about independent columns.
+   * Timings are all relative to the moment the stage begins. */
+  const FLY = 300, WORK = 260, GAP = 40, EXIT = 240, STAGGER = 150;
+
+  function buildSchedule(count) {
+    const free = new Array(CORES).fill(0);   // when each core next has room
+    const perLane = new Array(CORES).fill(0);
+    let lastDispatch = -STAGGER;
+    const plan = [];
+    for (let n = 0; n < count; n++) {
+      let lane = 0;
+      for (let c = 1; c < CORES; c++) if (free[c] < free[lane]) lane = c;
+      // wait for the core to be free AND for the dispatcher's turn to come round
+      const departAt = Math.max(free[lane], lastDispatch + STAGGER);
+      const landAt = departAt + FLY;
+      const doneAt = landAt + WORK;
+      free[lane] = doneAt + GAP;
+      lastDispatch = departAt;
+      plan.push({ lane, step: perLane[lane]++, departAt, landAt, doneAt });
+    }
+    return { plan, counts: perLane };
+  }
+
+  function gridPos(i) {
+    const r = Math.floor(i / COLS), c = i % COLS;
+    const [dx, dy] = JITTER[i] || [0, 0];
+    return {
+      x: GRID_X + c * (CHIP_W + GAP_X) + dx,
+      y: GRID_Y + r * (CHIP_H + GAP_Y) + dy,
+    };
+  }
+
+  function sumPos(i) {
+    const r = Math.floor(i / SUM_COLS), c = i % SUM_COLS;
+    return { x: SUM_X + c * SLOT_W, y: SUM_Y + r * SUM_ROW_H };
+  }
+
+  /* the "+" after chip i sits in the gap between its slot and the next.
+   * A row-ending "+" trails past the last chip, the way wrapped code reads. */
+  function plusPos(i) {
+    const { x, y } = sumPos(i);
+    return { x: x + CHIP_W, y: y };
+  }
+
+  /* Move every chip to `posFn`. The first render of the deck snaps into place
+   * (arrival / reload should not animate); later changes fly. */
+  function layout(name, posFn) {
+    if (arrangement === name) return;
+    const instant = arrangement === null;
+    arrangement = name;
+    chips.forEach((el, i) => {
+      const { x, y } = posFn(i);
+      if (instant) {
+        anime.set(el, { translateX: x, translateY: y });
+      } else {
+        TM.anime({
+          targets: el,
+          translateX: x,
+          translateY: y,
+          duration: 700,
+          delay: i * 22,
+          easing: 'easeInOutQuad',
+        });
+      }
+    });
+  }
+
+  function build() {
+    stageEl = document.getElementById('st-stage');
+    if (!stageEl) return false;
+    titleEl = document.getElementById('st-title');
+
+    chips = LABELS.map((label, i) => {
+      const isDots = label === '•••';
+      const el = makeChip(label, isDots);
+      el.style.backgroundColor = COLORS.tree;
+      anime.set(el, { opacity: 1 });
+      stageEl.appendChild(el);
+      return el;
+    });
+
+    captionEl = document.createElement('div');
+    captionEl.className = 'st-caption';
+    stageEl.appendChild(captionEl);
+
+    // one "+" per chip except the last; only visible in the 'sum' arrangement
+    pluses = chips.slice(0, -1).map((_, i) => {
+      const el = makePlus();
+      const { x, y } = plusPos(i);
+      el.style.width = PLUS_W + 'px';
+      el.style.height = CHIP_H + 'px';
+      anime.set(el, { translateX: x, translateY: y, opacity: 0 });
+      stageEl.appendChild(el);
+      return el;
+    });
+
+    braceEl = makeBrace(SUM_H + 8);
+    anime.set(braceEl, { translateX: SUM_X - 74, translateY: SUM_Y - 4, opacity: 0 });
+    stageEl.appendChild(braceEl);
+
+    cols = LABELS.map((label, i) => {
+      const el = makeColumn(label, label === '•••');
+      anime.set(el, { translateX: COL_X + i * COL_PITCH, translateY: COL_Y, opacity: 0 });
+      stageEl.appendChild(el);
+      return el;
+    });
+
+    // the "•••" stand-in is a bare label, not a card: it never fills or pulses
+    realCols = cols.filter((c) => !c.classList.contains('st-col-dots'));
+    cells = cols.map((c) => c.querySelector('.st-col-cell')).filter(Boolean);
+
+    /* one SVG holds every connector; groups are faded in per stage */
+    const wires = document.createElementNS(SVGNS, 'svg');
+    wires.setAttribute('class', 'st-wires');
+    wires.setAttribute('viewBox', `0 0 ${STAGE_W} ${STAGE_H}`);
+    stageEl.appendChild(wires);
+
+    BATCHES.forEach((b, n) => {
+      const cardX = colCentre((b.from + b.to) / 2) - CARD_W / 2;
+
+      const frame = makeBatchFrame(b);
+      stageEl.appendChild(frame);
+      batchFrames.push(frame);
+
+      const card = makeCard(b.name, COLORS.batch, CARD_W);
+      anime.set(card, { translateX: cardX, translateY: BATCH_Y, opacity: 0 });
+      stageEl.appendChild(card);
+      batchCards.push(card);
+
+      // the "•••" stand-in has no value, so nothing runs from it
+      const pts = [];
+      for (let i = b.from; i <= b.to; i++) {
+        if (cols[i].classList.contains('st-col-dots')) continue;
+        pts.push([colCentre(i), COL_BOTTOM + 4]);
+      }
+      const g = makeWires(pts, [cardX + CARD_W / 2, BATCH_Y - 2], COLORS.batch);
+      wires.appendChild(g);
+      batchWires.push(g);
+    });
+
+    /* the core lanes, plus one connector per column to the lane it is dealt to */
+    lanes = [];
+    for (let n = 0; n < CORES; n++) {
+      const lane = makeLane(n);
+      anime.set(lane.wrap, { translateX: LANE_X, translateY: laneY(n), opacity: 0 });
+      stageEl.appendChild(lane.wrap);
+      lanes.push(lane);
+    }
+
+    /* Trees are dispatched in column order; the scheduler decides which core
+     * each one goes to and when it may set off. */
+    const treeCols = cols.filter((c) => !c.classList.contains('st-col-dots'));
+    const { plan, counts } = buildSchedule(treeCols.length);
+    laneCounts = counts;
+
+    coreWires = document.createElementNS(SVGNS, 'g');
+    coreWires.setAttribute('class', 'st-wire-group st-wire-route');
+    tokens = [];
+    let seq = 0;
+    cols.forEach((c, i) => {
+      if (c.classList.contains('st-col-dots')) return;
+      const job = plan[seq++];
+      const from = [colCentre(i) - TOKEN / 2, COL_BOTTOM + 2];
+      // a core holds one tree at a time, so every tree lands in the same slot
+      const to = [LANE_X + 16, laneY(job.lane) + (LANE_H - TOKEN) / 2];
+
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', from[0] + TOKEN / 2); line.setAttribute('y1', from[1]);
+      line.setAttribute('x2', to[0] + TOKEN / 2);   line.setAttribute('y2', to[1] + TOKEN / 2);
+      line.setAttribute('stroke', COLORS.batch);
+      coreWires.appendChild(line);
+
+      const el = document.createElement('div');
+      el.className = 'st-token';
+      el.style.width = TOKEN + 'px';
+      el.style.height = TOKEN + 'px';
+      el.style.backgroundColor = COLORS.tree;
+      anime.set(el, { translateX: from[0], translateY: from[1], opacity: 0 });
+      stageEl.appendChild(el);
+
+      tokens.push({ el, from, to, job, cell: c.querySelector('.st-col-cell') });
+    });
+    anime.set(coreWires, { opacity: 0 });
+    wires.appendChild(coreWires);
+
+    /* the single prediction the two batch sums feed */
+    const predX = (STAGE_W - PRED_W) / 2;
+    predCard = makeCard('.pred', COLORS.pred, PRED_W);
+    anime.set(predCard, { translateX: predX, translateY: PRED_Y, opacity: 0 });
+    stageEl.appendChild(predCard);
+
+    predWires = makeWires(
+      batchCards.map((_, n) => [
+        colCentre((BATCHES[n].from + BATCHES[n].to) / 2), BATCH_Y + CARD_H + 2,
+      ]),
+      [predX + PRED_W / 2, PRED_Y - 2],
+      COLORS.pred,
+    );
+    wires.appendChild(predWires);
+
+    /* closes the loop with stage 2's meter: the depth problem is gone */
+    depthPill = makeBadge('depth well under the limit');
+    depthPill.classList.add('st-badge-quiet');
+    anime.set(depthPill, {
+      translateX: predX + PRED_W + 34, translateY: PRED_Y + 8, opacity: 0,
+    });
+    stageEl.appendChild(depthPill);
+
+    /* stage-2 extras live in one full-stage container so they show and hide
+     * together; children still use stage coordinates. */
+    problemEl = document.createElement('div');
+    problemEl.className = 'st-problem';
+    problemEl.style.opacity = 0;
+
+    calloutEls = ['no parallelism', 'parser stack overflow'].map((t, i) => {
+      const el = makeCallout(t);
+      anime.set(el, { translateX: 250 + i * 330, translateY: 66 });
+      problemEl.appendChild(el);
+      return el;
+    });
+
+    const meter = makeMeter();
+    anime.set(meter, { translateX: SUM_X, translateY: METER_Y });
+    problemEl.appendChild(meter);
+    stageEl.appendChild(problemEl);
+
+    // appended last, so the fade covers the brace's tail as well as the chips
+    fadeEl = document.createElement('div');
+    fadeEl.className = 'st-fade';
+    fadeEl.style.opacity = 0;
+    stageEl.appendChild(fadeEl);
+
+    built = true;
+    return true;
+  }
+
+  /* Cross-fade between the summed chips and the per-tree columns. Both sets
+   * exist all along; only their opacity changes, so this is reversible and the
+   * shape change needs no width/height animation. */
+  function showColumns(on) {
+    if (showingCols === on) return;
+    const instant = showingCols === null;
+    showingCols = on;
+    if (instant) {
+      anime.set(chips, { opacity: on ? 0 : 1 });
+      anime.set(cols, { opacity: on ? 1 : 0, translateY: COL_Y });
+      return;
+    }
+    if (on) {
+      TM.anime({ targets: chips, opacity: 0, duration: 320, delay: anime.stagger(14), easing: 'linear' });
+      TM.pause(360, () => {
+        TM.anime({
+          targets: cols, opacity: 1, translateY: [COL_Y + 26, COL_Y],
+          duration: 480, delay: anime.stagger(22), easing: 'easeOutQuad',
+        });
+      });
+    } else {
+      TM.anime({ targets: cols, opacity: 0, duration: 280, delay: anime.stagger(10), easing: 'linear' });
+      TM.pause(320, () => {
+        TM.anime({ targets: chips, opacity: 1, duration: 380, delay: anime.stagger(16), easing: 'linear' });
+      });
+    }
+  }
+
+  /* Stage 4's core work. The columns are dealt out (a quick stagger — that is
+   * distribution, and reads fine as sequential), but the four lane fills run on
+   * ONE timeline with zero delay between them and finish together. A stagger
+   * there would say "one core after another", the opposite of the point.
+   * Finite durations only, so TM.idle() still settles for the recorder. */
+  function runCores(on) {
+    if (pulsing === on) return;
+    pulsing = on;
+    const fills = lanes.map((l) => l.fill);
+    const ticks = lanes.map((l) => l.tick);
+    anime.remove(realCols);
+    anime.remove(cells);
+    anime.remove(fills);
+    anime.remove(ticks);
+
+    const tokenEls = tokens.map((t) => t.el);
+    anime.remove(tokenEls);
+
+    if (!on) {
+      anime.set(realCols, { backgroundColor: COL_BG });
+      anime.set(cells, { scale: 1 });
+      anime.set(fills, { scaleX: 0 });
+      anime.set(ticks, { opacity: 0 });
+      tokens.forEach((t) => anime.set(t.el, {
+        translateX: t.from[0], translateY: t.from[1], opacity: 0, scale: 1,
+      }));
+      return;
+    }
+
+    /* Every phase is SCHEDULED with TM.pause rather than queued as an anime
+     * instance with a delay. An anime instance applies its own start values the
+     * moment it is created, even while its delay is still counting down, so a
+     * delayed instance would pin a token at its launch point (or at opacity 0)
+     * instead of waiting its turn. */
+    tokens.forEach((t) => {
+      anime.set(t.el, { translateX: t.from[0], translateY: t.from[1], scale: 1 });
+      const { departAt, landAt, doneAt, lane, step } = t.job;
+
+      // 1. the column hands its value over, and the value flies to the core
+      TM.pause(departAt, () => {
+        if (t.cell) {
+          TM.anime({
+            targets: t.cell,
+            scale: [1, 1.35],
+            duration: 200, direction: 'alternate', loop: 2, easing: 'easeOutQuad',
+          });
+        }
+        TM.anime({
+          targets: t.el,
+          translateX: t.to[0], translateY: t.to[1],
+          opacity: [0, 1],
+          duration: FLY, easing: 'easeInOutQuad',
+        });
+      });
+
+      // 2. the core computes it — one tree in the slot at a time
+      TM.pause(landAt, () => {
+        TM.anime({
+          targets: t.el,
+          scale: [1, 1.5],
+          duration: WORK / 2,
+          direction: 'alternate', loop: 2, easing: 'easeInOutSine',
+        });
+      });
+
+      // 3. it leaves, which is what frees the core for the next tree
+      TM.pause(doneAt, () => {
+        TM.anime({
+          targets: t.el,
+          translateX: LANE_X + LANE_W + 46,
+          translateY: t.to[1] - 6,
+          opacity: 0,
+          scale: 0.8,
+          duration: EXIT, easing: 'easeInQuad',
+        });
+        // the lane's bar tracks how much of that core's queue is done
+        TM.anime({
+          targets: lanes[lane].fill,
+          scaleX: (step + 1) / laneCounts[lane],
+          duration: 240, easing: 'easeOutQuad',
+        });
+      });
+    });
+
+    /* Each core finishes when its own queue drains, which the scheduler decided,
+     * so read the last job per lane rather than assuming an even split. */
+    lanes.forEach((lane, n) => {
+      const last = tokens.reduce(
+        (m, t) => (t.job.lane === n ? Math.max(m, t.job.doneAt) : m), 0);
+      TM.pause(last + 200, () => {
+        TM.anime({ targets: lane.tick, opacity: 1, duration: 240, easing: 'linear' });
+      });
+    });
+  }
+
+  /* Show or hide a named group of elements. Tracks what is currently shown so
+   * re-rendering the same stage is a no-op, and the first render snaps instead
+   * of animating (arrival / reload). `rise` slides cards up as they appear. */
+  const shown = {};
+  function reveal(key, on, targets, { delay = 0, rise = 0 } = {}) {
+    if (shown[key] === on) return;
+    const instant = shown[key] === undefined;
+    shown[key] = on;
+    if (instant) {
+      anime.set(targets, { opacity: on ? 1 : 0 });
+      return;
+    }
+    const params = {
+      targets, opacity: on ? 1 : 0,
+      duration: on ? 420 : 240, delay: on ? delay : 0, easing: 'easeOutQuad',
+    };
+    if (on && rise) params.translateY = [rise.from, rise.to];
+    TM.anime(params);
+  }
+
+  /* CSS owns the caption's look; JS owns only its position and text */
+  function setCaption(text, x, y, w) {
+    captionEl.textContent = text;
+    captionEl.style.width = w + 'px';
+    anime.set(captionEl, { translateX: x, translateY: y, opacity: 1 });
+  }
+
+  const TITLES = [
+    'boost_tree(trees = 100)',
+    'orbital(fit)',
+    'orbital(fit)',
+    'orbital(fit, separate_trees = TRUE)',
+  ];
+
+  function render(stage) {
+    if (!built && !build()) return;
+
+    if (titleEl) {
+      titleEl.textContent = TITLES[Math.min(stage, TITLES.length - 1)];
+      titleEl.style.opacity = 1;
+    }
+
+    showColumns(stage >= 3);
+
+    // stage 0 — the ensemble, sitting loose.
+    if (stage === 0) {
+      layout('grid', gridPos);
+      setCaption('100 trees', 0, GRID_Y + GRID_H + 34, STAGE_W);
+      anime.set(braceEl, { opacity: 0 });
+      anime.set(fadeEl, { opacity: 0 });
+      pluses.forEach((el) => anime.set(el, { opacity: 0 }));
+      anime.set(problemEl, { opacity: 0 });
+    }
+
+    // stage 1 — compiled into one expression: every tree summed inline.
+    if (stage === 1) {
+      layout('sum', sumPos);
+      setCaption('every tree summed in one expression', 0, CAPTION_Y, STAGE_W);
+      anime.set(fadeEl, { opacity: 0 });
+      // operators and brace arrive once the chips have landed
+      TM.anime({ targets: pluses, opacity: 1, duration: 300, delay: 620, easing: 'linear' });
+      TM.anime({ targets: braceEl, opacity: 1, duration: 400, delay: 700, easing: 'linear' });
+      anime.set(problemEl, { opacity: 0 });
+    }
+
+    /* stage 2 — the cost of that one expression. Nothing moves: this is the
+     * beat where the two problems land on top of the stage-1 picture. */
+    if (stage === 2) {
+      layout('sum', sumPos);
+      setCaption('one expression the database cannot split up', 0, CAPTION_Y, STAGE_W);
+      anime.set(pluses, { opacity: 1 });
+      anime.set(braceEl, { opacity: 1 });
+      TM.anime({ targets: problemEl, opacity: 1, duration: 450, easing: 'linear' });
+    }
+
+    /* stage 3 — separate_trees = TRUE. The operators, brace and problem
+     * callouts clear out, and each tree becomes its own named column. */
+    if (stage >= 3) {
+      layout('sum', sumPos);   // chips stay put underneath, just invisible
+      TM.anime({ targets: [problemEl, braceEl], opacity: 0, duration: 260, easing: 'linear' });
+      TM.anime({ targets: pluses, opacity: 0, duration: 260, easing: 'linear' });
+    }
+    if (stage === 3) {
+      setCaption('one column per tree', 0, COL_CAPTION_Y, STAGE_W);
+    }
+
+    /* stage 4 — independent columns, so the database can spread the work across
+     * cores. The lanes and their connectors exist on this stage only. */
+    if (stage === 4) {
+      setCaption('independent trees spread across cores', 0, LOW_CAPTION_Y, STAGE_W);
+    }
+    reveal('corewires', stage === 4, coreWires, { delay: 220 });
+    reveal('lanes', stage === 4, lanes.map((l) => l.wrap));
+    /* stage 5 — batch 1. The frame lands first, then its wires, then the card
+     * rises into place: frame → wires → card reads as "these feed that". */
+    if (stage >= 5) {
+      setCaption('summed in batches of 50', 0, LOW_CAPTION_Y, STAGE_W);
+    }
+    reveal('frame1', stage >= 5, batchFrames[0]);
+    reveal('wires1', stage >= 5, batchWires[0], { delay: 260 });
+    reveal('card1', stage >= 5, batchCards[0], {
+      delay: 380, rise: { from: BATCH_Y + 20, to: BATCH_Y },
+    });
+
+    // stage 6 — batch 2, identical treatment for the second group of 50
+    if (stage >= 6) {
+      setCaption('two batch sums, one per group of 50', 0, LOW_CAPTION_Y, STAGE_W);
+    }
+    reveal('frame2', stage >= 6, batchFrames[1]);
+    reveal('wires2', stage >= 6, batchWires[1], { delay: 260 });
+    reveal('card2', stage >= 6, batchCards[1], {
+      delay: 380, rise: { from: BATCH_Y + 20, to: BATCH_Y },
+    });
+
+    // stage 7 — both batch sums feed the one prediction, and the count resolves
+    if (stage >= 7) {
+      setCaption(
+        '100 trees + 2 batch sums + 1 prediction = 103 columns',
+        0, LOW_CAPTION_Y, STAGE_W,
+      );
+    }
+    reveal('predwires', stage >= 7, predWires);
+    reveal('predcard', stage >= 7, predCard, {
+      delay: 200, rise: { from: PRED_Y + 20, to: PRED_Y },
+    });
+    reveal('depth', stage >= 7, depthPill, { delay: 560 });
+
+    runCores(stage === 4);
+  }
+
+  TM.gate({
+    markerClass: 'st-slide',
+    fragmentIds: ['st-nest', 'st-limit', 'st-split', 'st-parallel', 'st-batch1', 'st-batch2', 'st-pred'],
+    render,
+  });
+})();
+</script>

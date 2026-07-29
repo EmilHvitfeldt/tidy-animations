@@ -1,0 +1,22 @@
+---
+title: "Orbital separate trees"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/orbital-separate-trees.html
+---
+
+## {.st-slide}
+
+::: {.st-stage-wrap}
+<div id="st-title" class="st-title"></div>
+<div id="st-stage"></div>
+:::
+
+[]{.fragment .st-frag id="st-nest"}
+[]{.fragment .st-frag id="st-limit"}
+[]{.fragment .st-frag id="st-split"}
+[]{.fragment .st-frag id="st-parallel"}
+[]{.fragment .st-frag id="st-batch1"}
+[]{.fragment .st-frag id="st-batch2"}
+[]{.fragment .st-frag id="st-pred"}

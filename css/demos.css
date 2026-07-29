@@ -1462,3 +1462,421 @@ section:has(.ocw-slide) { overflow: hidden; }
   background: rgba(56, 161, 105, 0.20);
   color: #2f855a;
 }
+
+/* ---- orbital separate_trees ---- */
+section:has(.st-slide) { overflow: hidden; }
+
+.st-stage-wrap { position: relative; margin-top: 4px; }
+
+.st-title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 700;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  color: var(--tm-ink);
+  min-height: 46px;   /* reserve space so revealing text causes no layout shift */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* fixed-size coordinate box; JS positions children in this same space.
+ * overflow:hidden matters here — the nesting staircase is meant to run off the
+ * bottom edge, and the clip is what sells "this expression does not fit". */
+#st-stage {
+  position: relative;
+  width: 1100px;
+  height: 560px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+/* invisible markers — they only exist to advance Reveal fragments */
+.st-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+/* ---- one chip per tree ---- */
+.st-chip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(29, 36, 51, 0.18);
+  will-change: transform, opacity;
+}
+
+.st-chip-label {
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  white-space: nowrap;
+}
+
+/* the "⋯" stand-in for the trees we don't draw */
+.st-chip-dots {
+  justify-content: center;
+  background: transparent !important;
+  border-color: transparent;
+}
+/* a mono "⋯" draws as tiny midline specks, so the stand-in uses bullets */
+.st-chip-dots .st-chip-label {
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: 5px;
+  color: #9aa1ad;
+}
+
+.st-glyph {
+  width: 20px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+.st-glyph path {
+  stroke: rgba(29, 36, 51, 0.55);
+  stroke-width: 1.4;
+  fill: none;
+}
+.st-glyph circle { fill: rgba(29, 36, 51, 0.65); }
+
+/* Fades the staircase out at the bottom edge so it reads as "continues past
+ * here" rather than "stops here". An overlay, not a mask on #st-stage, because
+ * later stages put real content on the bottom row. */
+.st-fade {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 150px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff 82%);
+  will-change: opacity;
+}
+
+/* ---- stages 5-7: batch frames, result cards, connectors ---- */
+.st-batch-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: 2px dashed;
+  border-radius: 12px;
+  background: rgba(144, 190, 109, 0.07);
+  will-change: transform, opacity;
+}
+
+/* sits astride the frame's top edge, like a legend */
+.st-batch-label {
+  position: absolute;
+  top: -14px;
+  left: 14px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* a named result: the batch sums and the final prediction */
+.st-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px solid;
+  border-radius: 10px;
+  background: #fff;
+  will-change: transform, opacity;
+}
+.st-card-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+.st-card-name {
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--tm-ink);
+}
+
+/* connectors; one <g> per group so stages can fade them in independently */
+.st-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.st-wires line {
+  stroke-width: 1.4;
+  opacity: 0.55;
+}
+/* the round-robin hand-off to cores necessarily crosses itself; dashing and
+ * fading it keeps it reading as routing rather than as structure */
+.st-wire-route line {
+  stroke-dasharray: 3 5;
+  opacity: 0.38;
+}
+
+/* ---- stage 4: one lane per core ---- */
+/* a tree's value in flight from its column to a core */
+.st-token {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(29, 36, 51, 0.25);
+  will-change: transform, opacity;
+}
+
+.st-lane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 999px;
+  background: #eceef2;
+  will-change: transform, opacity;
+}
+.st-lane-name {
+  position: absolute;
+  right: calc(100% + 14px);
+  top: -3px;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: #5b6272;
+  white-space: nowrap;
+}
+/* full width, scaled in X by anime — no layout animation */
+.st-lane-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  transform-origin: left center;
+  will-change: transform;
+}
+.st-lane-done {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: -3px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #3f7233;
+  white-space: nowrap;
+  will-change: opacity;
+}
+
+/* pill note; used by the stage-7 depth callback via .st-badge-quiet */
+.st-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: 300px;
+  padding: 9px 0;
+  text-align: center;
+  border-radius: 999px;
+  font-size: 21px;
+  font-weight: 700;
+  color: #3f7233;
+  background: rgba(144, 190, 109, 0.18);
+  border: 1px solid rgba(144, 190, 109, 0.65);
+  will-change: transform, opacity;
+}
+
+/* the stage-7 depth note: same pill, dialled down so .pred stays the focus */
+.st-badge-quiet {
+  width: auto;
+  padding: 7px 18px;
+  font-size: 18px;
+  color: #5b6272;
+  background: #f2f4f7;
+  border-color: rgba(29, 36, 51, 0.16);
+}
+
+/* ---- stage 3: one intermediate column per tree ---- */
+.st-col {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  border-radius: 8px;
+  border: 1px solid rgba(29, 36, 51, 0.16);
+  background: #f7f8fa;
+  will-change: transform, opacity;
+}
+
+/* the column name, running down the card like a rotated table header */
+.st-col-name {
+  writing-mode: vertical-rl;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-ink);
+  white-space: nowrap;
+}
+
+/* the value the column holds */
+.st-col-cell {
+  margin-top: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.st-col-dots {
+  background: transparent;
+  border-color: transparent;
+  justify-content: center;
+}
+/* the stand-in keeps its dots horizontal, unlike the rotated column names */
+.st-col-dots .st-col-name {
+  writing-mode: horizontal-tb;
+  margin: auto 0;
+  font-family: inherit;
+  font-size: 20px;
+  letter-spacing: 4px;
+  color: #9aa1ad;
+}
+
+/* ---- stage 2: the two problems + the depth meter ---- */
+.st-problem {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.st-callout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: 270px;
+  padding: 9px 0;
+  text-align: center;
+  border-radius: 999px;
+  font-size: 21px;
+  font-weight: 700;
+  color: #a01f52;
+  background: rgba(214, 51, 108, 0.12);
+  border: 1px solid rgba(214, 51, 108, 0.45);
+  will-change: transform;
+}
+
+/* x axis is expression depth; the parser limit is a tick partway along */
+.st-meter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 999px;
+  background: #eceef2;
+  will-change: transform;
+}
+.st-meter-fill,
+.st-meter-ghost {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 999px;
+}
+/* the depth this model actually reaches */
+.st-meter-fill { left: 0; }
+/* where more trees would take it — past the limit */
+.st-meter-ghost {
+  background: repeating-linear-gradient(
+    115deg, rgba(214, 51, 108, 0.30) 0 6px, rgba(214, 51, 108, 0.10) 6px 12px);
+}
+.st-meter-tick {
+  position: absolute;
+  top: -13px;
+  height: 38px;
+  border-left: 2px dashed;
+}
+/* tick label above the track, depth labels below — keeps everything inside the
+ * stage box, which clips (overflow:hidden) */
+.st-meter-tick-label {
+  position: absolute;
+  top: -32px;
+  transform: translateX(-50%);
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.st-meter-label {
+  position: absolute;
+  top: 22px;
+  font-size: 17px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.st-meter-here { color: #4a6b80; }
+.st-meter-more { color: #a01f52; }
+
+/* the "+" operators joining the summed chips */
+.st-plus {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Fira Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 24px;
+  font-weight: 700;
+  color: #5b6272;
+  will-change: transform, opacity;
+}
+
+/* ---- the "1 expression" brace spanning the summed block ---- */
+.st-brace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  will-change: transform, opacity;
+}
+.st-brace path {
+  stroke: #9aa1ad;
+  stroke-width: 2;
+  fill: none;
+}
+.st-brace-label {
+  writing-mode: vertical-rl;
+  font-size: 20px;
+  font-weight: 600;
+  color: #5b6272;
+  white-space: nowrap;
+}
+
+.st-caption {
+  position: absolute;
+  top: 0;
+  left: 0;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  color: #5b6272;
+  will-change: transform, opacity;
+}
