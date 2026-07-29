@@ -11,118 +11,132 @@
     "href": "index.html#initial-traintest-split",
     "title": "tidy animations",
     "section": "Initial train/test split",
-    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (11 KB)"
+    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (13 KB)"
   },
   {
     "objectID": "index.html#trainvalidationtest-split",
     "href": "index.html#trainvalidationtest-split",
     "title": "tidy animations",
     "section": "Train/validation/test split",
-    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (11 KB)"
+    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (13 KB)"
   },
   {
     "objectID": "index.html#time-based-resampling",
     "href": "index.html#time-based-resampling",
     "title": "tidy animations",
     "section": "Time-based resampling",
-    "text": "Time-based resampling\n\n\n\nOpen full deck Download GIF (224 KB) Download MP4 (109 KB) Download reusable bundle (10 KB)"
+    "text": "Time-based resampling\n\n\n\nOpen full deck Download GIF (224 KB) Download MP4 (109 KB) Download reusable bundle (13 KB)"
   },
   {
     "objectID": "index.html#time-based-trainvalidationtest-split",
     "href": "index.html#time-based-trainvalidationtest-split",
     "title": "tidy animations",
     "section": "Time-based train/validation/test split",
-    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (10 KB)"
+    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (12 KB)"
   },
   {
     "objectID": "index.html#cross-validation",
     "href": "index.html#cross-validation",
     "title": "tidy animations",
     "section": "Cross-validation",
-    "text": "Cross-validation\n\n\n\nOpen full deck Download GIF (820 KB) Download MP4 (259 KB) Download reusable bundle (11 KB)"
+    "text": "Cross-validation\n\n\n\nOpen full deck Download GIF (820 KB) Download MP4 (259 KB) Download reusable bundle (13 KB)"
   },
   {
     "objectID": "index.html#bootstrap-resampling",
     "href": "index.html#bootstrap-resampling",
     "title": "tidy animations",
     "section": "Bootstrap resampling",
-    "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (12 KB)"
+    "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#recipe-pipeline",
     "href": "index.html#recipe-pipeline",
     "title": "tidy animations",
     "section": "Recipe pipeline",
-    "text": "Recipe pipeline\n\n\n\nOpen full deck Download GIF (836 KB) Download MP4 (396 KB) Download reusable bundle (12 KB)"
+    "text": "Recipe pipeline\n\n\n\nOpen full deck Download GIF (836 KB) Download MP4 (396 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#smote",
     "href": "index.html#smote",
     "title": "tidy animations",
     "section": "SMOTE",
-    "text": "SMOTE\n\n\n\nOpen full deck Download GIF (521 KB) Download MP4 (237 KB) Download reusable bundle (13 KB)"
+    "text": "SMOTE\n\n\n\nOpen full deck Download GIF (521 KB) Download MP4 (237 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#borderline-smote1",
     "href": "index.html#borderline-smote1",
     "title": "tidy animations",
     "section": "Borderline-SMOTE1",
-    "text": "Borderline-SMOTE1\n\n\n\nOpen full deck Download GIF (417 KB) Download MP4 (219 KB) Download reusable bundle (13 KB)"
+    "text": "Borderline-SMOTE1\n\n\n\nOpen full deck Download GIF (417 KB) Download MP4 (219 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#borderline-smote2",
     "href": "index.html#borderline-smote2",
     "title": "tidy animations",
     "section": "Borderline-SMOTE2",
-    "text": "Borderline-SMOTE2\n\n\n\nOpen full deck Download GIF (399 KB) Download MP4 (217 KB) Download reusable bundle (13 KB)"
+    "text": "Borderline-SMOTE2\n\n\n\nOpen full deck Download GIF (399 KB) Download MP4 (217 KB) Download reusable bundle (15 KB)"
+  },
+  {
+    "objectID": "index.html#adasyn",
+    "href": "index.html#adasyn",
+    "title": "tidy animations",
+    "section": "ADASYN",
+    "text": "ADASYN\n\n\n\nOpen full deck Download GIF Download MP4 Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#orbital-codegen",
     "href": "index.html#orbital-codegen",
     "title": "tidy animations",
     "section": "Orbital codegen",
-    "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (15 KB)"
+    "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (17 KB)"
   },
   {
     "objectID": "index.html#orbital-flat-to-nested-case_when",
     "href": "index.html#orbital-flat-to-nested-case_when",
     "title": "tidy animations",
     "section": "Orbital: flat to nested case_when",
-    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (12 KB)"
+    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (14 KB)"
+  },
+  {
+    "objectID": "index.html#orbital-separate-trees",
+    "href": "index.html#orbital-separate-trees",
+    "title": "tidy animations",
+    "section": "Orbital: separate trees",
+    "text": "Orbital: separate trees\n\n\n\nOpen full deck Download GIF (758 KB) Download MP4 (386 KB) Download reusable bundle (20 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",
     "href": "index.html#ggplot2-deconstructed",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed",
-    "text": "ggplot2, deconstructed\n\n\n\nOpen full deck Download GIF (1.1 MB) Download MP4 (424 KB) Download reusable bundle (14 KB)"
+    "text": "ggplot2, deconstructed\n\n\n\nOpen full deck Download GIF (1.1 MB) Download MP4 (424 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-variant",
     "href": "index.html#ggplot2-deconstructed-variant",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed (variant)",
-    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (14 KB)"
+    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-mobile",
     "href": "index.html#ggplot2-deconstructed-mobile",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed (mobile)",
-    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (13 KB)"
+    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#filter-a-data-frame",
     "href": "index.html#filter-a-data-frame",
     "title": "tidy animations",
     "section": "filter() a data frame",
-    "text": "filter() a data frame\n\n\n\nOpen full deck Download GIF (132 KB) Download MP4 (73 KB) Download reusable bundle (11 KB)"
+    "text": "filter() a data frame\n\n\n\nOpen full deck Download GIF (132 KB) Download MP4 (73 KB) Download reusable bundle (13 KB)"
   },
   {
     "objectID": "index.html#filter-on-two-columns",
     "href": "index.html#filter-on-two-columns",
     "title": "tidy animations",
     "section": "filter() on two columns",
-    "text": "filter() on two columns\n\n\n\nOpen full deck Download GIF (203 KB) Download MP4 (97 KB) Download reusable bundle (11 KB)"
+    "text": "filter() on two columns\n\n\n\nOpen full deck Download GIF (203 KB) Download MP4 (97 KB) Download reusable bundle (13 KB)"
   }
 ]

@@ -207,6 +207,17 @@ Transforming predictors before they reach the model.
 [Download reusable bundle](bundles/orbital-casewhen.zip)
 </p>
 
+## Orbital: separate trees
+
+<iframe class="deck-embed" src="examples/orbital-separate-trees.html" title="Orbital separate trees animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/orbital-separate-trees.html){target="_blank"}
+[Download GIF](gifs/orbital-separate-trees.gif){download=""}
+[Download MP4](mp4/orbital-separate-trees.mp4){download=""}
+[Download reusable bundle](bundles/orbital-separate-trees.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.
