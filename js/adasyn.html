@@ -1,0 +1,321 @@
+<script>
+/* ---- ADASYN animation ----
+ * Marker slide: .adasyn-slide   Stage container: #adasyn-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * ADASYN = adaptive SMOTE: harder-to-learn minority points (more MAJORITY
+ * neighbours) get MORE synthetic points. So the border densifies while the
+ * interior barely changes.
+ *
+ * Segments (stage 0 = slide arrival):
+ *   0 imbalanced data
+ *   1 focus the minority class
+ *   2 sample a point, look at its k neighbours (both classes) -> ratio rᵢ
+ *   3 allocate a synthetic budget per point ∝ rᵢ  (count badges appear)
+ *   4 generate that many synthetic points each  (border fills, interior barely)
+ *   5 balanced
+ */
+(function () {
+  const W = 1100, H = 560;
+
+  // [majority, minority, synthetic]. Synthetic = desaturated minority.
+  const COLORS = window.ADASYN_COLORS || ['#c8ccd4', '#d6336c', '#e59db7'];
+  const [C_MAJ, C_MIN, C_SYN] = COLORS;
+
+  // Hardcoded coordinates (rolled once) — stable across reloads / back-nav.
+  // Majority is dense on the left, thinning to the right; the minority cluster
+  // spans left (bordering majority -> high rᵢ) to right (interior -> low rᵢ).
+  const MAJ = [
+    // broad left cloud + edges
+    [80, 80], [120, 220], [90, 360], [140, 480], [220, 120],
+    [240, 300], [210, 460], [320, 200], [340, 420], [300, 80],
+    [380, 300], [400, 140], [400, 470],
+    // near-left band that borders the minority cluster (drives high rᵢ)
+    [450, 300], [470, 260], [480, 340], [500, 200], [510, 410], [520, 300],
+    // scattered around the minority (a little pressure on the mid points)
+    [600, 120], [720, 120], [840, 140], [620, 480], [740, 480], [860, 470],
+    [560, 470], [900, 300],
+    // sparse right side
+    [960, 180], [1000, 300], [980, 440], [1040, 240], [1030, 420], [900, 120],
+  ];
+  // Minority: a cluster spanning the border (left) to the interior (right).
+  const MIN = [
+    [540, 280], [560, 360], [600, 240],   // 0-2  border  (high rᵢ)
+    [630, 320], [670, 270], [690, 360],   // 3-5  middle
+    [730, 300], [770, 250], [790, 340],   // 6-8  interior (low rᵢ)
+    [830, 300],                           // 9    interior
+  ];
+
+  const K = 5;               // neighbourhood size (both classes) for the ratio
+  const KMIN = 5;            // minority neighbours for interpolation
+  const DEMO = 0;            // point whose neighbourhood we show in stage 2
+  const BUDGET = 24;         // total synthetic points to distribute (∝ rᵢ)
+
+  // Mild zoom onto the minority region while the action happens (stages 2-4).
+  const CLUSTER = [685, 305];
+  const CENTER = [560, 285];
+  const ZOOM = 1.5;
+
+  // ---- combined-index helpers (majority then minority) ----
+  const NALL = MAJ.length + MIN.length;
+  function pt(gi) { return gi < MAJ.length ? MAJ[gi] : MIN[gi - MAJ.length]; }
+  function isMaj(gi) { return gi < MAJ.length; }
+
+  // k nearest neighbours of minority point `mi` across ALL points.
+  function knnAll(mi, k) {
+    const self = MAJ.length + mi, [sx, sy] = MIN[mi];
+    const out = [];
+    for (let gi = 0; gi < NALL; gi++) {
+      if (gi === self) continue;
+      const [x, y] = pt(gi);
+      out.push({ gi, maj: isMaj(gi), d: (x - sx) ** 2 + (y - sy) ** 2 });
+    }
+    return out.sort((a, b) => a.d - b.d).slice(0, k);
+  }
+  // rᵢ = fraction of MAJORITY among the k neighbours (the "hardness").
+  const RATIO = MIN.map((_, mi) => knnAll(mi, K).filter(o => o.maj).length / K);
+  const SUM_R = RATIO.reduce((a, b) => a + b, 0);
+
+  // Allocate the budget ∝ rᵢ (largest-remainder rounding so counts sum exactly).
+  function allocate() {
+    const raw = RATIO.map(r => (SUM_R ? r / SUM_R : 0) * BUDGET);
+    const base = raw.map(Math.floor);
+    let rem = BUDGET - base.reduce((a, b) => a + b, 0);
+    const order = raw.map((v, i) => ({ i, frac: v - base[i] }))
+      .sort((a, b) => b.frac - a.frac);
+    for (let j = 0; j < order.length && rem > 0; j++, rem--) base[order[j].i]++;
+    return base;
+  }
+  const COUNTS = allocate();
+
+  // k nearest MINORITY neighbours (indices into MIN).
+  function knnMin(src, k) {
+    const [sx, sy] = MIN[src];
+    return MIN.map(([x, y], i) => ({ i, d: (x - sx) ** 2 + (y - sy) ** 2 }))
+      .filter(o => o.i !== src).sort((a, b) => a.d - b.d).slice(0, k).map(o => o.i);
+  }
+
+  // Deterministic PRNG (mulberry32) — seeded once, so synthetic positions are
+  // identical on every reload / back-nav ("roll once, hardcode" via a seed).
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  // Pre-roll every synthetic point: [x, y, srcMinIndex] interpolated toward a
+  // random minority neighbour at a random fraction.
+  const SYNTH = [];
+  (function rollSynth() {
+    const rng = mulberry32(20240724);
+    MIN.forEach((_, i) => {
+      const nbrs = knnMin(i, KMIN);
+      for (let c = 0; c < COUNTS[i]; c++) {
+        const j = nbrs[Math.floor(rng() * nbrs.length)];
+        const t = 0.25 + rng() * 0.5;
+        const x = MIN[i][0] + t * (MIN[j][0] - MIN[i][0]);
+        const y = MIN[i][1] + t * (MIN[j][1] - MIN[i][1]);
+        SYNTH.push([x, y, i]);
+      }
+    });
+  })();
+
+  let built = false, world = null;
+  let majDots = [], minDots = [], badges = [];
+  let ring = null, nbrLines = [], nbrShown = false;
+  let extra = [], extraShown = false;
+
+  function makeDot(x, y, color, animated) {
+    const d = document.createElement('div');
+    d.className = 'adasyn-dot';
+    d.style.backgroundColor = color;
+    world.appendChild(d);
+    if (animated) anime.set(d, { translateX: x, translateY: y });
+    else d.style.transform = `translate(${x}px, ${y}px)`;
+    return d;
+  }
+
+  function build() {
+    const stage = document.getElementById('adasyn-stage');
+    if (!stage || built) return !!stage;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'adasyn-world';
+    stage.appendChild(world);
+    MAJ.forEach(([x, y]) => majDots.push(makeDot(x, y, C_MAJ, false)));
+    MIN.forEach(([x, y]) => minDots.push(makeDot(x, y, C_MIN, true)));
+    // count badges (above-right of each minority point); hidden until stage 3
+    MIN.forEach(([x, y], i) => {
+      const b = document.createElement('div');
+      b.className = 'adasyn-badge';
+      b.textContent = COUNTS[i];
+      world.appendChild(b);
+      anime.set(b, { translateX: x + 20, translateY: y - 20, scale: 0, opacity: 0 });
+      badges.push(b);
+    });
+    return true;
+  }
+
+  function zoom(on) {
+    const s = on ? ZOOM : 1;
+    TM.anime({
+      targets: world,
+      translateX: on ? CENTER[0] - s * CLUSTER[0] : 0,
+      translateY: on ? CENTER[1] - s * CLUSTER[1] : 0,
+      scale: s, duration: 700, easing: 'easeInOutCubic',
+    });
+  }
+
+  function makeLine(srcXY, dstXY, color) {
+    const [sx, sy] = srcXY, [dx, dy] = dstXY;
+    const len = Math.hypot(dx - sx, dy - sy);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = 'adasyn-line';
+    if (color) el.style.background = color;
+    el.style.width = len + 'px';
+    el.style.opacity = 0;
+    world.insertBefore(el, world.firstChild);   // behind the dots
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang });
+    return el;
+  }
+
+  function ensureRing() {
+    if (ring) return;
+    ring = document.createElement('div');
+    ring.className = 'adasyn-ring';
+    ring.style.opacity = 0;
+    world.appendChild(ring);
+  }
+  function spinRing(seq, onDone) {
+    let i = 0;
+    (function step() {
+      const [x, y] = MIN[seq[i]];
+      anime.set(ring, { translateX: x, translateY: y });
+      i++;
+      if (i >= seq.length) { onDone(); return; }
+      TM.pause(70 + i * 16, step);
+    })();
+  }
+
+  // ---- stage 2: DEMO's k neighbours across both classes (colour by class) ----
+  const NBR = knnAll(DEMO, K);
+  function showNbr(spin) {
+    if (nbrShown) return;
+    nbrShown = true;
+    ensureRing();
+    const draw = () => {
+      if (!nbrLines.length)
+        NBR.forEach(o => nbrLines.push(makeLine(MIN[DEMO], pt(o.gi), o.maj ? '#8a9099' : C_MIN)));
+      TM.anime({ targets: nbrLines, opacity: 0.9, duration: 350, easing: 'easeInOutQuad', delay: anime.stagger(60) });
+    };
+    if (spin) {
+      const HOP = [2, 5, 8, 3, 7, 1, DEMO];
+      anime.set(ring, { translateX: MIN[HOP[0]][0], translateY: MIN[HOP[0]][1] });
+      TM.anime({ targets: ring, opacity: 1, duration: 200, easing: 'easeOutQuad' });
+      spinRing(HOP, () => TM.pause(150, draw));
+    } else {
+      anime.set(ring, { translateX: MIN[DEMO][0], translateY: MIN[DEMO][1], opacity: 1 });
+      draw();
+    }
+  }
+  function hideNbr() {
+    if (!nbrShown) return;
+    nbrShown = false;
+    if (ring) TM.anime({ targets: ring, opacity: 0, duration: 250, easing: 'easeInOutQuad' });
+    if (nbrLines.length) {
+      const dying = nbrLines; nbrLines = [];
+      TM.anime({ targets: dying, opacity: 0, duration: 200, easing: 'easeInOutQuad',
+        complete: () => dying.forEach(l => l.remove()) });
+    }
+  }
+
+  // ---- badges (stage 3+) ----
+  function showBadges(animate) {
+    badges.forEach((b, i) => {
+      const [x, y] = MIN[i];
+      const on = COUNTS[i] > 0;
+      TM.anime({ targets: b, translateX: x + 20, translateY: y - 20,
+        scale: on ? 1 : 0, opacity: on ? 1 : 0,
+        duration: animate ? 400 : 1, easing: 'easeOutBack',
+        delay: animate ? anime.stagger(40) : 0 });
+    });
+  }
+  function hideBadges() {
+    TM.anime({ targets: badges, scale: 0, opacity: 0, duration: 250, easing: 'easeInQuad' });
+  }
+
+  // ---- stage 4: the synthetic points (count ∝ rᵢ, so adaptive) ----
+  function showExtra(animate) {
+    if (extraShown) return;
+    extraShown = true;
+    SYNTH.forEach(([x, y]) => {
+      const d = makeDot(x, y, C_SYN, true);
+      extra.push(d);
+      anime.set(d, { scale: animate ? 0 : 1.15, opacity: animate ? 0 : 1 });
+    });
+    if (animate) TM.anime({ targets: extra, scale: 1.15, opacity: 1, duration: 450,
+      easing: 'easeOutBack', delay: anime.stagger(25) });
+  }
+  function hideExtra() {
+    if (!extraShown) return;
+    extraShown = false;
+    const dying = extra; extra = [];
+    if (!dying.length) return;
+    TM.anime({ targets: dying, scale: 0, opacity: 0, duration: 300, easing: 'easeInQuad',
+      complete: () => dying.forEach(d => d.remove()) });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('adasyn-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const acting = stage >= 2 && stage < 5;   // zoomed while we work the cluster
+    zoom(acting);
+
+    // majority: dim while we focus the minority (stages 1-4), full on 0 and 5.
+    const dimMaj = stage >= 1 && stage < 5;
+    TM.anime({ targets: majDots, opacity: dimMaj ? 0.22 : 1, duration: 500, easing: 'easeInOutQuad' });
+
+    // minority emphasis
+    const focus = stage >= 1;
+    minDots.forEach((d, i) => {
+      const [x, y] = MIN[i];
+      TM.anime({ targets: d, scale: focus ? 1.18 : 1, translateX: x, translateY: y,
+        duration: 500, easing: 'easeOutBack' });
+    });
+
+    // stage 2: sample DEMO + its k neighbours (both classes).
+    if (stage === 2) showNbr(!nbrShown); else hideNbr();
+
+    // stages 3-4: per-point synthetic budget badges (hidden again once balanced).
+    if (stage >= 3 && stage < 5) showBadges(stage === 3 && !extraShown); else hideBadges();
+
+    // stage 4+: the synthetic points themselves.
+    if (stage >= 4) showExtra(!extraShown); else hideExtra();
+
+    const balanced = stage >= 5;
+    setTitle(
+      balanced ? 'Balanced, and denser exactly where the classes overlap'
+      : stage >= 4 ? 'Generate that many points each: the hard border fills in, the interior barely changes'
+      : stage === 3 ? 'Allocate a synthetic budget to each point ∝ rᵢ (harder points get more)'
+      : stage === 2 ? 'For a sampled point, rᵢ = fraction of its k = 5 neighbours that are majority'
+      : focus ? 'ADASYN only synthesises the minority class'
+      : 'Imbalanced classes');
+  }
+
+  TM.gate({
+    markerClass: 'adasyn-slide',
+    fragmentIds: ['adasyn-focus', 'adasyn-ratio', 'adasyn-allocate', 'adasyn-synth', 'adasyn-balanced'],
+    render,
+  });
+})();
+</script>

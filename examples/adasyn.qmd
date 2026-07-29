@@ -1,0 +1,25 @@
+---
+title: "ADASYN"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/adasyn.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority, synthetic]. Synthetic is a desaturated minority. -->
+<script>window.ADASYN_COLORS = ['#c8ccd4', '#d6336c', '#e59db7'];</script>
+```
+
+## {.adasyn-slide}
+
+::: {.adasyn-stage-wrap}
+<div id="adasyn-title" class="adasyn-title"></div>
+<div id="adasyn-stage"></div>
+:::
+
+[]{.fragment .adasyn-frag id="adasyn-focus"}
+[]{.fragment .adasyn-frag id="adasyn-ratio"}
+[]{.fragment .adasyn-frag id="adasyn-allocate"}
+[]{.fragment .adasyn-frag id="adasyn-synth"}
+[]{.fragment .adasyn-frag id="adasyn-balanced"}
