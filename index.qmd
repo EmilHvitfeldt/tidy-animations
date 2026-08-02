@@ -141,6 +141,44 @@ Transforming predictors before they reach the model.
 [Download reusable bundle](bundles/recipe-pipeline.zip)
 </p>
 
+## Orbital codegen
+
+<iframe class="deck-embed" src="examples/orbital-codegen.html" title="Orbital codegen animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/orbital-codegen.html){target="_blank"}
+[Download GIF](gifs/orbital-codegen.gif){download=""}
+[Download MP4](mp4/orbital-codegen.mp4){download=""}
+[Download reusable bundle](bundles/orbital-codegen.zip)
+</p>
+
+## Orbital: flat to nested case_when
+
+<iframe class="deck-embed" src="examples/orbital-casewhen.html" title="Orbital flat to nested case_when animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/orbital-casewhen.html){target="_blank"}
+[Download GIF](gifs/orbital-casewhen.gif){download=""}
+[Download MP4](mp4/orbital-casewhen.mp4){download=""}
+[Download reusable bundle](bundles/orbital-casewhen.zip)
+</p>
+
+## Orbital: separate trees
+
+<iframe class="deck-embed" src="examples/orbital-separate-trees.html" title="Orbital separate trees animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/orbital-separate-trees.html){target="_blank"}
+[Download GIF](gifs/orbital-separate-trees.gif){download=""}
+[Download MP4](mp4/orbital-separate-trees.mp4){download=""}
+[Download reusable bundle](bundles/orbital-separate-trees.zip)
+</p>
+
+# Class imbalance
+
+Rebalancing an unevenly distributed outcome, as implemented by the
+[themis](https://themis.tidymodels.org) package.
+
 ## SMOTE
 
 <iframe class="deck-embed" src="examples/smote.html" title="SMOTE animation"></iframe>
@@ -183,39 +221,6 @@ Transforming predictors before they reach the model.
 [Download GIF](gifs/adasyn.gif){download=""}
 [Download MP4](mp4/adasyn.mp4){download=""}
 [Download reusable bundle](bundles/adasyn.zip)
-</p>
-
-## Orbital codegen
-
-<iframe class="deck-embed" src="examples/orbital-codegen.html" title="Orbital codegen animation"></iframe>
-
-<p class="gif-link">
-[Open full deck](examples/orbital-codegen.html){target="_blank"}
-[Download GIF](gifs/orbital-codegen.gif){download=""}
-[Download MP4](mp4/orbital-codegen.mp4){download=""}
-[Download reusable bundle](bundles/orbital-codegen.zip)
-</p>
-
-## Orbital: flat to nested case_when
-
-<iframe class="deck-embed" src="examples/orbital-casewhen.html" title="Orbital flat to nested case_when animation"></iframe>
-
-<p class="gif-link">
-[Open full deck](examples/orbital-casewhen.html){target="_blank"}
-[Download GIF](gifs/orbital-casewhen.gif){download=""}
-[Download MP4](mp4/orbital-casewhen.mp4){download=""}
-[Download reusable bundle](bundles/orbital-casewhen.zip)
-</p>
-
-## Orbital: separate trees
-
-<iframe class="deck-embed" src="examples/orbital-separate-trees.html" title="Orbital separate trees animation"></iframe>
-
-<p class="gif-link">
-[Open full deck](examples/orbital-separate-trees.html){target="_blank"}
-[Download GIF](gifs/orbital-separate-trees.gif){download=""}
-[Download MP4](mp4/orbital-separate-trees.mp4){download=""}
-[Download reusable bundle](bundles/orbital-separate-trees.zip)
 </p>
 
 # Visualization (ggplot2)
