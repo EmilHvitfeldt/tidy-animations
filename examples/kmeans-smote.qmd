@@ -1,0 +1,25 @@
+---
+title: "k-means SMOTE"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/kmeans-smote.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority, synthetic]. Synthetic is a desaturated minority. -->
+<script>window.KS_COLORS = ['#c8ccd4', '#d6336c', '#e59db7'];</script>
+```
+
+## {.ks-slide}
+
+::: {.ks-stage-wrap}
+<div id="ks-title" class="ks-title"></div>
+<div id="ks-stage"></div>
+:::
+
+[]{.fragment .ks-frag id="ks-cluster"}
+[]{.fragment .ks-frag id="ks-filter"}
+[]{.fragment .ks-frag id="ks-allocate"}
+[]{.fragment .ks-frag id="ks-smote"}
+[]{.fragment .ks-frag id="ks-balanced"}

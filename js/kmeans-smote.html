@@ -1,0 +1,248 @@
+<script>
+/* ---- k-means SMOTE animation ----
+ * Marker slide: .ks-slide   Stage container: #ks-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * k-means SMOTE is SMOTE with a site-selection step in front of it:
+ *   1. k-means over ALL points (both classes), num_clusters = floor(sqrt(n/2))
+ *   2. keep a cluster only if it holds MORE THAN k minority points and the
+ *      minority is at least as common there as everything else
+ *   3. split the synthetic budget across kept clusters by sparsity,
+ *      mean_pairwise_distance^d / n, so the emptier cluster gets more
+ *   4. run ordinary SMOTE inside each kept cluster
+ * The payoff is that stray minority points sitting inside majority territory
+ * are never used as seeds, so SMOTE does not amplify them.
+ * See themis R/kmeans_smote_impl.R.
+ *
+ * Segments (stage 0 = slide arrival):
+ *   0 imbalanced: 34 majority, 16 minority in two groups plus three strays
+ *   1 k-means over every point into 5 clusters
+ *   2 keep only the minority-dominated clusters
+ *   3 split the budget of 18 between them by sparsity
+ *   4 SMOTE inside each kept cluster
+ *   5 balanced, and the strays were never used as seeds
+ */
+(function () {
+  // [majority, minority, synthetic]
+  const COLORS = window.KS_COLORS || ['#c8ccd4', '#d6336c', '#e59db7'];
+  const [C_MAJ, C_MIN, C_SYN] = COLORS;
+
+  const K = 5;              // SMOTE neighbours; a cluster needs MORE than this
+
+  // Hardcoded layout, clustering, quotas and draws — the whole pipeline was run
+  // offline (k-means++ over 80 seeds, best inertia) and frozen, so the deck is
+  // identical on every reload and back-nav.
+  const MAJ = [
+    [98, 173], [265, 119], [226, 216], [99, 72], [243, 178],
+    [305, 209], [182, 134], [253, 71], [168, 190], [198, 90],
+    [232, 381], [330, 400], [241, 430], [285, 467], [114, 406],
+    [204, 476], [133, 478], [306, 370], [159, 443], [154, 356],
+    [535, 313], [647, 311], [621, 353], [509, 119], [438, 424],
+    [597, 181], [458, 214], [413, 215], [508, 182], [650, 382],
+    [455, 299], [862, 83], [878, 484], [853, 340],
+  ];
+  const MIN = [
+    [482, 433], [547, 391], [581, 82], [920, 110], [838, 120],
+    [922, 180], [936, 65], [874, 167], [838, 219], [941, 425],
+    [870, 424], [924, 375], [819, 365], [865, 377], [831, 427],
+    [997, 425],
+  ];
+  const CENTROIDS = [
+    [204, 145], [886, 405], [884, 135], [532, 278], [216, 421],
+  ];
+  // cluster of each point, in MAJ-then-MIN order
+  const ASSIGN = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                  3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 1, 3, 3, 3, 2, 2, 2,
+                  2, 2, 2, 1, 1, 1, 1, 1, 1, 1];
+  // chip placement, solved offline so no chip covers a point or a centroid
+  const CHIP_OFFSETS = [[-40, -111], [-36, -98], [-18, -102], [40, -47], [-36, -98]];
+  const KEPT_CLUSTERS = [1, 2];
+  const QUOTAS = [8, 10];           // aligned with KEPT_CLUSTERS
+  // [x, y, seedIndex, neighbourIndex] in the same MAJ-then-MIN index space
+  const SYN = [
+    [895, 401, 44, 45], [886, 371, 45, 46], [856, 368, 45, 46], [883, 397, 46, 43], [908, 376, 47, 45],
+    [931, 394, 43, 45], [936, 411, 45, 43], [897, 426, 43, 48], [864, 181, 41, 42], [871, 204, 42, 39],
+    [884, 153, 38, 39], [894, 142, 37, 41], [889, 142, 41, 40], [848, 205, 41, 42], [859, 191, 42, 37],
+    [916, 76, 40, 38], [921, 138, 39, 37], [929, 84, 40, 37],
+  ];
+
+  const NALL = MAJ.length + MIN.length;
+  const isMaj = gi => gi < MAJ.length;
+  const pt = gi => (isMaj(gi) ? MAJ[gi] : MIN[gi - MAJ.length]);
+  const isKept = c => KEPT_CLUSTERS.includes(c);
+
+  // per-cluster minority / other counts, for the chips
+  const CL_MIN = [], CL_OTH = [];
+  CENTROIDS.forEach((_, c) => {
+    CL_MIN[c] = 0; CL_OTH[c] = 0;
+    for (let i = 0; i < NALL; i++) {
+      if (ASSIGN[i] !== c) continue;
+      if (isMaj(i)) CL_OTH[c]++; else CL_MIN[c]++;
+    }
+  });
+
+  let built = false, world = null;
+  let dots = [], centDots = [], spokes = [], chips = [], synDots = [];
+  const counts = [];
+
+  function makeDot(x, y, color, cls) {
+    const d = document.createElement('div');
+    d.className = cls;
+    d.style.backgroundColor = color;
+    world.appendChild(d);
+    anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+    return d;
+  }
+
+  function makeSpoke(srcXY, dstXY) {
+    const [sx, sy] = srcXY, [dx, dy] = dstXY;
+    const len = Math.max(Math.hypot(dx - sx, dy - sy), 1);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = 'ks-spoke';
+    el.style.width = len + 'px';
+    world.insertBefore(el, world.firstChild);
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+    return el;
+  }
+
+  function buildLegend(stageEl) {
+    const box = document.createElement('div');
+    box.className = 'ks-legend';
+    [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+      ([label, color, n]) => {
+        const row = document.createElement('div');
+        row.className = 'ks-legend-item';
+        const sw = document.createElement('span');
+        sw.className = 'ks-swatch';
+        sw.style.backgroundColor = color;
+        const txt = document.createElement('span');
+        txt.textContent = label + ' ';
+        const num = document.createElement('span');
+        num.className = 'ks-count';
+        num.textContent = n;
+        row.append(sw, txt, num);
+        box.appendChild(row);
+        counts.push(num);
+      });
+    stageEl.appendChild(box);
+  }
+
+  function build() {
+    const stageEl = document.getElementById('ks-stage');
+    if (!stageEl || built) return !!stageEl;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'ks-world';
+    stageEl.appendChild(world);
+
+    for (let i = 0; i < NALL; i++) spokes.push(makeSpoke(pt(i), CENTROIDS[ASSIGN[i]]));
+    for (let i = 0; i < NALL; i++) {
+      const [x, y] = pt(i);
+      dots.push(makeDot(x, y, isMaj(i) ? C_MAJ : C_MIN, 'ks-dot'));
+    }
+    CENTROIDS.forEach(([x, y]) => {
+      const d = makeDot(x, y, '#5b6272', 'ks-centroid');
+      anime.set(d, { scale: 0, opacity: 0 });
+      centDots.push(d);
+    });
+    CENTROIDS.forEach(([x, y], c) => {
+      const el = document.createElement('div');
+      el.className = 'ks-chip';
+      el.textContent = `${CL_MIN[c]} min / ${CL_OTH[c]} other`;
+      world.appendChild(el);
+      anime.set(el, { translateX: x + CHIP_OFFSETS[c][0], translateY: y + CHIP_OFFSETS[c][1],
+        scale: 0.7, opacity: 0 });
+      chips.push(el);
+    });
+    SYN.forEach(([x, y]) => {
+      const d = makeDot(x, y, C_SYN, 'ks-dot');
+      anime.set(d, { scale: 0, opacity: 0 });
+      synDots.push(d);
+    });
+
+    buildLegend(stageEl);
+    return true;
+  }
+
+  function setCount(el, value) {
+    if (el.textContent === String(value)) return;
+    el.textContent = value;
+    TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('ks-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const clustering = stage >= 1 && stage < 4;
+
+    // ---- spokes and centroids ----
+    spokes.forEach((el, i) => {
+      const keptSide = isKept(ASSIGN[i]);
+      const on = stage === 1 || (clustering && stage >= 2 && keptSide);
+      TM.anime({ targets: el, opacity: on ? (stage === 1 ? 0.5 : 0.32) : 0,
+        duration: 420, easing: 'easeInOutQuad',
+        delay: stage === 1 ? anime.stagger(10) : 0 });
+    });
+    centDots.forEach((d, c) => {
+      const on = clustering && (stage === 1 || isKept(c));
+      TM.anime({ targets: d, scale: on ? 1 : 0, opacity: on ? 1 : 0,
+        duration: 420, easing: 'easeOutBack',
+        delay: stage === 1 ? anime.stagger(50) : 0 });
+    });
+
+    // ---- chips: counts at stage 2, then the allocated quota at stage 3 ----
+    chips.forEach((el, c) => {
+      const kept = isKept(c);
+      const on = stage === 2 || (stage === 3 && kept);
+      if (stage === 3 && kept) {
+        el.textContent = '+' + QUOTAS[KEPT_CLUSTERS.indexOf(c)] + ' new points';
+      } else {
+        el.textContent = `${CL_MIN[c]} min / ${CL_OTH[c]} other`;
+      }
+      el.classList.toggle('is-rejected', stage === 2 && !kept);
+      TM.anime({ targets: el, scale: on ? 1 : 0.7, opacity: on ? 1 : 0,
+        duration: 400, easing: 'easeOutBack', delay: stage === 2 ? anime.stagger(60) : 0 });
+    });
+
+    // ---- points: dim whatever is not in a kept cluster once filtering starts ----
+    dots.forEach((d, i) => {
+      const dim = stage >= 2 && stage < 5 && !isKept(ASSIGN[i]);
+      TM.anime({ targets: d, opacity: dim ? 0.25 : 1, scale: 1,
+        duration: 450, easing: 'easeInOutQuad' });
+    });
+
+    // ---- the synthetic points ----
+    synDots.forEach((d, i) => {
+      const on = stage >= 4;
+      TM.anime({ targets: d, scale: on ? 1.1 : 0, opacity: on ? 1 : 0,
+        duration: 450, easing: on ? 'easeOutBack' : 'easeInQuad',
+        delay: on ? anime.stagger(35) : 0 });
+    });
+
+    setCount(counts[0], MAJ.length);
+    setCount(counts[1], stage >= 4 ? MIN.length + SYN.length : MIN.length);
+
+    setTitle(
+      stage >= 5 ? 'Balanced, and the strays in majority territory were never used as seeds'
+      : stage === 4 ? 'Run ordinary SMOTE inside each kept cluster'
+      : stage === 3 ? 'Split the 18 new points between them by sparsity'
+      : stage === 2 ? 'Keep a cluster only if it is minority-dominated and holds more than k = 5 minority'
+      : stage === 1 ? 'k-means over every point, into floor(sqrt(n / 2)) = 5 clusters'
+      : 'Imbalanced: two minority groups, plus three strays inside majority territory');
+  }
+
+  TM.gate({
+    markerClass: 'ks-slide',
+    fragmentIds: ['ks-cluster', 'ks-filter', 'ks-allocate', 'ks-smote', 'ks-balanced'],
+    render,
+  });
+})();
+</script>

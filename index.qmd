@@ -278,6 +278,17 @@ Rebalancing an unevenly distributed outcome, as implemented by the
 [Download reusable bundle](bundles/rose.zip)
 </p>
 
+## k-means SMOTE
+
+<iframe class="deck-embed" src="examples/kmeans-smote.html" title="k-means SMOTE animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/kmeans-smote.html){target="_blank"}
+[Download GIF](gifs/kmeans-smote.gif){download=""}
+[Download MP4](mp4/kmeans-smote.mp4){download=""}
+[Download reusable bundle](bundles/kmeans-smote.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.

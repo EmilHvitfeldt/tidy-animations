@@ -11,7 +11,7 @@
     "href": "index.html#initial-traintest-split",
     "title": "tidy animations",
     "section": "Initial train/test split",
-    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (14 KB)"
+    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#trainvalidationtest-split",
@@ -32,7 +32,7 @@
     "href": "index.html#time-based-trainvalidationtest-split",
     "title": "tidy animations",
     "section": "Time-based train/validation/test split",
-    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (13 KB)"
+    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#cross-validation",
@@ -109,7 +109,7 @@
     "href": "index.html#tomek-links",
     "title": "tidy animations",
     "section": "Tomek links",
-    "text": "Tomek links\n\n\n\nOpen full deck Download GIF (301 KB) Download MP4 (137 KB) Download reusable bundle (14 KB)"
+    "text": "Tomek links\n\n\n\nOpen full deck Download GIF (301 KB) Download MP4 (137 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#edited-nearest-neighbours",
@@ -137,7 +137,14 @@
     "href": "index.html#rose",
     "title": "tidy animations",
     "section": "ROSE",
-    "text": "ROSE\n\n\n\nOpen full deck Download GIF (298 KB) Download MP4 (131 KB) Download reusable bundle (14 KB)"
+    "text": "ROSE\n\n\n\nOpen full deck Download GIF (298 KB) Download MP4 (131 KB) Download reusable bundle (15 KB)"
+  },
+  {
+    "objectID": "index.html#k-means-smote",
+    "href": "index.html#k-means-smote",
+    "title": "tidy animations",
+    "section": "k-means SMOTE",
+    "text": "k-means SMOTE\n\n\n\nOpen full deck Download GIF (332 KB) Download MP4 (154 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",
