@@ -267,6 +267,17 @@ Rebalancing an unevenly distributed outcome, as implemented by the
 [Download reusable bundle](bundles/cluster-centroids.zip)
 </p>
 
+## ROSE
+
+<iframe class="deck-embed" src="examples/rose.html" title="ROSE animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/rose.html){target="_blank"}
+[Download GIF](gifs/rose.gif){download=""}
+[Download MP4](mp4/rose.mp4){download=""}
+[Download reusable bundle](bundles/rose.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.

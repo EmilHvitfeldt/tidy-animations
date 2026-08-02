@@ -25,7 +25,7 @@
     "href": "index.html#time-based-resampling",
     "title": "tidy animations",
     "section": "Time-based resampling",
-    "text": "Time-based resampling\n\n\n\nOpen full deck Download GIF (224 KB) Download MP4 (109 KB) Download reusable bundle (13 KB)"
+    "text": "Time-based resampling\n\n\n\nOpen full deck Download GIF (224 KB) Download MP4 (109 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#time-based-trainvalidationtest-split",
@@ -53,7 +53,7 @@
     "href": "index.html#recipe-pipeline",
     "title": "tidy animations",
     "section": "Recipe pipeline",
-    "text": "Recipe pipeline\n\n\n\nOpen full deck Download GIF (836 KB) Download MP4 (396 KB) Download reusable bundle (15 KB)"
+    "text": "Recipe pipeline\n\n\n\nOpen full deck Download GIF (836 KB) Download MP4 (396 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#orbital-codegen",
@@ -116,7 +116,7 @@
     "href": "index.html#edited-nearest-neighbours",
     "title": "tidy animations",
     "section": "Edited nearest neighbours",
-    "text": "Edited nearest neighbours\n\n\n\nOpen full deck Download GIF (266 KB) Download MP4 (145 KB) Download reusable bundle (14 KB)"
+    "text": "Edited nearest neighbours\n\n\n\nOpen full deck Download GIF (266 KB) Download MP4 (145 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#nearmiss-1",
@@ -131,6 +131,13 @@
     "title": "tidy animations",
     "section": "Cluster centroids",
     "text": "Cluster centroids\n\n\n\nOpen full deck Download GIF (228 KB) Download MP4 (109 KB) Download reusable bundle (14 KB)"
+  },
+  {
+    "objectID": "index.html#rose",
+    "href": "index.html#rose",
+    "title": "tidy animations",
+    "section": "ROSE",
+    "text": "ROSE\n\n\n\nOpen full deck Download GIF (298 KB) Download MP4 (131 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",
@@ -165,6 +172,6 @@
     "href": "index.html#filter-on-two-columns",
     "title": "tidy animations",
     "section": "filter() on two columns",
-    "text": "filter() on two columns\n\n\n\nOpen full deck Download GIF (203 KB) Download MP4 (97 KB) Download reusable bundle (14 KB)"
+    "text": "filter() on two columns\n\n\n\nOpen full deck Download GIF (203 KB) Download MP4 (97 KB) Download reusable bundle (15 KB)"
   }
 ]

@@ -1,0 +1,25 @@
+---
+title: "ROSE"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/rose.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority]. -->
+<script>window.ROSE_COLORS = ['#c8ccd4', '#d6336c'];</script>
+```
+
+## {.rose-slide}
+
+::: {.rose-stage-wrap}
+<div id="rose-title" class="rose-title"></div>
+<div id="rose-stage"></div>
+:::
+
+[]{.fragment .rose-frag id="rose-kernel"}
+[]{.fragment .rose-frag id="rose-draw"}
+[]{.fragment .rose-frag id="rose-repeat"}
+[]{.fragment .rose-frag id="rose-replace"}
+[]{.fragment .rose-frag id="rose-balanced"}
