@@ -245,6 +245,17 @@ Rebalancing an unevenly distributed outcome, as implemented by the
 [Download reusable bundle](bundles/enn.zip)
 </p>
 
+## NearMiss-1
+
+<iframe class="deck-embed" src="examples/nearmiss.html" title="NearMiss-1 animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/nearmiss.html){target="_blank"}
+[Download GIF](gifs/nearmiss.gif){download=""}
+[Download MP4](mp4/nearmiss.mp4){download=""}
+[Download reusable bundle](bundles/nearmiss.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.

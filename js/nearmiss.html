@@ -1,0 +1,233 @@
+<script>
+/* ---- NearMiss-1 animation ----
+ * Marker slide: .nm-slide   Stage container: #nm-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * NearMiss-1 scores every majority point by the MEAN DISTANCE to its k nearest
+ * minority points, then keeps the lowest-scoring ones (the ones that sit
+ * closest to the minority class) until the classes are balanced. The majority
+ * interior, which is far from the boundary, is what gets thrown away.
+ *
+ * From themis R/nearmiss_impl.R (version 1):
+ *   dists <- nn_dists_cross(class, not_class, k, distance)
+ *   selected_ind <- rank(rowMeans(dists)) <= n_keep      # smallest mean = kept
+ *
+ * Segments (stage 0 = slide arrival):
+ *   0 imbalanced: majority sprawls, minority is a compact cluster
+ *   1 one majority point measures the distance to its k = 3 nearest minority
+ *   2 its score is the average of those three distances
+ *   3 every majority point is scored the same way (shaded by score)
+ *   4 keep the lowest scores, drop the rest
+ *   5 balanced, and what survives hugs the minority
+ */
+(function () {
+  // [majority, minority, near end of ramp, far end of ramp]
+  const COLORS = window.NEARMISS_COLORS || ['#c8ccd4', '#d6336c', '#79839a', '#eceef2'];
+  const [C_MAJ, C_MIN, C_NEAR, C_FAR] = COLORS;
+
+  const K = 3;
+
+  // Hardcoded coordinates (rolled once from a seeded generator, then checked
+  // offline: scores span 68..596, so the ramp and the cut are both legible).
+  const MAJ = [
+    [597, 471], [569, 136], [725, 410], [395, 108], [249, 205],
+    [296, 233], [540, 380], [202, 147], [373, 300], [934, 87],
+    [239, 252], [424, 174], [744, 167], [130, 357], [1038, 282],
+    [508, 230], [150, 79], [611, 361], [455, 258], [254, 136],
+    [531, 297], [635, 267], [546, 503], [387, 366], [554, 424],
+    [831, 370], [609, 177], [479, 492], [335, 323], [227, 317],
+    [210, 215], [392, 421], [468, 154], [169, 401], [321, 179],
+    [262, 368], [648, 444], [160, 305],
+  ];
+  const MIN = [
+    [905, 167], [759, 335], [729, 293], [836, 221], [909, 239],
+    [790, 456], [770, 251], [1036, 155], [892, 110], [707, 352],
+    [642, 327], [806, 295], [925, 301], [737, 471],
+  ];
+
+  // The point we walk through in stages 1-2: mid-scoring, with a clear run of
+  // open space between it and the minority cluster.
+  const DEMO = 23;
+
+  // ---- scores: mean distance to the k nearest minority points ----
+  function nearestMin(i) {
+    const p = MAJ[i];
+    return MIN.map((m, j) => ({ j, d: Math.hypot(m[0] - p[0], m[1] - p[1]) }))
+      .sort((a, b) => a.d - b.d).slice(0, K);
+  }
+  const NBRS = MAJ.map((_, i) => nearestMin(i));
+  const SCORE = NBRS.map(ns => ns.reduce((a, o) => a + o.d, 0) / K);
+  const LO = Math.min(...SCORE), HI = Math.max(...SCORE);
+  const norm = s => (s - LO) / (HI - LO);          // 0 = closest, 1 = farthest
+
+  // Balance to the minority count: keep the n_keep lowest scores.
+  const N_KEEP = MIN.length;
+  const KEPT = new Set(
+    MAJ.map((_, i) => i).sort((a, b) => SCORE[a] - SCORE[b]).slice(0, N_KEEP));
+
+  // ---- colour ramp between the near and far ends ----
+  function hex2rgb(h) {
+    const n = parseInt(h.slice(1), 16);
+    return [n >> 16 & 255, n >> 8 & 255, n & 255];
+  }
+  const RGB_NEAR = hex2rgb(C_NEAR), RGB_FAR = hex2rgb(C_FAR);
+  function rampColor(t) {
+    const c = RGB_NEAR.map((v, i) => Math.round(v + (RGB_FAR[i] - v) * t));
+    return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+  }
+
+  let built = false, world = null;
+  let majDots = [], minDots = [], demoLines = [], ring = null, caption = null, ramp = null;
+  const counts = [];
+
+  function makeDot(x, y, color, cls) {
+    const d = document.createElement('div');
+    d.className = cls;
+    d.style.backgroundColor = color;
+    world.appendChild(d);
+    anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+    return d;
+  }
+
+  function makeLine(srcXY, dstXY) {
+    const [sx, sy] = srcXY, [dx, dy] = dstXY;
+    const len = Math.max(Math.hypot(dx - sx, dy - sy) - 14, 4);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = 'nm-line';
+    el.style.width = len + 'px';
+    world.insertBefore(el, world.firstChild);
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+    return el;
+  }
+
+  function buildChrome(stageEl) {
+    const box = document.createElement('div');
+    box.className = 'nm-legend';
+    [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+      ([label, color, n]) => {
+        const row = document.createElement('div');
+        row.className = 'nm-legend-item';
+        const sw = document.createElement('span');
+        sw.className = 'nm-swatch';
+        sw.style.backgroundColor = color;
+        const txt = document.createElement('span');
+        txt.textContent = label + ' ';
+        const num = document.createElement('span');
+        num.className = 'nm-count';
+        num.textContent = n;
+        row.append(sw, txt, num);
+        box.appendChild(row);
+        counts.push(num);
+      });
+    stageEl.appendChild(box);
+
+    // score ramp key, revealed once every point has been scored
+    ramp = document.createElement('div');
+    ramp.className = 'nm-ramp';
+    ramp.innerHTML =
+      '<span class="nm-ramp-label">close</span>' +
+      '<span class="nm-ramp-bar"></span>' +
+      '<span class="nm-ramp-label">far</span>';
+    ramp.querySelector('.nm-ramp-bar').style.background =
+      `linear-gradient(to right, ${C_NEAR}, ${C_FAR})`;
+    stageEl.appendChild(ramp);
+    anime.set(ramp, { opacity: 0 });
+  }
+
+  function build() {
+    const stageEl = document.getElementById('nm-stage');
+    if (!stageEl || built) return !!stageEl;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'nm-world';
+    stageEl.appendChild(world);
+
+    MAJ.forEach(([x, y]) => majDots.push(makeDot(x, y, C_MAJ, 'nm-dot')));
+    MIN.forEach(([x, y]) => minDots.push(makeDot(x, y, C_MIN, 'nm-dot')));
+
+    ring = document.createElement('div');
+    ring.className = 'nm-ring';
+    world.appendChild(ring);
+    anime.set(ring, { translateX: MAJ[DEMO][0], translateY: MAJ[DEMO][1], opacity: 0 });
+
+    NBRS[DEMO].forEach(o => demoLines.push(makeLine(MAJ[DEMO], MIN[o.j])));
+
+    caption = document.createElement('div');
+    caption.className = 'nm-caption';
+    caption.textContent = 'score = average of these 3 distances';
+    world.appendChild(caption);
+    anime.set(caption, { translateX: MAJ[DEMO][0], translateY: MAJ[DEMO][1] + 46, opacity: 0 });
+
+    buildChrome(stageEl);
+    return true;
+  }
+
+  function setCount(el, value) {
+    if (el.textContent === String(value)) return;
+    el.textContent = value;
+    TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('nm-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const measuring = stage === 1 || stage === 2;
+    const scored = stage >= 2;          // demo shaded from 2, everyone from 3
+
+    TM.anime({ targets: ring, opacity: measuring ? 1 : 0, scale: measuring ? 1 : 0.6,
+      duration: 350, easing: 'easeOutBack' });
+    TM.anime({ targets: demoLines, opacity: measuring ? 0.9 : 0, duration: 420,
+      easing: 'easeInOutQuad', delay: measuring ? anime.stagger(110) : 0 });
+    TM.anime({ targets: caption, opacity: stage === 2 ? 1 : 0, duration: 380,
+      easing: 'easeInOutQuad' });
+    TM.anime({ targets: ramp, opacity: stage >= 3 && stage < 5 ? 1 : 0, duration: 380,
+      easing: 'easeInOutQuad' });
+
+    // ---- majority dots: shade by score, then drop the far ones ----
+    majDots.forEach((d, i) => {
+      const gone = stage >= 4 && !KEPT.has(i);
+      // the ramp is a scoring device: drop it again once the cut is made
+      const shade = (stage >= 3 && stage < 5) || (scored && stage < 3 && i === DEMO);
+      const dim = measuring && i !== DEMO;
+      TM.anime({
+        targets: d,
+        backgroundColor: shade ? rampColor(norm(SCORE[i])) : C_MAJ,
+        scale: gone ? 0 : (measuring && i === DEMO ? 1.25 : 1),
+        opacity: gone ? 0 : (dim ? 0.3 : 1),
+        duration: gone ? 550 : 450,
+        easing: gone ? 'easeInBack' : 'easeInOutQuad',
+        delay: gone ? anime.stagger(20) : (stage === 3 ? anime.stagger(18) : 0),
+      });
+    });
+
+    // minority stays put; just dim it while we stare at one majority point
+    TM.anime({ targets: minDots, opacity: measuring ? 0.85 : 1, duration: 400,
+      easing: 'easeInOutQuad' });
+
+    setCount(counts[0], stage >= 4 ? N_KEEP : MAJ.length);
+    setCount(counts[1], MIN.length);
+
+    setTitle(
+      stage >= 5 ? 'Balanced, and every majority point left sits against the minority'
+      : stage === 4 ? 'Keep the lowest scores, drop the rest'
+      : stage === 3 ? 'Score every majority point the same way'
+      : stage === 2 ? 'Its score is the average of those three distances'
+      : stage === 1 ? 'Measure one majority point to its k = 3 nearest minority points'
+      : 'Imbalanced: the majority sprawls, the minority is one compact cluster');
+  }
+
+  TM.gate({
+    markerClass: 'nm-slide',
+    fragmentIds: ['nm-measure', 'nm-score', 'nm-scoreall', 'nm-drop', 'nm-balanced'],
+    render,
+  });
+})();
+</script>

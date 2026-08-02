@@ -1,0 +1,25 @@
+---
+title: "NearMiss-1"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/nearmiss.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority, near end of the score ramp, far end]. -->
+<script>window.NEARMISS_COLORS = ['#c8ccd4', '#d6336c', '#79839a', '#eceef2'];</script>
+```
+
+## {.nm-slide}
+
+::: {.nm-stage-wrap}
+<div id="nm-title" class="nm-title"></div>
+<div id="nm-stage"></div>
+:::
+
+[]{.fragment .nm-frag id="nm-measure"}
+[]{.fragment .nm-frag id="nm-score"}
+[]{.fragment .nm-frag id="nm-scoreall"}
+[]{.fragment .nm-frag id="nm-drop"}
+[]{.fragment .nm-frag id="nm-balanced"}
