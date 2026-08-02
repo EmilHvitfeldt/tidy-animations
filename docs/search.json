@@ -18,7 +18,7 @@
     "href": "index.html#trainvalidationtest-split",
     "title": "tidy animations",
     "section": "Train/validation/test split",
-    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (14 KB)"
+    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#time-based-resampling",
@@ -67,7 +67,7 @@
     "href": "index.html#orbital-flat-to-nested-case_when",
     "title": "tidy animations",
     "section": "Orbital: flat to nested case_when",
-    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (15 KB)"
+    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#orbital-separate-trees",
@@ -95,7 +95,7 @@
     "href": "index.html#borderline-smote2",
     "title": "tidy animations",
     "section": "Borderline-SMOTE2",
-    "text": "Borderline-SMOTE2\n\n\n\nOpen full deck Download GIF (399 KB) Download MP4 (217 KB) Download reusable bundle (16 KB)"
+    "text": "Borderline-SMOTE2\n\n\n\nOpen full deck Download GIF (399 KB) Download MP4 (217 KB) Download reusable bundle (17 KB)"
   },
   {
     "objectID": "index.html#adasyn",
@@ -152,6 +152,13 @@
     "title": "tidy animations",
     "section": "SVM-SMOTE",
     "text": "SVM-SMOTE\n\n\n\nOpen full deck Download GIF (306 KB) Download MP4 (173 KB) Download reusable bundle (15 KB)"
+  },
+  {
+    "objectID": "index.html#neighbourhood-cleaning-rule",
+    "href": "index.html#neighbourhood-cleaning-rule",
+    "title": "tidy animations",
+    "section": "Neighbourhood cleaning rule",
+    "text": "Neighbourhood cleaning rule\n\n\n\nOpen full deck Download GIF (200 KB) Download MP4 (117 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",

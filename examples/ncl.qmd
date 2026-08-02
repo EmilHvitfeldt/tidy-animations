@@ -1,0 +1,25 @@
+---
+title: "Neighbourhood cleaning rule"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/ncl.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority, rule A1 mark, rule A2 mark]. -->
+<script>window.NCL_COLORS = ['#c8ccd4', '#d6336c', '#b3261e', '#5f3dc4'];</script>
+```
+
+## {.ncl-slide}
+
+::: {.ncl-stage-wrap}
+<div id="ncl-title" class="ncl-title"></div>
+<div id="ncl-stage"></div>
+:::
+
+[]{.fragment .ncl-frag id="ncl-check"}
+[]{.fragment .ncl-frag id="ncl-a1"}
+[]{.fragment .ncl-frag id="ncl-a2"}
+[]{.fragment .ncl-frag id="ncl-remove"}
+[]{.fragment .ncl-frag id="ncl-clean"}

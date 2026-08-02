@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – SVM-SMOTE</title>
+  <title>tidymodels, animated – Neighbourhood cleaning rule</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -130,7 +130,7 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">SVM-SMOTE</h1>
+  <h1 class="title">Neighbourhood cleaning rule</h1>
 
 <div class="quarto-title-authors">
 </div>
@@ -138,20 +138,20 @@
 </section>
 <section class="slide level2">
 
-<!-- Colours: [majority, minority, synthetic, danger, safety, noise]. -->
-<script>window.SVMS_COLORS = ['#c8ccd4', '#d6336c', '#e59db7', '#e8590c', '#2f9e44', '#868e96'];</script>
+<!-- Colours: [majority, minority, rule A1 mark, rule A2 mark]. -->
+<script>window.NCL_COLORS = ['#c8ccd4', '#d6336c', '#b3261e', '#5f3dc4'];</script>
 </section>
-<section id="section" class="slide level2 svms-slide">
+<section id="section" class="slide level2 ncl-slide">
 <h2></h2>
-<div class="svms-stage-wrap">
-<div id="svms-title" class="svms-title">
+<div class="ncl-stage-wrap">
+<div id="ncl-title" class="ncl-title">
 
 </div>
-<div id="svms-stage">
+<div id="ncl-stage">
 
 </div>
 </div>
-<p><span id="svms-fit" class="fragment svms-frag"></span> <span id="svms-classify" class="fragment svms-frag"></span> <span id="svms-danger" class="fragment svms-frag"></span> <span id="svms-safety" class="fragment svms-frag"></span> <span id="svms-balanced" class="fragment svms-frag"></span></p>
+<p><span id="ncl-check" class="fragment ncl-frag"></span> <span id="ncl-a1" class="fragment ncl-frag"></span> <span id="ncl-a2" class="fragment ncl-frag"></span> <span id="ncl-remove" class="fragment ncl-frag"></span> <span id="ncl-clean" class="fragment ncl-frag"></span></p>
 
 
 </section>
@@ -455,185 +455,166 @@
     };
     </script>
     <script>
-    /* ---- SVM-SMOTE animation ----
-     * Marker slide: .svms-slide   Stage container: #svms-stage
+    /* ---- Neighbourhood cleaning rule (NCL) animation ----
+     * Marker slide: .ncl-slide   Stage container: #ncl-stage
      * render(stage) is idempotent (stage = number of visible gating fragments).
      *
-     * SVM-SMOTE seeds SMOTE from the minority SUPPORT VECTORS of a fitted SVM, and
-     * treats them differently depending on how hostile their neighbourhood is.
-     * With m nearest neighbours across all classes and n_maj of them majority:
-     *   noise  : n_maj == m          -> generates nothing
-     *   danger : m/2 <= n_maj < m    -> INTERPOLATES toward a minority neighbour
-     *   safety : n_maj < m/2         -> EXTRAPOLATES away from one (step -out_step)
-     * Interpolating fills in the boundary; extrapolating pushes the minority
-     * region outward. See themis R/svmsmote_impl.R.
+     * NCL is ENN plus a second, asymmetric cleaning pass:
+     *   A1  ENN restricted to the MAJORITY: drop majority points their own k
+     *       neighbours contradict.
+     *   A2  for every MINORITY point that its neighbours contradict, drop the
+     *       majority points among those neighbours.
+     * Minority points are never removed by either rule, which is what separates
+     * this from step_enn() (that one cleans both classes).
+     * See themis R/ncl_impl.R.
      *
      * Segments (stage 0 = slide arrival):
-     *   0 imbalanced, with the classes overlapping around a boundary
-     *   1 fit an SVM: decision boundary, margins, support vectors
-     *   2 label each minority support vector noise / danger / safety
-     *   3 danger vectors interpolate inward
-     *   4 safety vectors extrapolate outward
-     *   5 balanced, with the new points massed along the boundary
+     *   0 two classes overlapping around the boundary
+     *   1 every point checks whether its k = 3 neighbours agree with it
+     *   2 rule A1 marks the contradicted majority points
+     *   3 rule A2 marks the majority neighbours of contradicted minority points
+     *   4 remove everything marked
+     *   5 only the majority is thinned
      */
     (function () {
-      // [majority, minority, synthetic, danger, safety, noise]
-      const COLORS = window.SVMS_COLORS ||
-        ['#c8ccd4', '#d6336c', '#e59db7', '#e8590c', '#2f9e44', '#868e96'];
-      const [C_MAJ, C_MIN, C_SYN, C_DANGER, C_SAFETY, C_NOISE] = COLORS;
+      // [majority, minority, A1 mark, A2 mark]
+      const COLORS = window.NCL_COLORS || ['#c8ccd4', '#d6336c', '#b3261e', '#5f3dc4'];
+      const [C_MAJ, C_MIN, C_A1, C_A2] = COLORS;
 
-      const K = 5, M = 10;      // SMOTE neighbours, and m = min(2k, n - 1)
+      const K = 3;
 
-      // Everything below was computed offline and frozen: a linear SVM fitted with
-      // Pegasos (88% train accuracy on this overlap), its support vectors, the
-      // noise/danger/safety split, and the generated points.
+      // Hardcoded layout, neighbour lists and rule outcomes, all computed offline.
+      // The overlap is tuned so both rules fire visibly (A1 marks 6, A2 adds 6)
+      // while the majority still outnumbers the minority at the end.
       const MAJ = [
-        [135, 135], [512, 317], [554, 222], [396, 251], [208, 310],
-        [123, 242], [445, 298], [340, 211], [266, 243], [664, 293],
-        [359, 381], [439, 220], [266, 352], [367, 329], [259, 464],
-        [578, 294], [409, 150], [314, 246], [365, 285], [619, 317],
-        [185, 422], [421, 504], [686, 152], [244, 395], [543, 431],
-        [718, 364], [457, 357], [193, 257], [413, 326], [533, 276],
-        [74, 149], [164, 329],
+        [519, 229], [417, 190], [221, 298], [293, 271], [228, 346],
+        [672, 349], [445, 243], [215, 158], [152, 370], [285, 189],
+        [225, 412], [764, 272], [393, 132], [768, 74], [409, 351],
+        [372, 277], [349, 362], [169, 297], [466, 195], [751, 212],
+        [690, 505], [426, 306], [379, 470], [475, 372], [513, 117],
+        [316, 89], [362, 396], [573, 278], [707, 124], [452, 103],
+        [351, 169], [407, 419], [355, 241], [459, 423], [462, 315],
+        [569, 481],
       ];
       const MIN = [
-        [1030, 372], [926, 309], [831, 226], [892, 360], [926, 467],
-        [766, 407], [1015, 279], [920, 260], [710, 293], [749, 318],
-        [676, 441], [826, 97], [521, 126], [569, 118], [525, 172],
-        [250, 290],
+        [825, 234], [817, 436], [798, 198], [899, 210], [942, 104],
+        [540, 78], [846, 347], [674, 159], [714, 217], [953, 247],
+        [904, 287], [769, 324], [516, 375], [722, 352], [695, 399],
+        [884, 428], [913, 359], [863, 175],
       ];
-      // indices below are in MAJ-then-MIN space
-      const SV = [2, 9, 15, 19, 22, 25, 29, 34, 35, 36, 37, 40, 41, 42, 44, 45, 46, 47];
-      const DANGER = [40, 42, 44, 45, 46];
-      const SAFETY = [34, 35, 36, 37, 41];
-      const NOISE = [47];
-      // [x, y, seed, neighbour]
-      const GEN_DANGER = [
-        [568, 120, 45, 46], [651, 111, 45, 43], [799, 454, 42, 36], [562, 126, 45, 46], [568, 118, 45, 44],
-        [533, 162, 46, 45], [750, 375, 40, 37], [565, 123, 46, 45],
+      const A1 = [5, 11, 13, 19, 20, 28];
+      const A2 = [11, 18, 19, 23, 24, 28, 29, 33, 34];
+      const MIS_MIN = [41, 43, 44, 48];       // outvoted minority, in global indices
+      const NBRS = [
+        [18, 27, 6], [18, 6, 12], [4, 17, 3], [32, 2, 15], [2, 10, 17],
+        [49, 50, 47], [18, 1, 21], [9, 25, 30], [17, 4, 10], [30, 7, 3],
+        [4, 8, 2], [47, 19, 36], [30, 1, 29], [28, 43, 38], [21, 16, 34],
+        [32, 21, 3], [26, 14, 31], [2, 8, 4], [1, 6, 0], [44, 38, 11],
+        [50, 35, 37], [34, 14, 15], [31, 26, 33], [48, 33, 34], [41, 29, 18],
+        [30, 12, 9], [16, 31, 14], [0, 48, 34], [43, 13, 44], [24, 12, 41],
+        [12, 9, 1], [26, 33, 22], [15, 3, 30], [31, 23, 48], [21, 23, 14],
+        [48, 20, 33], [38, 53, 11], [51, 42, 47], [36, 19, 53], [53, 45, 46],
+        [53, 39, 45], [24, 29, 18], [52, 47, 46], [28, 44, 19], [19, 43, 11],
+        [46, 39, 53], [45, 52, 39], [11, 49, 42], [23, 33, 34], [5, 50, 47],
+        [49, 5, 47], [37, 52, 42], [42, 46, 51], [39, 38, 36],
       ];
-      const GEN_SAFETY = [
-        [815, 212, 34, 33], [899, 492, 36, 32], [927, 508, 36, 39], [926, 529, 36, 33], [928, 525, 36, 39],
-        [932, 469, 36, 37], [771, 417, 37, 40], [741, 277, 41, 37],
-      ];
-      const BOUNDARY = [[591, 0], [811, 560]];
-      const MARGIN_POS = [[777, 0], [997, 560]];
-      const MARGIN_NEG = [[404, 0], [624, 560]];
 
       const NALL = MAJ.length + MIN.length;
       const isMaj = gi => gi < MAJ.length;
       const pt = gi => (isMaj(gi) ? MAJ[gi] : MIN[gi - MAJ.length]);
-      const catOf = gi =>
-        DANGER.includes(gi) ? 'danger'
-        : SAFETY.includes(gi) ? 'safety'
-        : NOISE.includes(gi) ? 'noise' : null;
-      const CAT_COLOR = { danger: C_DANGER, safety: C_SAFETY, noise: C_NOISE };
+      const A2_ONLY = A2.filter(i => !A1.includes(i));
+      const DOOMED = new Set([...A1, ...A2]);
 
       let built = false, world = null;
-      let dots = [], rings = [], synD = [], synS = [];
-      let boundary = null, marginA = null, marginB = null, key = null;
+      let dots = [], marks = [], misRings = [], a2Lines = [];
       const counts = [];
 
-      function makeDot(x, y, color, cls) {
+      function makeDot(gi) {
+        const [x, y] = pt(gi);
         const d = document.createElement('div');
-        d.className = cls;
-        d.style.backgroundColor = color;
+        d.className = 'ncl-dot';
+        d.style.backgroundColor = isMaj(gi) ? C_MAJ : C_MIN;
         world.appendChild(d);
         anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
         return d;
       }
 
-      function makeLine(p0, p1, cls) {
+      function makeMark(gi, color) {
+        const [x, y] = pt(gi);
+        const el = document.createElement('div');
+        el.className = 'ncl-mark';
+        el.textContent = '×';
+        el.style.borderColor = color;
+        el.style.color = color;
+        world.appendChild(el);
+        anime.set(el, { translateX: x, translateY: y, scale: 0, opacity: 0 });
+        return el;
+      }
+
+      function makeLine(p0, p1, color) {
         const [sx, sy] = p0, [dx, dy] = p1;
-        const len = Math.hypot(dx - sx, dy - sy);
+        const len = Math.max(Math.hypot(dx - sx, dy - sy) - 14, 4);
         const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
         const el = document.createElement('div');
-        el.className = cls;
+        el.className = 'ncl-line';
+        el.style.background = color;
         el.style.width = len + 'px';
         world.insertBefore(el, world.firstChild);
         anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
         return el;
       }
 
-      function buildChrome(stageEl) {
+      function buildLegend(stageEl) {
         const box = document.createElement('div');
-        box.className = 'svms-legend';
+        box.className = 'ncl-legend';
         [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
           ([label, color, n]) => {
             const row = document.createElement('div');
-            row.className = 'svms-legend-item';
+            row.className = 'ncl-legend-item';
             const sw = document.createElement('span');
-            sw.className = 'svms-swatch';
+            sw.className = 'ncl-swatch';
             sw.style.backgroundColor = color;
             const txt = document.createElement('span');
             txt.textContent = label + ' ';
             const num = document.createElement('span');
-            num.className = 'svms-count';
+            num.className = 'ncl-count';
             num.textContent = n;
             row.append(sw, txt, num);
             box.appendChild(row);
             counts.push(num);
           });
         stageEl.appendChild(box);
-
-        // category key, shown once the support vectors are labelled
-        key = document.createElement('div');
-        key.className = 'svms-key';
-        [['danger: interpolate inward', C_DANGER],
-         ['safety: extrapolate outward', C_SAFETY],
-         ['noise: generates nothing', C_NOISE]].forEach(([label, color]) => {
-          const row = document.createElement('div');
-          row.className = 'svms-key-item';
-          const sw = document.createElement('span');
-          sw.className = 'svms-key-ring';
-          sw.style.borderColor = color;
-          const txt = document.createElement('span');
-          txt.textContent = label;
-          row.append(sw, txt);
-          key.appendChild(row);
-        });
-        stageEl.appendChild(key);
-        anime.set(key, { opacity: 0 });
       }
 
       function build() {
-        const stageEl = document.getElementById('svms-stage');
+        const stageEl = document.getElementById('ncl-stage');
         if (!stageEl || built) return !!stageEl;
         built = true;
         world = document.createElement('div');
-        world.className = 'svms-world';
+        world.className = 'ncl-world';
         stageEl.appendChild(world);
 
-        marginA = makeLine(MARGIN_POS[0], MARGIN_POS[1], 'svms-margin');
-        marginB = makeLine(MARGIN_NEG[0], MARGIN_NEG[1], 'svms-margin');
-        boundary = makeLine(BOUNDARY[0], BOUNDARY[1], 'svms-boundary');
+        // A2's evidence: minority point -> each majority neighbour it condemns
+        MIS_MIN.forEach(mi => {
+          NBRS[mi].filter(isMaj).forEach(j => a2Lines.push(makeLine(pt(mi), pt(j), C_A2)));
+        });
 
+        for (let i = 0; i < NALL; i++) dots.push(makeDot(i));
         for (let i = 0; i < NALL; i++) {
-          const [x, y] = pt(i);
-          dots.push(makeDot(x, y, isMaj(i) ? C_MAJ : C_MIN, 'svms-dot'));
+          marks.push(DOOMED.has(i) ? makeMark(i, A1.includes(i) ? C_A1 : C_A2) : null);
         }
-        // a ring on every support vector; recoloured by category at stage 2
+        // rings on the outvoted minority points that trigger A2
         for (let i = 0; i < NALL; i++) {
-          if (!SV.includes(i)) { rings.push(null); continue; }
+          if (!MIS_MIN.includes(i)) { misRings.push(null); continue; }
           const [x, y] = pt(i);
           const el = document.createElement('div');
-          el.className = 'svms-ring';
+          el.className = 'ncl-ring';
           world.appendChild(el);
           anime.set(el, { translateX: x, translateY: y, scale: 0.6, opacity: 0 });
-          rings.push(el);
+          misRings.push(el);
         }
-        GEN_DANGER.forEach(([x, y]) => {
-          const d = makeDot(x, y, C_SYN, 'svms-dot');
-          anime.set(d, { scale: 0, opacity: 0 });
-          synD.push(d);
-        });
-        GEN_SAFETY.forEach(([x, y]) => {
-          const d = makeDot(x, y, C_SYN, 'svms-dot');
-          anime.set(d, { scale: 0, opacity: 0 });
-          synS.push(d);
-        });
 
-        buildChrome(stageEl);
+        buildLegend(stageEl);
         return true;
       }
 
@@ -644,7 +625,7 @@
       }
 
       function setTitle(text) {
-        const t = document.getElementById('svms-title');
+        const t = document.getElementById('ncl-title');
         if (!t) return;
         t.textContent = text;
         TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
@@ -653,66 +634,51 @@
       function render(stage) {
         if (!build()) return;
 
-        // ---- the fitted SVM ----
-        TM.anime({ targets: boundary, opacity: stage >= 1 ? 0.9 : 0, duration: 450,
-          easing: 'easeInOutQuad' });
-        TM.anime({ targets: [marginA, marginB], opacity: stage >= 1 ? 0.45 : 0, duration: 450,
-          easing: 'easeInOutQuad', delay: anime.stagger(80) });
-
-        // ---- support vector rings ----
-        rings.forEach((el, i) => {
+        // ---- rings on the contradicted minority points ----
+        misRings.forEach(el => {
           if (!el) return;
-          const cat = catOf(i);
-          // stage 1 shows every support vector; from stage 2 only the minority ones,
-          // recoloured by their neighbourhood verdict
-          // dropped again at the final stage, along with the key, so the last
-          // frame is just the balanced data
-          const on = stage === 1 || (stage >= 2 && stage < 5 && !!cat);
-          el.style.borderColor = stage >= 2 && cat ? CAT_COLOR[cat] : '#343a40';
+          const on = stage >= 1 && stage < 4;
           TM.anime({ targets: el, scale: on ? 1 : 0.6, opacity: on ? 1 : 0,
-            duration: 420, easing: 'easeOutBack',
-            delay: stage === 1 ? anime.stagger(30) : 0 });
+            duration: 400, easing: 'easeOutBack' });
         });
-        TM.anime({ targets: key, opacity: stage >= 2 && stage < 5 ? 1 : 0, duration: 400,
-          easing: 'easeInOutQuad' });
 
-        // ---- dots stay put; dim the majority once we are working the minority ----
+        // ---- A2's lines, only while rule A2 is being explained ----
+        TM.anime({ targets: a2Lines, opacity: stage === 3 ? 0.85 : 0, duration: 420,
+          easing: 'easeInOutQuad', delay: stage === 3 ? anime.stagger(45) : 0 });
+
+        // ---- marks: A1 from stage 2, A2 from stage 3, both gone after removal ----
+        marks.forEach((el, i) => {
+          if (!el) return;
+          const on = (stage === 2 && A1.includes(i)) || (stage === 3 && DOOMED.has(i));
+          TM.anime({ targets: el, scale: on ? 1 : 0, opacity: on ? 1 : 0,
+            duration: 380, easing: on ? 'easeOutBack' : 'easeInQuad',
+            delay: on ? anime.stagger(35) : 0 });
+        });
+
+        // ---- dots ----
         dots.forEach((d, i) => {
-          const dim = stage >= 2 && stage < 5 && isMaj(i);
-          TM.anime({ targets: d, opacity: dim ? 0.32 : 1, scale: 1,
-            duration: 420, easing: 'easeInOutQuad' });
+          const gone = stage >= 4 && DOOMED.has(i);
+          TM.anime({ targets: d, scale: gone ? 0 : 1, opacity: gone ? 0 : 1,
+            duration: gone ? 550 : 420,
+            easing: gone ? 'easeInBack' : 'easeOutBack',
+            delay: gone ? anime.stagger(22) : 0 });
         });
 
-        // ---- generated points ----
-        synD.forEach(d => {
-          const on = stage >= 3;
-          TM.anime({ targets: d, scale: on ? 1.1 : 0, opacity: on ? 1 : 0,
-            duration: 450, easing: on ? 'easeOutBack' : 'easeInQuad',
-            delay: on ? anime.stagger(45) : 0 });
-        });
-        synS.forEach(d => {
-          const on = stage >= 4;
-          TM.anime({ targets: d, scale: on ? 1.1 : 0, opacity: on ? 1 : 0,
-            duration: 450, easing: on ? 'easeOutBack' : 'easeInQuad',
-            delay: on ? anime.stagger(45) : 0 });
-        });
-
-        setCount(counts[0], MAJ.length);
-        setCount(counts[1], MIN.length
-          + (stage >= 3 ? GEN_DANGER.length : 0) + (stage >= 4 ? GEN_SAFETY.length : 0));
+        setCount(counts[0], stage >= 4 ? MAJ.length - DOOMED.size : MAJ.length);
+        setCount(counts[1], MIN.length);
 
         setTitle(
-          stage >= 5 ? 'Balanced, with the new points massed along the boundary'
-          : stage === 4 ? 'Safety vectors extrapolate outward, pushing the minority region out'
-          : stage === 3 ? 'Danger vectors interpolate inward, filling the boundary'
-          : stage === 2 ? 'Label each minority support vector by how many of its m = 10 neighbours are majority'
-          : stage === 1 ? 'Fit an SVM: the boundary, its margins, and the support vectors'
-          : 'Imbalanced, with the two classes overlapping around a boundary');
+          stage >= 5 ? 'Only the majority is thinned: NCL never removes a minority point'
+          : stage === 4 ? 'Remove everything marked'
+          : stage === 3 ? 'Rule A2: around each contradicted minority point, mark its majority neighbours'
+          : stage === 2 ? 'Rule A1: mark the majority points their own neighbours contradict'
+          : stage === 1 ? 'Every point checks whether its k = 3 neighbours agree with it'
+          : 'Two classes, overlapping around the boundary');
       }
 
       TM.gate({
-        markerClass: 'svms-slide',
-        fragmentIds: ['svms-fit', 'svms-classify', 'svms-danger', 'svms-safety', 'svms-balanced'],
+        markerClass: 'ncl-slide',
+        fragmentIds: ['ncl-check', 'ncl-a1', 'ncl-a2', 'ncl-remove', 'ncl-clean'],
         render,
       });
     })();

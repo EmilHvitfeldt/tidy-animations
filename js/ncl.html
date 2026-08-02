@@ -1,0 +1,229 @@
+<script>
+/* ---- Neighbourhood cleaning rule (NCL) animation ----
+ * Marker slide: .ncl-slide   Stage container: #ncl-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * NCL is ENN plus a second, asymmetric cleaning pass:
+ *   A1  ENN restricted to the MAJORITY: drop majority points their own k
+ *       neighbours contradict.
+ *   A2  for every MINORITY point that its neighbours contradict, drop the
+ *       majority points among those neighbours.
+ * Minority points are never removed by either rule, which is what separates
+ * this from step_enn() (that one cleans both classes).
+ * See themis R/ncl_impl.R.
+ *
+ * Segments (stage 0 = slide arrival):
+ *   0 two classes overlapping around the boundary
+ *   1 every point checks whether its k = 3 neighbours agree with it
+ *   2 rule A1 marks the contradicted majority points
+ *   3 rule A2 marks the majority neighbours of contradicted minority points
+ *   4 remove everything marked
+ *   5 only the majority is thinned
+ */
+(function () {
+  // [majority, minority, A1 mark, A2 mark]
+  const COLORS = window.NCL_COLORS || ['#c8ccd4', '#d6336c', '#b3261e', '#5f3dc4'];
+  const [C_MAJ, C_MIN, C_A1, C_A2] = COLORS;
+
+  const K = 3;
+
+  // Hardcoded layout, neighbour lists and rule outcomes, all computed offline.
+  // The overlap is tuned so both rules fire visibly (A1 marks 6, A2 adds 6)
+  // while the majority still outnumbers the minority at the end.
+  const MAJ = [
+    [519, 229], [417, 190], [221, 298], [293, 271], [228, 346],
+    [672, 349], [445, 243], [215, 158], [152, 370], [285, 189],
+    [225, 412], [764, 272], [393, 132], [768, 74], [409, 351],
+    [372, 277], [349, 362], [169, 297], [466, 195], [751, 212],
+    [690, 505], [426, 306], [379, 470], [475, 372], [513, 117],
+    [316, 89], [362, 396], [573, 278], [707, 124], [452, 103],
+    [351, 169], [407, 419], [355, 241], [459, 423], [462, 315],
+    [569, 481],
+  ];
+  const MIN = [
+    [825, 234], [817, 436], [798, 198], [899, 210], [942, 104],
+    [540, 78], [846, 347], [674, 159], [714, 217], [953, 247],
+    [904, 287], [769, 324], [516, 375], [722, 352], [695, 399],
+    [884, 428], [913, 359], [863, 175],
+  ];
+  const A1 = [5, 11, 13, 19, 20, 28];
+  const A2 = [11, 18, 19, 23, 24, 28, 29, 33, 34];
+  const MIS_MIN = [41, 43, 44, 48];       // outvoted minority, in global indices
+  const NBRS = [
+    [18, 27, 6], [18, 6, 12], [4, 17, 3], [32, 2, 15], [2, 10, 17],
+    [49, 50, 47], [18, 1, 21], [9, 25, 30], [17, 4, 10], [30, 7, 3],
+    [4, 8, 2], [47, 19, 36], [30, 1, 29], [28, 43, 38], [21, 16, 34],
+    [32, 21, 3], [26, 14, 31], [2, 8, 4], [1, 6, 0], [44, 38, 11],
+    [50, 35, 37], [34, 14, 15], [31, 26, 33], [48, 33, 34], [41, 29, 18],
+    [30, 12, 9], [16, 31, 14], [0, 48, 34], [43, 13, 44], [24, 12, 41],
+    [12, 9, 1], [26, 33, 22], [15, 3, 30], [31, 23, 48], [21, 23, 14],
+    [48, 20, 33], [38, 53, 11], [51, 42, 47], [36, 19, 53], [53, 45, 46],
+    [53, 39, 45], [24, 29, 18], [52, 47, 46], [28, 44, 19], [19, 43, 11],
+    [46, 39, 53], [45, 52, 39], [11, 49, 42], [23, 33, 34], [5, 50, 47],
+    [49, 5, 47], [37, 52, 42], [42, 46, 51], [39, 38, 36],
+  ];
+
+  const NALL = MAJ.length + MIN.length;
+  const isMaj = gi => gi < MAJ.length;
+  const pt = gi => (isMaj(gi) ? MAJ[gi] : MIN[gi - MAJ.length]);
+  const A2_ONLY = A2.filter(i => !A1.includes(i));
+  const DOOMED = new Set([...A1, ...A2]);
+
+  let built = false, world = null;
+  let dots = [], marks = [], misRings = [], a2Lines = [];
+  const counts = [];
+
+  function makeDot(gi) {
+    const [x, y] = pt(gi);
+    const d = document.createElement('div');
+    d.className = 'ncl-dot';
+    d.style.backgroundColor = isMaj(gi) ? C_MAJ : C_MIN;
+    world.appendChild(d);
+    anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+    return d;
+  }
+
+  function makeMark(gi, color) {
+    const [x, y] = pt(gi);
+    const el = document.createElement('div');
+    el.className = 'ncl-mark';
+    el.textContent = '×';
+    el.style.borderColor = color;
+    el.style.color = color;
+    world.appendChild(el);
+    anime.set(el, { translateX: x, translateY: y, scale: 0, opacity: 0 });
+    return el;
+  }
+
+  function makeLine(p0, p1, color) {
+    const [sx, sy] = p0, [dx, dy] = p1;
+    const len = Math.max(Math.hypot(dx - sx, dy - sy) - 14, 4);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = 'ncl-line';
+    el.style.background = color;
+    el.style.width = len + 'px';
+    world.insertBefore(el, world.firstChild);
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+    return el;
+  }
+
+  function buildLegend(stageEl) {
+    const box = document.createElement('div');
+    box.className = 'ncl-legend';
+    [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+      ([label, color, n]) => {
+        const row = document.createElement('div');
+        row.className = 'ncl-legend-item';
+        const sw = document.createElement('span');
+        sw.className = 'ncl-swatch';
+        sw.style.backgroundColor = color;
+        const txt = document.createElement('span');
+        txt.textContent = label + ' ';
+        const num = document.createElement('span');
+        num.className = 'ncl-count';
+        num.textContent = n;
+        row.append(sw, txt, num);
+        box.appendChild(row);
+        counts.push(num);
+      });
+    stageEl.appendChild(box);
+  }
+
+  function build() {
+    const stageEl = document.getElementById('ncl-stage');
+    if (!stageEl || built) return !!stageEl;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'ncl-world';
+    stageEl.appendChild(world);
+
+    // A2's evidence: minority point -> each majority neighbour it condemns
+    MIS_MIN.forEach(mi => {
+      NBRS[mi].filter(isMaj).forEach(j => a2Lines.push(makeLine(pt(mi), pt(j), C_A2)));
+    });
+
+    for (let i = 0; i < NALL; i++) dots.push(makeDot(i));
+    for (let i = 0; i < NALL; i++) {
+      marks.push(DOOMED.has(i) ? makeMark(i, A1.includes(i) ? C_A1 : C_A2) : null);
+    }
+    // rings on the outvoted minority points that trigger A2
+    for (let i = 0; i < NALL; i++) {
+      if (!MIS_MIN.includes(i)) { misRings.push(null); continue; }
+      const [x, y] = pt(i);
+      const el = document.createElement('div');
+      el.className = 'ncl-ring';
+      world.appendChild(el);
+      anime.set(el, { translateX: x, translateY: y, scale: 0.6, opacity: 0 });
+      misRings.push(el);
+    }
+
+    buildLegend(stageEl);
+    return true;
+  }
+
+  function setCount(el, value) {
+    if (el.textContent === String(value)) return;
+    el.textContent = value;
+    TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('ncl-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    // ---- rings on the contradicted minority points ----
+    misRings.forEach(el => {
+      if (!el) return;
+      const on = stage >= 1 && stage < 4;
+      TM.anime({ targets: el, scale: on ? 1 : 0.6, opacity: on ? 1 : 0,
+        duration: 400, easing: 'easeOutBack' });
+    });
+
+    // ---- A2's lines, only while rule A2 is being explained ----
+    TM.anime({ targets: a2Lines, opacity: stage === 3 ? 0.85 : 0, duration: 420,
+      easing: 'easeInOutQuad', delay: stage === 3 ? anime.stagger(45) : 0 });
+
+    // ---- marks: A1 from stage 2, A2 from stage 3, both gone after removal ----
+    marks.forEach((el, i) => {
+      if (!el) return;
+      const on = (stage === 2 && A1.includes(i)) || (stage === 3 && DOOMED.has(i));
+      TM.anime({ targets: el, scale: on ? 1 : 0, opacity: on ? 1 : 0,
+        duration: 380, easing: on ? 'easeOutBack' : 'easeInQuad',
+        delay: on ? anime.stagger(35) : 0 });
+    });
+
+    // ---- dots ----
+    dots.forEach((d, i) => {
+      const gone = stage >= 4 && DOOMED.has(i);
+      TM.anime({ targets: d, scale: gone ? 0 : 1, opacity: gone ? 0 : 1,
+        duration: gone ? 550 : 420,
+        easing: gone ? 'easeInBack' : 'easeOutBack',
+        delay: gone ? anime.stagger(22) : 0 });
+    });
+
+    setCount(counts[0], stage >= 4 ? MAJ.length - DOOMED.size : MAJ.length);
+    setCount(counts[1], MIN.length);
+
+    setTitle(
+      stage >= 5 ? 'Only the majority is thinned: NCL never removes a minority point'
+      : stage === 4 ? 'Remove everything marked'
+      : stage === 3 ? 'Rule A2: around each contradicted minority point, mark its majority neighbours'
+      : stage === 2 ? 'Rule A1: mark the majority points their own neighbours contradict'
+      : stage === 1 ? 'Every point checks whether its k = 3 neighbours agree with it'
+      : 'Two classes, overlapping around the boundary');
+  }
+
+  TM.gate({
+    markerClass: 'ncl-slide',
+    fragmentIds: ['ncl-check', 'ncl-a1', 'ncl-a2', 'ncl-remove', 'ncl-clean'],
+    render,
+  });
+})();
+</script>
