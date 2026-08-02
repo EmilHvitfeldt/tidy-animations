@@ -223,6 +223,17 @@ Rebalancing an unevenly distributed outcome, as implemented by the
 [Download reusable bundle](bundles/adasyn.zip)
 </p>
 
+## Tomek links
+
+<iframe class="deck-embed" src="examples/tomek.html" title="Tomek links animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/tomek.html){target="_blank"}
+[Download GIF](gifs/tomek.gif){download=""}
+[Download MP4](mp4/tomek.mp4){download=""}
+[Download reusable bundle](bundles/tomek.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.

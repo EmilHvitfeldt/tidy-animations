@@ -1,0 +1,25 @@
+---
+title: "Tomek links"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/tomek.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority]. -->
+<script>window.TOMEK_COLORS = ['#c8ccd4', '#d6336c'];</script>
+```
+
+## {.tomek-slide}
+
+::: {.tomek-stage-wrap}
+<div id="tomek-title" class="tomek-title"></div>
+<div id="tomek-stage"></div>
+:::
+
+[]{.fragment .tomek-frag id="tomek-nn"}
+[]{.fragment .tomek-frag id="tomek-mutual"}
+[]{.fragment .tomek-frag id="tomek-cross"}
+[]{.fragment .tomek-frag id="tomek-remove"}
+[]{.fragment .tomek-frag id="tomek-clean"}

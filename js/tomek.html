@@ -1,0 +1,219 @@
+<script>
+/* ---- Tomek links animation ----
+ * Marker slide: .tomek-slide   Stage container: #tomek-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * A Tomek link is a pair of points that are each other's NEAREST NEIGHBOUR and
+ * belong to DIFFERENT classes. themis::step_tomek() drops the majority-class
+ * member of every such pair, which cleans up the class boundary.
+ * (See themis R/tomek_impl.R: mutual 1-NN, cross-class, remove the majority.)
+ *
+ * Segments (stage 0 = slide arrival):
+ *   0 two classes, a few points sitting in the wrong neighbourhood
+ *   1 every point draws an arrow to its single nearest neighbour
+ *   2 keep only the pairs that point AT EACH OTHER (mutual)
+ *   3 keep only the mutual pairs that cross the class boundary = Tomek links
+ *   4 drop the majority-class member of each link
+ *   5 the cleaned boundary
+ *
+ * This is the first deck of the under-sampling set, so it also defines the
+ * shared chrome the others reuse: the stage box, the two-class palette, and
+ * the live class counter in the top-left.
+ */
+(function () {
+  // [majority, minority]
+  const COLORS = window.TOMEK_COLORS || ['#c8ccd4', '#d6336c'];
+  const [C_MAJ, C_MIN] = COLORS;
+
+  // Hardcoded coordinates (rolled once, then verified offline) — stable across
+  // reloads and back-nav. The last four majority points are "intruders" sitting
+  // inside minority territory; each is paired with a nearby minority point, and
+  // those four pairs are exactly the Tomek links. The layout also contains
+  // seven SAME-class mutual pairs, which is what stage 3 filters back out.
+  const MAJ = [
+    [70, 90], [130, 200], [90, 330], [150, 460], [210, 120],
+    [230, 290], [200, 430], [300, 190], [320, 400], [280, 80],
+    [370, 300], [390, 130], [380, 470], [450, 220], [460, 380],
+    [470, 100], [440, 500], [520, 300], [530, 170], [540, 430],
+    [250, 350], [340, 250], [120, 400], [180, 260],
+    [700, 150], [790, 470], [900, 250], [660, 380],
+  ];
+  const MIN = [
+    [640, 250], [700, 320], [760, 230], [820, 350], [880, 150],
+    [930, 400], [980, 260], [1010, 150], [860, 470], [720, 470],
+    [960, 500], [1030, 380],
+    [667, 110], [781, 419], [849, 261], [611, 362],
+  ];
+
+  const NALL = MAJ.length + MIN.length;
+  function pt(gi) { return gi < MAJ.length ? MAJ[gi] : MIN[gi - MAJ.length]; }
+  function isMaj(gi) { return gi < MAJ.length; }
+
+  // ---- nearest neighbour of every point (derived, so no stored randomness) ----
+  const NN = [];
+  for (let i = 0; i < NALL; i++) {
+    let best = -1, bd = Infinity;
+    const [sx, sy] = pt(i);
+    for (let j = 0; j < NALL; j++) {
+      if (j === i) continue;
+      const [x, y] = pt(j);
+      const d = (x - sx) ** 2 + (y - sy) ** 2;
+      if (d < bd) { bd = d; best = j; }
+    }
+    NN.push(best);
+  }
+  const isMutual = i => NN[NN[i]] === i;
+  const isTomek = i => isMutual(i) && isMaj(i) !== isMaj(NN[i]);
+
+  // The majority member of each Tomek link is what gets dropped.
+  const DOOMED = new Set();
+  for (let i = 0; i < NALL; i++) if (isTomek(i) && isMaj(i)) DOOMED.add(i);
+  // Every point involved in a link (either side) — highlighted at stage 3.
+  const INVOLVED = new Set();
+  for (let i = 0; i < NALL; i++) if (isTomek(i)) { INVOLVED.add(i); INVOLVED.add(NN[i]); }
+
+  let built = false, world = null;
+  let dots = [], arrows = [], halos = [], legendCounts = [];
+
+  function makeDot(gi) {
+    const [x, y] = pt(gi);
+    const d = document.createElement('div');
+    d.className = 'tomek-dot';
+    d.style.backgroundColor = isMaj(gi) ? C_MAJ : C_MIN;
+    world.appendChild(d);
+    anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+    return d;
+  }
+
+  // Arrow from `gi` to its nearest neighbour, stopping short of the target dot
+  // so the head sits on the rim rather than under it.
+  function makeArrow(gi) {
+    const [sx, sy] = pt(gi), [dx, dy] = pt(NN[gi]);
+    const len = Math.max(Math.hypot(dx - sx, dy - sy) - 15, 4);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = 'tomek-arrow';
+    el.style.width = len + 'px';
+    world.insertBefore(el, world.firstChild);   // behind the dots
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+    return el;
+  }
+
+  function makeHalo(gi) {
+    const [x, y] = pt(gi);
+    const el = document.createElement('div');
+    el.className = 'tomek-halo';
+    world.appendChild(el);
+    anime.set(el, { translateX: x, translateY: y, scale: 0.6, opacity: 0 });
+    return el;
+  }
+
+  // Top-left counter: "majority 28 / minority 16", updated when points drop.
+  function buildLegend(stageEl) {
+    const box = document.createElement('div');
+    box.className = 'tomek-legend';
+    [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+      ([label, color, n]) => {
+        const row = document.createElement('div');
+        row.className = 'tomek-legend-item';
+        const sw = document.createElement('span');
+        sw.className = 'tomek-swatch';
+        sw.style.backgroundColor = color;
+        const txt = document.createElement('span');
+        txt.textContent = label + ' ';
+        const num = document.createElement('span');
+        num.className = 'tomek-count';
+        num.textContent = n;
+        legendCounts.push(num);
+        row.append(sw, txt, num);
+        box.appendChild(row);
+      });
+    stageEl.appendChild(box);
+  }
+
+  function build() {
+    const stageEl = document.getElementById('tomek-stage');
+    if (!stageEl || built) return !!stageEl;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'tomek-world';
+    stageEl.appendChild(world);
+    for (let i = 0; i < NALL; i++) arrows.push(makeArrow(i));
+    for (let i = 0; i < NALL; i++) dots.push(makeDot(i));
+    for (let i = 0; i < NALL; i++) halos.push(INVOLVED.has(i) ? makeHalo(i) : null);
+    buildLegend(stageEl);
+    return true;
+  }
+
+  function setCount(el, value) {
+    if (el.textContent === String(value)) return;
+    el.textContent = value;
+    TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('tomek-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    // ---- arrows: all -> mutual only -> cross-class only -> gone ----
+    arrows.forEach((el, i) => {
+      let on = false;
+      if (stage === 1) on = true;
+      else if (stage === 2) on = isMutual(i);
+      else if (stage === 3) on = isTomek(i);
+      TM.anime({
+        targets: el,
+        opacity: on ? (stage === 1 ? 0.45 : 0.95) : 0,
+        duration: 450,
+        easing: 'easeInOutQuad',
+        delay: stage === 1 ? anime.stagger(8) : 0,
+      });
+      el.classList.toggle('is-link', stage >= 2 && on);
+    });
+
+    // ---- halos on the points that form a link (stage 3 only) ----
+    halos.forEach((el, i) => {
+      if (!el) return;
+      const on = stage === 3 || (stage === 4 && DOOMED.has(i));
+      TM.anime({ targets: el, scale: on ? 1 : 0.6, opacity: on ? 1 : 0,
+        duration: 400, easing: 'easeOutBack' });
+    });
+
+    // ---- dots: dim the uninvolved at stage 3, drop the doomed at stage 4+ ----
+    dots.forEach((d, i) => {
+      const gone = stage >= 4 && DOOMED.has(i);
+      const dim = stage === 3 && !INVOLVED.has(i);
+      TM.anime({
+        targets: d,
+        scale: gone ? 0 : (stage === 3 && INVOLVED.has(i) ? 1.2 : 1),
+        opacity: gone ? 0 : (dim ? 0.25 : 1),
+        duration: gone ? 550 : 450,
+        easing: gone ? 'easeInBack' : 'easeOutBack',
+      });
+    });
+
+    setCount(legendCounts[0], stage >= 4 ? MAJ.length - DOOMED.size : MAJ.length);
+    setCount(legendCounts[1], MIN.length);
+
+    setTitle(
+      stage >= 5 ? 'A cleaner boundary: the majority no longer bleeds into the minority'
+      : stage === 4 ? 'Drop the majority-class member of each link'
+      : stage === 3 ? 'A Tomek link: a mutual pair whose two points are in different classes'
+      : stage === 2 ? 'Keep the pairs that point at each other'
+      : stage === 1 ? 'Every point finds its single nearest neighbour'
+      : 'Two classes, with a few points sitting in the wrong neighbourhood');
+  }
+
+  TM.gate({
+    markerClass: 'tomek-slide',
+    fragmentIds: ['tomek-nn', 'tomek-mutual', 'tomek-cross', 'tomek-remove', 'tomek-clean'],
+    render,
+  });
+})();
+</script>

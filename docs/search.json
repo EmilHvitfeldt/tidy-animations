@@ -11,7 +11,7 @@
     "href": "index.html#initial-traintest-split",
     "title": "tidy animations",
     "section": "Initial train/test split",
-    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (13 KB)"
+    "text": "Initial train/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (95 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#trainvalidationtest-split",
@@ -32,7 +32,7 @@
     "href": "index.html#time-based-trainvalidationtest-split",
     "title": "tidy animations",
     "section": "Time-based train/validation/test split",
-    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (12 KB)"
+    "text": "Time-based train/validation/test split\n\n\n\nOpen full deck Download GIF (176 KB) Download MP4 (88 KB) Download reusable bundle (13 KB)"
   },
   {
     "objectID": "index.html#cross-validation",
@@ -53,7 +53,28 @@
     "href": "index.html#recipe-pipeline",
     "title": "tidy animations",
     "section": "Recipe pipeline",
-    "text": "Recipe pipeline\n\n\n\nOpen full deck Download GIF (836 KB) Download MP4 (396 KB) Download reusable bundle (14 KB)"
+    "text": "Recipe pipeline\n\n\n\nOpen full deck Download GIF (836 KB) Download MP4 (396 KB) Download reusable bundle (15 KB)"
+  },
+  {
+    "objectID": "index.html#orbital-codegen",
+    "href": "index.html#orbital-codegen",
+    "title": "tidy animations",
+    "section": "Orbital codegen",
+    "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (17 KB)"
+  },
+  {
+    "objectID": "index.html#orbital-flat-to-nested-case_when",
+    "href": "index.html#orbital-flat-to-nested-case_when",
+    "title": "tidy animations",
+    "section": "Orbital: flat to nested case_when",
+    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (14 KB)"
+  },
+  {
+    "objectID": "index.html#orbital-separate-trees",
+    "href": "index.html#orbital-separate-trees",
+    "title": "tidy animations",
+    "section": "Orbital: separate trees",
+    "text": "Orbital: separate trees\n\n\n\nOpen full deck Download GIF (758 KB) Download MP4 (386 KB) Download reusable bundle (20 KB)"
   },
   {
     "objectID": "index.html#smote",
@@ -81,28 +102,14 @@
     "href": "index.html#adasyn",
     "title": "tidy animations",
     "section": "ADASYN",
-    "text": "ADASYN\n\n\n\nOpen full deck Download GIF Download MP4 Download reusable bundle (15 KB)"
+    "text": "ADASYN\n\n\n\nOpen full deck Download GIF (465 KB) Download MP4 (188 KB) Download reusable bundle (15 KB)"
   },
   {
-    "objectID": "index.html#orbital-codegen",
-    "href": "index.html#orbital-codegen",
+    "objectID": "index.html#tomek-links",
+    "href": "index.html#tomek-links",
     "title": "tidy animations",
-    "section": "Orbital codegen",
-    "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (17 KB)"
-  },
-  {
-    "objectID": "index.html#orbital-flat-to-nested-case_when",
-    "href": "index.html#orbital-flat-to-nested-case_when",
-    "title": "tidy animations",
-    "section": "Orbital: flat to nested case_when",
-    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (14 KB)"
-  },
-  {
-    "objectID": "index.html#orbital-separate-trees",
-    "href": "index.html#orbital-separate-trees",
-    "title": "tidy animations",
-    "section": "Orbital: separate trees",
-    "text": "Orbital: separate trees\n\n\n\nOpen full deck Download GIF (758 KB) Download MP4 (386 KB) Download reusable bundle (20 KB)"
+    "section": "Tomek links",
+    "text": "Tomek links\n\n\n\nOpen full deck Download GIF (301 KB) Download MP4 (137 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",
@@ -137,6 +144,6 @@
     "href": "index.html#filter-on-two-columns",
     "title": "tidy animations",
     "section": "filter() on two columns",
-    "text": "filter() on two columns\n\n\n\nOpen full deck Download GIF (203 KB) Download MP4 (97 KB) Download reusable bundle (13 KB)"
+    "text": "filter() on two columns\n\n\n\nOpen full deck Download GIF (203 KB) Download MP4 (97 KB) Download reusable bundle (14 KB)"
   }
 ]
