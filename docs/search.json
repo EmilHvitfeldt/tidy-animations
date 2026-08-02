@@ -81,14 +81,14 @@
     "href": "index.html#smote",
     "title": "tidy animations",
     "section": "SMOTE",
-    "text": "SMOTE\n\n\n\nOpen full deck Download GIF (521 KB) Download MP4 (237 KB) Download reusable bundle (16 KB)"
+    "text": "SMOTE\n\n\n\nOpen full deck Download GIF (521 KB) Download MP4 (237 KB) Download reusable bundle (17 KB)"
   },
   {
     "objectID": "index.html#borderline-smote1",
     "href": "index.html#borderline-smote1",
     "title": "tidy animations",
     "section": "Borderline-SMOTE1",
-    "text": "Borderline-SMOTE1\n\n\n\nOpen full deck Download GIF (417 KB) Download MP4 (219 KB) Download reusable bundle (16 KB)"
+    "text": "Borderline-SMOTE1\n\n\n\nOpen full deck Download GIF (417 KB) Download MP4 (219 KB) Download reusable bundle (17 KB)"
   },
   {
     "objectID": "index.html#borderline-smote2",
@@ -144,14 +144,14 @@
     "href": "index.html#k-means-smote",
     "title": "tidy animations",
     "section": "k-means SMOTE",
-    "text": "k-means SMOTE\n\n\n\nOpen full deck Download GIF (332 KB) Download MP4 (154 KB) Download reusable bundle (15 KB)"
+    "text": "k-means SMOTE\n\n\n\nOpen full deck Download GIF (332 KB) Download MP4 (154 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#svm-smote",
     "href": "index.html#svm-smote",
     "title": "tidy animations",
     "section": "SVM-SMOTE",
-    "text": "SVM-SMOTE\n\n\n\nOpen full deck Download GIF (306 KB) Download MP4 (173 KB) Download reusable bundle (15 KB)"
+    "text": "SVM-SMOTE\n\n\n\nOpen full deck Download GIF (306 KB) Download MP4 (173 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#neighbourhood-cleaning-rule",
@@ -161,11 +161,18 @@
     "text": "Neighbourhood cleaning rule\n\n\n\nOpen full deck Download GIF (200 KB) Download MP4 (117 KB) Download reusable bundle (15 KB)"
   },
   {
+    "objectID": "index.html#instance-hardness",
+    "href": "index.html#instance-hardness",
+    "title": "tidy animations",
+    "section": "Instance hardness",
+    "text": "Instance hardness\n\n\n\nOpen full deck Download GIF (296 KB) Download MP4 (135 KB) Download reusable bundle (16 KB)"
+  },
+  {
     "objectID": "index.html#ggplot2-deconstructed",
     "href": "index.html#ggplot2-deconstructed",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed",
-    "text": "ggplot2, deconstructed\n\n\n\nOpen full deck Download GIF (1.1 MB) Download MP4 (424 KB) Download reusable bundle (17 KB)"
+    "text": "ggplot2, deconstructed\n\n\n\nOpen full deck Download GIF (1.1 MB) Download MP4 (424 KB) Download reusable bundle (18 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-variant",

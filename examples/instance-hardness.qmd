@@ -1,0 +1,27 @@
+---
+title: "Instance hardness"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/instance-hardness.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority, easy end of ramp, hard end].
+     The hard end is charcoal, not red: a red ramp collides with the
+     minority pink and the shading stops reading as a score. -->
+<script>window.IH_COLORS = ['#c8ccd4', '#d6336c', '#eceef2', '#343a40'];</script>
+```
+
+## {.ih-slide}
+
+::: {.ih-stage-wrap}
+<div id="ih-title" class="ih-title"></div>
+<div id="ih-stage"></div>
+:::
+
+[]{.fragment .ih-frag id="ih-ask"}
+[]{.fragment .ih-frag id="ih-score"}
+[]{.fragment .ih-frag id="ih-scoreall"}
+[]{.fragment .ih-frag id="ih-drop"}
+[]{.fragment .ih-frag id="ih-balanced"}

@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – ggplot2, deconstructed (mobile)</title>
+  <title>tidymodels, animated – Instance hardness</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -130,20 +130,30 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">ggplot2, deconstructed (mobile)</h1>
+  <h1 class="title">Instance hardness</h1>
 
 <div class="quarto-title-authors">
 </div>
 
 </section>
-<section id="section" class="slide level2 gdm-slide">
+<section class="slide level2">
+
+<!-- Colours: [majority, minority, easy end of ramp, hard end].
+     The hard end is charcoal, not red: a red ramp collides with the
+     minority pink and the shading stops reading as a score. -->
+<script>window.IH_COLORS = ['#c8ccd4', '#d6336c', '#eceef2', '#343a40'];</script>
+</section>
+<section id="section" class="slide level2 ih-slide">
 <h2></h2>
-<div class="gdm-stage-wrap">
-<div id="gdm-stage">
+<div class="ih-stage-wrap">
+<div id="ih-title" class="ih-title">
+
+</div>
+<div id="ih-stage">
 
 </div>
 </div>
-<p><span id="gdm-lay" class="fragment gdm-frag"></span> <span id="gdm-explode" class="fragment gdm-frag"></span> <span id="gdm-focus-coord" class="fragment gdm-frag"></span> <span id="gdm-focus-points" class="fragment gdm-frag"></span> <span id="gdm-focus-smooth" class="fragment gdm-frag"></span> <span id="gdm-focus-labs" class="fragment gdm-frag"></span> <span id="gdm-collapse" class="fragment gdm-frag"></span> <span id="gdm-unrotate" class="fragment gdm-frag"></span></p>
+<p><span id="ih-ask" class="fragment ih-frag"></span> <span id="ih-score" class="fragment ih-frag"></span> <span id="ih-scoreall" class="fragment ih-frag"></span> <span id="ih-drop" class="fragment ih-frag"></span> <span id="ih-balanced" class="fragment ih-frag"></span></p>
 
 
 </section>
@@ -447,201 +457,242 @@
     };
     </script>
     <script>
-    /* ---- ggplot2, deconstructed (mobile / phone-shaped) ----
-     * Marker slide: .gdm-slide   Stage container: #gdm-stage
-     * Same animation as ggplot2-deconstructed, but laid out PORTRAIT inside a phone
-     * frame: the code listing sits at the TOP of the screen, the plot below it. The
-     * plot lays down, explodes into stacked SVG "paper" cards, then walks up the
-     * stack highlighting each code block + its slice (variant A: dim the others, with
-     * a small fan so the cards stay inside the screen). render(stage) is idempotent.
+    /* ---- Instance hardness animation ----
+     * Marker slide: .ih-slide   Stage container: #ih-stage
+     * render(stage) is idempotent (stage = number of visible gating fragments).
+     *
+     * Worth being precise about, because the name suggests otherwise: themis does
+     * NOT fit a model and threshold its predicted probabilities. It uses a kNN
+     * proxy — hardness is the share of a point's k nearest neighbours whose label
+     * disagrees with its own — then keeps the EASIEST points of the over-sized
+     * class until the classes balance. See themis R/instance_hardness_impl.R:
+     *   hardness <- rowMeans(disagree, na.rm = TRUE)
+     *   selected_ind <- rank(hardness) <= n_keep
+     *
+     * Instructive to compare with the NearMiss deck: both score the majority and
+     * cut, but they cut in opposite directions. NearMiss keeps the points nearest
+     * the minority, so the survivors hug the boundary. Instance hardness keeps the
+     * points its neighbourhood already agrees on, so the survivors retreat into
+     * the majority interior.
+     *
+     * Segments (stage 0 = slide arrival):
+     *   0 imbalanced, with the majority reaching into minority territory
+     *   1 one majority point asks its k = 5 nearest neighbours
+     *   2 all five disagree, so its hardness is 1.0
+     *   3 score every majority point and shade it
+     *   4 drop the hardest until the classes balance
+     *   5 the easy interior is what survives
      */
     (function () {
-      const SVGNS = 'http://www.w3.org/2000/svg';
+      // [majority, minority, easy end of ramp, hard end of ramp]
+      const COLORS = window.IH_COLORS || ['#c8ccd4', '#d6336c', '#eceef2', '#343a40'];
+      const [C_MAJ, C_MIN, C_EASY, C_HARD] = COLORS;
 
-      // ---- data (ggplot2::mpg: displ, hwy, class index 0..6) ----------------
-      const CLASSES = ["2seater", "compact", "midsize", "minivan", "pickup", "subcompact", "suv"];
-      const COLORS  = ["#F8766D", "#C49A00", "#53B400", "#00C094", "#00B6EB", "#A58AFF", "#FB61D7"];
-      const PTS = [[1.8,29,1],[1.8,29,1],[2,31,1],[2,30,1],[2.8,26,1],[2.8,26,1],[3.1,27,1],[1.8,26,1],[1.8,25,1],[2,28,1],[2,27,1],[2.8,25,1],[2.8,25,1],[3.1,25,1],[3.1,25,1],[2.8,24,2],[3.1,25,2],[4.2,23,2],[5.3,20,6],[5.3,15,6],[5.3,20,6],[5.7,17,6],[6,17,6],[5.7,26,0],[5.7,23,0],[6.2,26,0],[6.2,25,0],[7,24,0],[5.3,19,6],[5.3,14,6],[5.7,15,6],[6.5,17,6],[2.4,27,2],[2.4,30,2],[3.1,26,2],[3.5,29,2],[3.6,26,2],[2.4,24,3],[3,24,3],[3.3,22,3],[3.3,22,3],[3.3,24,3],[3.3,24,3],[3.3,17,3],[3.8,22,3],[3.8,21,3],[3.8,23,3],[4,23,3],[3.7,19,4],[3.7,18,4],[3.9,17,4],[3.9,17,4],[4.7,19,4],[4.7,19,4],[4.7,12,4],[5.2,17,4],[5.2,15,4],[3.9,17,6],[4.7,17,6],[4.7,12,6],[4.7,17,6],[5.2,16,6],[5.7,18,6],[5.9,15,6],[4.7,16,4],[4.7,12,4],[4.7,17,4],[4.7,17,4],[4.7,16,4],[4.7,12,4],[5.2,15,4],[5.2,16,4],[5.7,17,4],[5.9,15,4],[4.6,17,6],[5.4,17,6],[5.4,18,6],[4,17,6],[4,19,6],[4,17,6],[4,19,6],[4.6,19,6],[5,17,6],[4.2,17,4],[4.2,17,4],[4.6,16,4],[4.6,16,4],[4.6,17,4],[5.4,15,4],[5.4,17,4],[3.8,26,5],[3.8,25,5],[4,26,5],[4,24,5],[4.6,21,5],[4.6,22,5],[4.6,23,5],[4.6,22,5],[5.4,20,5],[1.6,33,5],[1.6,32,5],[1.6,32,5],[1.6,29,5],[1.6,32,5],[1.8,34,5],[1.8,36,5],[1.8,36,5],[2,29,5],[2.4,26,2],[2.4,27,2],[2.4,30,2],[2.4,31,2],[2.5,26,2],[2.5,26,2],[3.3,28,2],[2,26,5],[2,29,5],[2,28,5],[2,27,5],[2.7,24,5],[2.7,24,5],[2.7,24,5],[3,22,6],[3.7,19,6],[4,20,6],[4.7,17,6],[4.7,12,6],[4.7,19,6],[5.7,18,6],[6.1,14,6],[4,15,6],[4.2,18,6],[4.4,18,6],[4.6,15,6],[5.4,17,6],[5.4,16,6],[5.4,18,6],[4,17,6],[4,19,6],[4.6,19,6],[5,17,6],[2.4,29,1],[2.4,27,1],[2.5,31,2],[2.5,32,2],[3.5,27,2],[3.5,26,2],[3,26,2],[3,25,2],[3.5,25,2],[3.3,17,6],[3.3,17,6],[4,20,6],[5.6,18,6],[3.1,26,2],[3.8,26,2],[3.8,27,2],[3.8,28,2],[5.3,25,2],[2.5,25,6],[2.5,24,6],[2.5,27,6],[2.5,25,6],[2.5,26,6],[2.5,23,6],[2.2,26,5],[2.2,26,5],[2.5,26,5],[2.5,26,5],[2.5,25,1],[2.5,27,1],[2.5,25,1],[2.5,27,1],[2.7,20,6],[2.7,20,6],[3.4,19,6],[3.4,17,6],[4,20,6],[4.7,17,6],[2.2,29,2],[2.2,27,2],[2.4,31,2],[2.4,31,2],[3,26,2],[3,26,2],[3.5,28,2],[2.2,27,1],[2.2,29,1],[2.4,31,1],[2.4,31,1],[3,26,1],[3,26,1],[3.3,27,1],[1.8,30,1],[1.8,33,1],[1.8,35,1],[1.8,37,1],[1.8,35,1],[4.7,15,6],[5.7,18,6],[2.7,20,4],[2.7,20,4],[2.7,22,4],[3.4,17,4],[3.4,19,4],[4,18,4],[4,20,4],[2,29,1],[2,26,1],[2,29,1],[2,29,1],[2.8,24,1],[1.9,44,1],[2,29,1],[2,26,1],[2,29,1],[2,29,1],[2.5,29,1],[2.5,29,1],[2.8,23,1],[2.8,24,1],[1.9,44,5],[1.9,41,5],[2,29,5],[2,26,5],[2.5,28,5],[2.5,29,5],[1.8,29,2],[1.8,29,2],[2,28,2],[2,29,2],[2.8,26,2],[2.8,26,2],[3.6,26,2]];
-      const SMOOTH = [[1.6,33.093,31.558,34.627],[1.668,32.511,31.151,33.87],[1.737,31.942,30.741,33.143],[1.805,31.389,30.328,32.449],[1.873,30.851,29.91,31.792],[1.942,30.33,29.488,31.172],[2.01,29.824,29.059,30.589],[2.079,29.333,28.623,30.044],[2.147,28.858,28.182,29.535],[2.215,28.398,27.737,29.06],[2.284,27.952,27.291,28.613],[2.352,27.519,26.847,28.191],[2.42,27.099,26.409,27.789],[2.489,26.696,25.986,27.405],[2.557,26.309,25.58,27.038],[2.625,25.936,25.187,26.684],[2.694,25.572,24.806,26.338],[2.762,25.229,24.45,26.009],[2.83,24.918,24.126,25.711],[2.899,24.63,23.819,25.441],[2.967,24.355,23.519,25.19],[3.035,24.083,23.225,24.941],[3.104,23.805,22.938,24.673],[3.172,23.53,22.671,24.389],[3.24,23.265,22.424,24.106],[3.309,23.008,22.189,23.828],[3.377,22.758,21.957,23.558],[3.446,22.51,21.72,23.3],[3.514,22.264,21.474,23.054],[3.582,22.016,21.216,22.817],[3.651,21.764,20.945,22.583],[3.719,21.505,20.664,22.347],[3.787,21.238,20.377,22.098],[3.856,20.958,20.087,21.829],[3.924,20.664,19.795,21.533],[3.992,20.346,19.49,21.203],[4.061,20.011,19.172,20.851],[4.129,19.668,18.844,20.491],[4.197,19.323,18.512,20.135],[4.266,18.988,18.181,19.794],[4.334,18.669,17.861,19.476],[4.402,18.376,17.562,19.19],[4.471,18.117,17.295,18.939],[4.539,17.902,17.074,18.729],[4.608,17.738,16.911,18.564],[4.676,17.604,16.784,18.424],[4.744,17.485,16.671,18.297],[4.813,17.38,16.574,18.187],[4.881,17.293,16.491,18.094],[4.949,17.223,16.424,18.022],[5.018,17.172,16.372,17.971],[5.086,17.14,16.337,17.944],[5.154,17.13,16.32,17.941],[5.223,17.143,16.322,17.963],[5.291,17.178,16.345,18.012],[5.359,17.236,16.386,18.087],[5.428,17.314,16.442,18.187],[5.496,17.412,16.51,18.313],[5.565,17.528,16.59,18.467],[5.633,17.665,16.681,18.648],[5.701,17.82,16.782,18.859],[5.77,17.996,16.893,19.099],[5.838,18.19,17.013,19.368],[5.906,18.405,17.142,19.667],[5.975,18.638,17.28,19.996],[6.043,18.891,17.427,20.355],[6.111,19.164,17.584,20.744],[6.18,19.456,17.75,21.162],[6.248,19.767,17.925,21.609],[6.316,20.098,18.111,22.084],[6.385,20.448,18.306,22.589],[6.453,20.817,18.512,23.121],[6.521,21.206,18.729,23.682],[6.59,21.614,18.957,24.271],[6.658,22.041,19.195,24.887],[6.727,22.488,19.445,25.531],[6.795,22.954,19.706,26.202],[6.863,23.439,19.979,26.9],[6.932,23.944,20.263,27.625],[7,24.468,20.558,28.377]];
+      const K = 5;
 
-      // ---- plot geometry (local coords inside the portrait #gdm-plot box) ----
-      const W = 348, H = 300;
-      const M = { l: 40, r: 96, t: 36, b: 44 };
-      const PX0 = M.l, PX1 = W - M.r, PY0 = M.t, PY1 = H - M.b;   // panel box
-      const xd = expand(1.6, 7), yd = expand(12, 44);
-      function expand(lo, hi) { const e = (hi - lo) * 0.05; return [lo - e, hi + e]; }
-      function sx(v) { return PX0 + (v - xd[0]) / (xd[1] - xd[0]) * (PX1 - PX0); }
-      function sy(v) { return PY1 - (v - yd[0]) / (yd[1] - yd[0]) * (PY1 - PY0); }
+      // Hardcoded layout and hardness scores, computed offline. The overlap is
+      // tuned so all six possible hardness levels (0, .2, .4, .6, .8, 1) occur and
+      // only one point sits exactly on the cut, so the selection does not come down
+      // to tie-breaking.
+      const MAJ = [
+        [531, 264], [469, 352], [328, 176], [536, 218], [591, 253],
+        [75, 85], [414, 241], [616, 154], [384, 372], [577, 130],
+        [733, 190], [668, 240], [347, 96], [652, 496], [370, 204],
+        [653, 339], [854, 351], [201, 278], [195, 400], [254, 422],
+        [355, 472], [235, 244], [322, 128], [305, 406], [72, 477],
+        [361, 323], [346, 405], [449, 322], [100, 228], [128, 430],
+      ];
+      const MIN = [
+        [871, 208], [814, 145], [448, 256], [995, 272], [583, 179],
+        [906, 304], [825, 481], [556, 331], [720, 394], [768, 217],
+        [522, 481], [1003, 160], [718, 254], [752, 446], [462, 448],
+        [649, 126], [635, 212], [895, 151], [894, 345], [645, 288],
+      ];
+      const HARD = [0.6, 0.6, 0.0, 0.4, 0.6, 0.0, 0.2, 0.6, 0.0, 0.6,
+                    0.8, 0.6, 0.0, 0.8, 0.2, 0.6, 1.0, 0.0, 0.0, 0.0,
+                    0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.0, 0.0];
+      // k nearest neighbours of each majority point, in MAJ-then-MIN indices
+      const NBRS = [
+        [3, 4, 37, 32, 34], [27, 8, 37, 44, 32], [22, 14, 12, 6, 21], [0, 34, 4, 32, 9],
+        [46, 0, 49, 3, 34], [28, 21, 17, 22, 2], [32, 14, 27, 25, 2], [34, 45, 9, 46, 11],
+        [26, 25, 27, 23, 1], [7, 34, 45, 3, 46], [39, 42, 11, 31, 46], [46, 42, 49, 4, 10],
+        [22, 2, 14, 6, 21], [43, 38, 40, 15, 36], [2, 6, 22, 32, 12], [49, 38, 37, 11, 4],
+        [48, 35, 36, 43, 38], [21, 28, 18, 19, 2], [19, 29, 23, 17, 24], [23, 18, 26, 20, 29],
+        [26, 23, 8, 44, 19], [17, 2, 28, 14, 22], [12, 2, 14, 21, 6], [26, 19, 20, 8, 25],
+        [29, 18, 19, 17, 23], [8, 26, 27, 6, 23], [23, 8, 20, 25, 19], [1, 32, 8, 25, 6],
+        [17, 21, 5, 18, 29], [24, 18, 19, 17, 23],
+      ];
+      const KEPT = [2, 3, 5, 6, 8, 12, 14, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29];
+      const DEMO = 16;                 // hardness 1.0: all five neighbours disagree
 
-      const X_BREAKS = [2, 3, 4, 5, 6, 7];
-      const Y_BREAKS = [20, 30, 40];
-      const X_MINOR  = [2.5, 3.5, 4.5, 5.5, 6.5];
-      const Y_MINOR  = [15, 25, 35];
+      const isMaj = gi => gi < MAJ.length;
+      const pt = gi => (isMaj(gi) ? MAJ[gi] : MIN[gi - MAJ.length]);
+      const KEPT_SET = new Set(KEPT);
 
-      function el(name, attrs, parent) {
-        const e = document.createElementNS(SVGNS, name);
-        for (const k in attrs) e.setAttribute(k, attrs[k]);
-        if (parent) parent.appendChild(e);
-        return e;
+      function hex2rgb(h) {
+        const n = parseInt(h.slice(1), 16);
+        return [n >> 16 & 255, n >> 8 & 255, n & 255];
       }
-      function svgPlane(id) {
+      const RGB_EASY = hex2rgb(C_EASY), RGB_HARD = hex2rgb(C_HARD);
+      const rampColor = t => {
+        const c = RGB_EASY.map((v, i) => Math.round(v + (RGB_HARD[i] - v) * t));
+        return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+      };
+
+      let built = false, world = null;
+      let majDots = [], minDots = [], demoLines = [], ring = null, caption = null, ramp = null;
+      const counts = [];
+
+      function makeDot(x, y, color) {
         const d = document.createElement('div');
-        d.className = 'gdm-plane';
-        d.id = id;
-        d.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;';
-        const tilt = document.createElement('div');
-        tilt.className = 'gdm-tilt';
-        const card = document.createElement('div');
-        card.className = 'gdm-card';
-        tilt.appendChild(card);
-        const s = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
-        s.style.cssText = 'position:absolute;left:0;top:0;';
-        tilt.appendChild(s);
-        d.appendChild(tilt);
-        return { div: d, tilt, svg: s, card };
+        d.className = 'ih-dot';
+        d.style.backgroundColor = color;
+        world.appendChild(d);
+        anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+        return d;
       }
 
-      // legend geometry (keys on the coord plane, title on labs plane) — right side
-      const LEG_X = PX1 + 16;
-      function legY() { return PY0 + 24; }
-
-      function buildCoord(svg) {
-        el('rect', { x: PX0, y: PY0, width: PX1 - PX0, height: PY1 - PY0, fill: '#EBEBEB' }, svg);
-        const grid = (xs, ys, w) => {
-          xs.forEach(v => el('line', { x1: sx(v), x2: sx(v), y1: PY0, y2: PY1, stroke: '#fff', 'stroke-width': w }, svg));
-          ys.forEach(v => el('line', { x1: PX0, x2: PX1, y1: sy(v), y2: sy(v), stroke: '#fff', 'stroke-width': w }, svg));
-        };
-        grid(X_MINOR, Y_MINOR, 1);
-        grid(X_BREAKS, Y_BREAKS, 2);
-        X_BREAKS.forEach(v => txt(svg, sx(v), PY1 + 16, v, { 'text-anchor': 'middle', 'font-size': 11, fill: '#4d4d4d' }));
-        Y_BREAKS.forEach(v => txt(svg, PX0 - 8, sy(v) + 4, v, { 'text-anchor': 'end', 'font-size': 11, fill: '#4d4d4d' }));
-        const ly = legY();
-        CLASSES.forEach((c, i) => {
-          const y = ly + i * 22;
-          el('rect', { x: LEG_X, y: y - 9, width: 14, height: 14, rx: 2, fill: '#EBEBEB' }, svg);
-          el('circle', { cx: LEG_X + 7, cy: y - 2, r: 2.6, fill: COLORS[i] }, svg);
-          txt(svg, LEG_X + 20, y + 2, c, { 'font-size': 11, fill: '#1d2433' });
-        });
+      function makeLine(p0, p1, color) {
+        const [sx, sy] = p0, [dx, dy] = p1;
+        const len = Math.max(Math.hypot(dx - sx, dy - sy) - 14, 4);
+        const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+        const el = document.createElement('div');
+        el.className = 'ih-line';
+        el.style.background = color;
+        el.style.width = len + 'px';
+        world.insertBefore(el, world.firstChild);
+        anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+        return el;
       }
 
-      function buildPoints(svg) {
-        PTS.forEach(p => el('circle', { cx: sx(p[0]), cy: sy(p[1]), r: 2.6, fill: COLORS[p[2]] }, svg));
+      function buildChrome(stageEl) {
+        const box = document.createElement('div');
+        box.className = 'ih-legend';
+        [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+          ([label, color, n]) => {
+            const row = document.createElement('div');
+            row.className = 'ih-legend-item';
+            const sw = document.createElement('span');
+            sw.className = 'ih-swatch';
+            sw.style.backgroundColor = color;
+            const txt = document.createElement('span');
+            txt.textContent = label + ' ';
+            const num = document.createElement('span');
+            num.className = 'ih-count';
+            num.textContent = n;
+            row.append(sw, txt, num);
+            box.appendChild(row);
+            counts.push(num);
+          });
+        stageEl.appendChild(box);
+
+        ramp = document.createElement('div');
+        ramp.className = 'ih-ramp';
+        ramp.innerHTML =
+          '<span class="ih-ramp-label">easy</span>' +
+          '<span class="ih-ramp-bar"></span>' +
+          '<span class="ih-ramp-label">hard</span>';
+        ramp.querySelector('.ih-ramp-bar').style.background =
+          `linear-gradient(to right, ${C_EASY}, ${C_HARD})`;
+        stageEl.appendChild(ramp);
+        anime.set(ramp, { opacity: 0 });
       }
 
-      function buildSmooth(svg) {
-        let up = '', dn = '';
-        SMOOTH.forEach((s, i) => { up += `${i ? 'L' : 'M'}${sx(s[0])},${sy(s[3])} `; });
-        for (let i = SMOOTH.length - 1; i >= 0; i--) dn += `L${sx(SMOOTH[i][0])},${sy(SMOOTH[i][2])} `;
-        el('path', { d: up + dn + 'Z', fill: '#999', 'fill-opacity': 0.4, stroke: 'none' }, svg);
-        let line = '';
-        SMOOTH.forEach((s, i) => { line += `${i ? 'L' : 'M'}${sx(s[0])},${sy(s[1])} `; });
-        el('path', { d: line, fill: 'none', stroke: '#000', 'stroke-width': 1.8 }, svg);
-      }
-
-      function buildLabs(svg) {
-        txt(svg, PX0, 20, 'Displacement vs MPG',
-            { 'font-size': 15, 'font-weight': 700, fill: '#1d2433' });
-        txt(svg, (PX0 + PX1) / 2, H - 8, 'Displacement (L)', { 'text-anchor': 'middle', 'font-size': 12, fill: '#1d2433' });
-        const yt = txt(svg, 14, (PY0 + PY1) / 2, 'Highway MPG', { 'text-anchor': 'middle', 'font-size': 12, fill: '#1d2433' });
-        yt.setAttribute('transform', `rotate(-90 14 ${(PY0 + PY1) / 2})`);
-        txt(svg, LEG_X, legY() - 12, 'Vehicle class', { 'font-size': 11, 'font-weight': 700, fill: '#1d2433' });
-      }
-
-      function txt(svg, x, y, s, attrs) {
-        const t = el('text', Object.assign({ x, y, 'font-family': 'sans-serif' }, attrs), svg);
-        t.textContent = s;
-        return t;
-      }
-
-      // ---- code listing (sits at the top of the phone screen) ---------------
-      const CODE = `<span data-blk="lib"><span class="gdm-fn">library</span>(ggplot2)</span>
-
-    <span data-blk="coord"><span class="gdm-fn">ggplot</span>(mpg, <span class="gdm-fn">aes</span>(<span class="gdm-arg">x</span> = displ,
-                 <span class="gdm-arg">y</span> = hwy,
-                 <span class="gdm-arg">color</span> = class)) +</span>
-    <span data-blk="points">  <span class="gdm-fn">geom_point</span>(<span class="gdm-arg">size</span> = <span class="gdm-num">2</span>) +</span>
-    <span data-blk="smooth">  <span class="gdm-fn">geom_smooth</span>(<span class="gdm-arg">color</span> = <span class="gdm-str">"black"</span>) +</span>
-    <span data-blk="labs">  <span class="gdm-fn">labs</span>(<span class="gdm-arg">title</span> = <span class="gdm-str">"Displacement vs MPG"</span>)</span>`;
-
-      let built = false;
-      let planes = [];
-      let codeBlocks = [];
-      const BLK = ['coord', 'points', 'smooth', 'labs'];
       function build() {
-        const stage = document.getElementById('gdm-stage');
-        if (!stage || built) return !!stage;
+        const stageEl = document.getElementById('ih-stage');
+        if (!stageEl || built) return !!stageEl;
         built = true;
+        world = document.createElement('div');
+        world.className = 'ih-world';
+        stageEl.appendChild(world);
 
-        const code = document.createElement('div');
-        code.className = 'gdm-code';
-        code.innerHTML = CODE;
-        stage.appendChild(code);
-        codeBlocks = Array.from(code.querySelectorAll('[data-blk]'));
+        MAJ.forEach(([x, y]) => majDots.push(makeDot(x, y, C_MAJ)));
+        MIN.forEach(([x, y]) => minDots.push(makeDot(x, y, C_MIN)));
 
-        const plot = document.createElement('div');
-        plot.id = 'gdm-plot';
-        const coord  = svgPlane('gdm-plane-coord');
-        const points = svgPlane('gdm-plane-points');
-        const smooth = svgPlane('gdm-plane-smooth');
-        const labs   = svgPlane('gdm-plane-labs');
-        buildCoord(coord.svg);
-        buildPoints(points.svg);
-        buildSmooth(smooth.svg);
-        buildLabs(labs.svg);
-        planes = [coord, points, smooth, labs];
-        planes.forEach(p => plot.appendChild(p.div));
-        stage.appendChild(plot);
+        ring = document.createElement('div');
+        ring.className = 'ih-ring';
+        world.appendChild(ring);
+        anime.set(ring, { translateX: MAJ[DEMO][0], translateY: MAJ[DEMO][1], opacity: 0 });
+
+        NBRS[DEMO].forEach(j => demoLines.push(makeLine(MAJ[DEMO], pt(j), isMaj(j) ? '#8a9099' : C_MIN)));
+
+        const disagree = NBRS[DEMO].filter(j => !isMaj(j)).length;
+        caption = document.createElement('div');
+        caption.className = 'ih-caption';
+        caption.textContent = `${disagree} of ${K} disagree, so hardness = ${(disagree / K).toFixed(1)}`;
+        world.appendChild(caption);
+        anime.set(caption, { translateX: MAJ[DEMO][0], translateY: MAJ[DEMO][1] + 52, opacity: 0 });
+
+        buildChrome(stageEl);
         return true;
+      }
+
+      function setCount(el, value) {
+        if (el.textContent === String(value)) return;
+        el.textContent = value;
+        TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+      }
+
+      function setTitle(text) {
+        const t = document.getElementById('ih-title');
+        if (!t) return;
+        t.textContent = text;
+        TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
       }
 
       function render(stage) {
         if (!build()) return;
-        const flat = stage >= 8;
-        const collapsed = stage >= 7;
-        const laid = stage >= 1 && !flat;
-        const exploded = stage >= 2 && !collapsed;
 
-        const focusIdx = (stage >= 3 && !collapsed) ? stage - 3 : -1;
-        const focusBlk = focusIdx >= 0 ? BLK[focusIdx] : null;
+        const asking = stage === 1 || stage === 2;
 
-        const N = planes.length;
-        const SPREAD = 42;    // smaller fan so cards stay inside the phone screen
-        planes.forEach((p, i) => {
-          const fan = exploded ? ((N - 1) / 2 - i) * SPREAD : 0;
-          const dim = focusIdx >= 0 && i !== focusIdx;
+        TM.anime({ targets: ring, opacity: asking ? 1 : 0, scale: asking ? 1 : 0.6,
+          duration: 350, easing: 'easeOutBack' });
+        TM.anime({ targets: demoLines, opacity: asking ? 0.95 : 0, duration: 400,
+          easing: 'easeInOutQuad', delay: asking ? anime.stagger(80) : 0 });
+        TM.anime({ targets: caption, opacity: stage === 2 ? 1 : 0, duration: 380,
+          easing: 'easeInOutQuad' });
+        TM.anime({ targets: ramp, opacity: stage >= 3 && stage < 5 ? 1 : 0, duration: 380,
+          easing: 'easeInOutQuad' });
+
+        // ---- majority: shaded by hardness, then the hardest are dropped ----
+        majDots.forEach((d, i) => {
+          const gone = stage >= 4 && !KEPT_SET.has(i);
+          // the ramp is scaffolding: it goes away again once the cut is made
+          const shade = (stage >= 3 && stage < 5) || (stage === 2 && i === DEMO);
+          const dim = asking && i !== DEMO;
           TM.anime({
-            targets: p.div,
-            translateY: fan,
-            duration: 850,
-            easing: 'easeInOutCubic',
-          });
-          TM.anime({
-            targets: p.tilt,
-            rotateX: laid ? 52 : 0,
-            rotateZ: laid ? 16 : 0,
-            scale: exploded ? 0.72 : 1,
-            opacity: dim ? 0.16 : 1,
-            duration: 850,
-            easing: 'easeInOutCubic',
-          });
-          TM.anime({
-            targets: p.card,
-            opacity: exploded ? 1 : 0,
-            duration: 600,
-            easing: 'easeInOutQuad',
+            targets: d,
+            backgroundColor: shade ? rampColor(HARD[i]) : C_MAJ,
+            scale: gone ? 0 : (asking && i === DEMO ? 1.25 : 1),
+            opacity: gone ? 0 : (dim ? 0.28 : 1),
+            duration: gone ? 550 : 450,
+            easing: gone ? 'easeInBack' : 'easeInOutQuad',
+            delay: gone ? anime.stagger(30) : (stage === 3 ? anime.stagger(20) : 0),
           });
         });
 
-        codeBlocks.forEach(b => {
-          b.classList.toggle('gdm-hot', b.dataset.blk === focusBlk);
+        minDots.forEach((d, i) => {
+          const isNbr = NBRS[DEMO].includes(MAJ.length + i);
+          TM.anime({ targets: d, opacity: asking && !isNbr ? 0.28 : 1,
+            scale: asking && isNbr ? 1.15 : 1,
+            duration: 420, easing: 'easeOutBack' });
         });
+
+        setCount(counts[0], stage >= 4 ? KEPT.length : MAJ.length);
+        setCount(counts[1], MIN.length);
+
+        setTitle(
+          stage >= 5 ? 'What survives is the majority its own neighbourhood already agrees on'
+          : stage === 4 ? 'Drop the hardest points until the classes balance'
+          : stage === 3 ? 'Score every majority point the same way'
+          : stage === 2 ? 'All five neighbours disagree, so this point is as hard as it gets'
+          : stage === 1 ? 'Hardness = the share of a point’s k = 5 neighbours that disagree with its label'
+          : 'Imbalanced, with the majority reaching into minority territory');
       }
 
       TM.gate({
-        markerClass: 'gdm-slide',
-        fragmentIds: ['gdm-lay', 'gdm-explode',
-                      'gdm-focus-coord', 'gdm-focus-points', 'gdm-focus-smooth', 'gdm-focus-labs',
-                      'gdm-collapse', 'gdm-unrotate'],
+        markerClass: 'ih-slide',
+        fragmentIds: ['ih-ask', 'ih-score', 'ih-scoreall', 'ih-drop', 'ih-balanced'],
         render,
       });
     })();

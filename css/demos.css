@@ -2900,3 +2900,145 @@ section:has(.ncl-slide) { overflow: hidden; }
   color: var(--tm-ink);
   will-change: transform;
 }
+
+/* ---- instance hardness ---- */
+section:has(.ih-slide) { overflow: hidden; }
+
+.ih-stage-wrap { position: relative; margin-top: 10px; }
+
+.ih-title {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  min-height: 46px;
+  opacity: 0;
+}
+
+#ih-stage {
+  position: relative;
+  width: 1100px;
+  height: 560px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.ih-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.ih-frag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0 !important;
+}
+
+.ih-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 2px solid var(--tm-ink);
+  box-sizing: border-box;
+  will-change: transform, opacity, background-color;
+}
+
+.ih-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--tm-ink);
+  transform-origin: 0 50%;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.ih-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  border: 3px solid var(--tm-ink);
+  box-sizing: border-box;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.ih-caption {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-left: -190px;
+  width: 380px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tm-ink);
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.ih-legend {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #5b6272;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.ih-legend-item { display: flex; align-items: center; gap: 8px; }
+
+.ih-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--tm-ink);
+  box-sizing: border-box;
+}
+
+.ih-count {
+  display: inline-block;
+  min-width: 2ch;
+  color: var(--tm-ink);
+  will-change: transform;
+}
+
+.ih-ramp {
+  position: absolute;
+  bottom: 10px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 600;
+  color: #5b6272;
+  pointer-events: none;
+}
+
+.ih-ramp-bar {
+  display: inline-block;
+  width: 150px;
+  height: 14px;
+  border-radius: 7px;
+  border: 2px solid var(--tm-ink);
+  box-sizing: border-box;
+}
