@@ -1,0 +1,25 @@
+---
+title: "Edited nearest neighbours"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/enn.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority]. -->
+<script>window.ENN_COLORS = ['#c8ccd4', '#d6336c'];</script>
+```
+
+## {.enn-slide}
+
+::: {.enn-stage-wrap}
+<div id="enn-title" class="enn-title"></div>
+<div id="enn-stage"></div>
+:::
+
+[]{.fragment .enn-frag id="enn-ask"}
+[]{.fragment .enn-frag id="enn-verdict"}
+[]{.fragment .enn-frag id="enn-sweep"}
+[]{.fragment .enn-frag id="enn-remove"}
+[]{.fragment .enn-frag id="enn-clean"}

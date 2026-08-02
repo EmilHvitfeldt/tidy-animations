@@ -18,7 +18,7 @@
     "href": "index.html#trainvalidationtest-split",
     "title": "tidy animations",
     "section": "Train/validation/test split",
-    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (13 KB)"
+    "text": "Train/validation/test split\n\n\n\nOpen full deck Download GIF (215 KB) Download MP4 (98 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#time-based-resampling",
@@ -67,7 +67,7 @@
     "href": "index.html#orbital-flat-to-nested-case_when",
     "title": "tidy animations",
     "section": "Orbital: flat to nested case_when",
-    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (14 KB)"
+    "text": "Orbital: flat to nested case_when\n\n\n\nOpen full deck Download GIF (147 KB) Download MP4 (117 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#orbital-separate-trees",
@@ -81,7 +81,7 @@
     "href": "index.html#smote",
     "title": "tidy animations",
     "section": "SMOTE",
-    "text": "SMOTE\n\n\n\nOpen full deck Download GIF (521 KB) Download MP4 (237 KB) Download reusable bundle (15 KB)"
+    "text": "SMOTE\n\n\n\nOpen full deck Download GIF (521 KB) Download MP4 (237 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#borderline-smote1",
@@ -95,7 +95,7 @@
     "href": "index.html#borderline-smote2",
     "title": "tidy animations",
     "section": "Borderline-SMOTE2",
-    "text": "Borderline-SMOTE2\n\n\n\nOpen full deck Download GIF (399 KB) Download MP4 (217 KB) Download reusable bundle (15 KB)"
+    "text": "Borderline-SMOTE2\n\n\n\nOpen full deck Download GIF (399 KB) Download MP4 (217 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#adasyn",
@@ -112,6 +112,13 @@
     "text": "Tomek links\n\n\n\nOpen full deck Download GIF (301 KB) Download MP4 (137 KB) Download reusable bundle (14 KB)"
   },
   {
+    "objectID": "index.html#edited-nearest-neighbours",
+    "href": "index.html#edited-nearest-neighbours",
+    "title": "tidy animations",
+    "section": "Edited nearest neighbours",
+    "text": "Edited nearest neighbours\n\n\n\nOpen full deck Download GIF (266 KB) Download MP4 (145 KB) Download reusable bundle (14 KB)"
+  },
+  {
     "objectID": "index.html#ggplot2-deconstructed",
     "href": "index.html#ggplot2-deconstructed",
     "title": "tidy animations",
@@ -123,14 +130,14 @@
     "href": "index.html#ggplot2-deconstructed-variant",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed (variant)",
-    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (16 KB)"
+    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (17 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-mobile",
     "href": "index.html#ggplot2-deconstructed-mobile",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed (mobile)",
-    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (15 KB)"
+    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#filter-a-data-frame",

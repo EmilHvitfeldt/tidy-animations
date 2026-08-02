@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – filter() — two columns</title>
+  <title>tidymodels, animated – Edited nearest neighbours</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -130,7 +130,7 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">filter() — two columns</h1>
+  <h1 class="title">Edited nearest neighbours</h1>
 
 <div class="quarto-title-authors">
 </div>
@@ -138,43 +138,20 @@
 </section>
 <section class="slide level2">
 
-<!-- Filtering on two columns. FR_HITS marks, per column, which cells satisfy
-     that column's condition; a row survives only if ALL its conditions match. -->
-<script>
-window.FR_TITLE_PRE = 'filter(';
-window.FR_CONDS_TEXT = ['species == "Chinstrap"', 'bill_length_mm > 45'];
-window.FR_TITLE_POST = ')';
-window.FR_DATA = [
-  ['Adelie',    '41.80'],
-  ['Adelie',    '36.50'],
-  ['Adelie',    '40.30'],
-  ['Chinstrap', '45.40'],
-  ['Chinstrap', '46.50'],
-  ['Chinstrap', '46'],
-  ['Gentoo',    '43.60'],
-  ['Gentoo',    '45.10'],
-  ['Gentoo',    '50.70'],
-];
-window.FR_COLS = ['species', 'bill_length_mm'];
-// one base colour per condition (highlight fill + matching code/text shade)
-window.FR_COLORS = ['#4a86c5', '#e8853a'];
-// one boolean array per column: does that cell satisfy the column's condition?
-window.FR_HITS = [
-  // species == "Chinstrap"
-  [false, false, false, true,  true,  true,  false, false, false],
-  // bill_length_mm > 45
-  [false, false, false, true,  true,  true,  false, true,  true ],
-];
-</script>
+<!-- Colours: [majority, minority]. -->
+<script>window.ENN_COLORS = ['#c8ccd4', '#d6336c'];</script>
 </section>
-<section id="section" class="slide level2 fr-slide">
+<section id="section" class="slide level2 enn-slide">
 <h2></h2>
-<div class="fr-stage-wrap">
-<div id="fr-stage">
+<div class="enn-stage-wrap">
+<div id="enn-title" class="enn-title">
+
+</div>
+<div id="enn-stage">
 
 </div>
 </div>
-<p><span id="fr-cond-1" class="fragment fr-frag"></span> <span id="fr-cond-2" class="fragment fr-frag"></span> <span id="fr-both" class="fragment fr-frag"></span> <span id="fr-arrows" class="fragment fr-frag"></span></p>
+<p><span id="enn-ask" class="fragment enn-frag"></span> <span id="enn-verdict" class="fragment enn-frag"></span> <span id="enn-sweep" class="fragment enn-frag"></span> <span id="enn-remove" class="fragment enn-frag"></span> <span id="enn-clean" class="fragment enn-frag"></span></p>
 
 
 </section>
@@ -478,223 +455,237 @@ window.FR_HITS = [
     };
     </script>
     <script>
-    /* ---- filter() on two columns ----
-     * Marker slide: .fr-slide   Stage container: #fr-stage
-     * Left: full dataset. Stage 1 highlights the cells satisfying each column's
-     * condition (FR_HITS, one array per column); stage 2 draws arrows + reveals the
-     * filtered result for rows where ALL conditions match.
+    /* ---- Edited nearest neighbours (ENN) animation ----
+     * Marker slide: .enn-slide   Stage container: #enn-stage
      * render(stage) is idempotent (stage = number of visible gating fragments).
+     *
+     * ENN asks every point what its k nearest neighbours are. If the neighbours'
+     * majority vote disagrees with the point's own label, the point is dropped.
+     * Note (from themis R/enn_impl.R, enn_single): BOTH classes are eligible — the
+     * rule is "your neighbourhood contradicts you", not "you are in the majority
+     * class" — so the overlap gets thinned from both sides.
+     *
+     * Segments (stage 0 = slide arrival):
+     *   0 two classes with a messy, overlapping boundary
+     *   1 one point asks its k = 3 nearest neighbours what class they are
+     *   2 that point is outvoted, so it gets marked
+     *   3 sweep every point, marking each one its neighbourhood contradicts
+     *   4 drop every marked point
+     *   5 the cleaned boundary
      */
     (function () {
-      const TITLE_PRE   = window.FR_TITLE_PRE   || 'filter(';
-      const CONDS_TEXT  = window.FR_CONDS_TEXT  || [];
-      const TITLE_POST  = window.FR_TITLE_POST  || ')';
-      const DATA  = window.FR_DATA  || [];
-      const COLS  = window.FR_COLS  || ['species', 'bill_length_mm'];
-      const HITS  = window.FR_HITS  || [];
+      // [majority, minority]
+      const COLORS = window.ENN_COLORS || ['#c8ccd4', '#d6336c'];
+      const [C_MAJ, C_MIN] = COLORS;
 
-      const ROW_H = 44, HEADER_H = 40, TABLE_Y = 90;
-      const LEFT_X = 50, RIGHT_X = 720;
-      const W_SP = 158, W_VAL = 148;
-      const ROW_W = W_SP + W_VAL;
-      // one base colour (hex) per condition column, configurable via FR_COLORS.
-      // Each becomes a translucent highlight fill + a darker text shade.
-      const COND_HEX = window.FR_COLORS || ['#4a86c5', '#e8853a', '#6cbf84'];
-      function hexRGB(hex) {
-        const n = parseInt(hex.replace('#', ''), 16);
-        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      const K = 3;
+
+      // Hardcoded coordinates (rolled once from a seeded generator, then checked
+      // offline: 8 majority and 5 minority points are contradicted by their own
+      // neighbourhood). Stable across reloads / back-nav.
+      const MAJ = [
+        [645, 328], [491, 394], [201, 77], [146, 324], [561, 297],
+        [102, 463], [252, 313], [568, 86], [299, 321], [138, 268],
+        [396, 106], [780, 396], [445, 188], [537, 178], [658, 434],
+        [324, 228], [120, 121], [497, 211], [70, 244], [544, 499],
+        [372, 239], [207, 212], [461, 443], [596, 248], [528, 379],
+        [446, 314], [601, 379], [771, 284], [457, 270], [685, 126],
+        [202, 456], [121, 391], [278, 386], [407, 355],
+      ];
+      const MIN = [
+        [870, 114], [978, 241], [863, 258], [800, 358], [562, 233],
+        [657, 235], [935, 429], [736, 221], [737, 289], [754, 344],
+        [733, 465], [969, 363], [738, 145], [682, 204], [599, 296],
+        [973, 175], [575, 157], [1001, 436], [845, 226], [753, 418],
+        [672, 389], [807, 174],
+      ];
+
+      const NALL = MAJ.length + MIN.length;
+      function pt(gi) { return gi < MAJ.length ? MAJ[gi] : MIN[gi - MAJ.length]; }
+      function isMaj(gi) { return gi < MAJ.length; }
+
+      // k nearest neighbours of every point, and the resulting majority vote.
+      function knn(gi) {
+        const [sx, sy] = pt(gi);
+        const out = [];
+        for (let j = 0; j < NALL; j++) {
+          if (j === gi) continue;
+          const [x, y] = pt(j);
+          out.push({ j, d: (x - sx) ** 2 + (y - sy) ** 2 });
+        }
+        return out.sort((a, b) => a.d - b.d).slice(0, K).map(o => o.j);
       }
-      const COND_COLORS = COND_HEX.map(hex => {
-        const [r, g, b] = hexRGB(hex);
-        return {
-          fill: `rgba(${r}, ${g}, ${b}, 0.30)`,
-          ink:  `rgb(${Math.round(r * 0.62)}, ${Math.round(g * 0.62)}, ${Math.round(b * 0.62)})`,
-        };
-      });
-      const ROW_HIGHLIGHT = 'rgba(74, 134, 197, 0.14)';
-      const ROW_CLEAR = 'rgba(74, 134, 197, 0)';
-      const INK = 'rgb(29, 36, 51)';
-      // transparent version of an rgb/rgba colour, so fades stay within the hue
-      // instead of passing through grey (transparent black).
-      function clear(rgba) {
-        const n = rgba.match(/[\d.]+/g) || [0, 0, 0];
-        return `rgba(${n[0]}, ${n[1]}, ${n[2]}, 0)`;
+      const NBRS = [];
+      const DOOMED = new Set();
+      for (let i = 0; i < NALL; i++) {
+        const nb = knn(i);
+        NBRS.push(nb);
+        const majVotes = nb.filter(isMaj).length;
+        const mode = majVotes * 2 > K;              // K is odd, so no ties
+        if (mode !== isMaj(i)) DOOMED.add(i);
+      }
+      const N_MAJ_GONE = [...DOOMED].filter(isMaj).length;
+      const N_MIN_GONE = DOOMED.size - N_MAJ_GONE;
+
+      // The point we walk through in stages 1-2: a majority point marooned in
+      // minority territory, chosen for a clear, uncluttered fan of neighbour lines.
+      const DEMO = 29;
+
+      let built = false, world = null;
+      let dots = [], marks = [], ring = null, demoLines = [], tally = null;
+      const counts = [];
+
+      function makeDot(gi) {
+        const [x, y] = pt(gi);
+        const d = document.createElement('div');
+        d.className = 'enn-dot';
+        d.style.backgroundColor = isMaj(gi) ? C_MAJ : C_MIN;
+        world.appendChild(d);
+        anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+        return d;
       }
 
-      // a row survives only if every defined column condition matches
-      const N = DATA.length;
-      const PASS = DATA.map((_, i) => HITS.every(col => col[i]));
-      const passIdx = DATA.map((_, i) => i).filter(i => PASS[i]);
-      const M = passIdx.length;
+      function makeMark(gi) {
+        const [x, y] = pt(gi);
+        const el = document.createElement('div');
+        el.className = 'enn-mark';
+        el.textContent = '×';
+        world.appendChild(el);
+        anime.set(el, { translateX: x, translateY: y, scale: 0, opacity: 0 });
+        return el;
+      }
 
-      let built = false;
-      let condSpans = [];    // the condition substrings inside the title code
-      let leftRows = [];     // data rows on the left
-      let rightEls = [];     // right-table elements to fade in
-      let arrows = [];       // svg <path> per passing row
+      function makeLine(srcXY, dstXY, color) {
+        const [sx, sy] = srcXY, [dx, dy] = dstXY;
+        const len = Math.max(Math.hypot(dx - sx, dy - sy) - 14, 4);
+        const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+        const el = document.createElement('div');
+        el.className = 'enn-line';
+        if (color) el.style.background = color;
+        el.style.width = len + 'px';
+        world.insertBefore(el, world.firstChild);
+        anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+        return el;
+      }
 
-      function rowY(j) { return TABLE_Y + HEADER_H + j * ROW_H; }
-      function rowCenterY(j) { return rowY(j) + ROW_H / 2; }
-
-      function makeRow(species, value, isHead) {
-        const row = document.createElement('div');
-        row.className = 'fr-row' + (isHead ? ' fr-head' : '');
-        const c1 = document.createElement('span'); c1.className = 'fr-cell fr-species'; c1.textContent = species;
-        const c2 = document.createElement('span'); c2.className = 'fr-cell fr-value';   c2.textContent = value;
-        row.append(c1, c2);
-        return row;
+      function buildLegend(stageEl) {
+        const box = document.createElement('div');
+        box.className = 'enn-legend';
+        [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+          ([label, color, n]) => {
+            const row = document.createElement('div');
+            row.className = 'enn-legend-item';
+            const sw = document.createElement('span');
+            sw.className = 'enn-swatch';
+            sw.style.backgroundColor = color;
+            const txt = document.createElement('span');
+            txt.textContent = label + ' ';
+            const num = document.createElement('span');
+            num.className = 'enn-count';
+            num.textContent = n;
+            row.append(sw, txt, num);
+            box.appendChild(row);
+            counts.push(num);
+          });
+        stageEl.appendChild(box);
       }
 
       function build() {
-        const stage = document.getElementById('fr-stage');
-        if (!stage || built) return !!stage;
+        const stageEl = document.getElementById('enn-stage');
+        if (!stageEl || built) return !!stageEl;
         built = true;
+        world = document.createElement('div');
+        world.className = 'enn-world';
+        stageEl.appendChild(world);
 
-        const title = document.createElement('div');
-        title.className = 'fr-title';
-        title.appendChild(document.createTextNode(TITLE_PRE));
-        CONDS_TEXT.forEach((t, i) => {
-          if (i) title.appendChild(document.createTextNode(', '));
-          const s = document.createElement('span');
-          s.className = 'fr-code-cond';
-          s.textContent = t;
-          title.appendChild(s);
-          condSpans.push(s);
-        });
-        title.appendChild(document.createTextNode(TITLE_POST));
-        stage.appendChild(title);
+        for (let i = 0; i < NALL; i++) dots.push(makeDot(i));
+        for (let i = 0; i < NALL; i++) marks.push(DOOMED.has(i) ? makeMark(i) : null);
 
-        // ---- left table ----
-        const lhead = makeRow(COLS[0], COLS[1], true);
-        lhead.style.transform = `translate(${LEFT_X}px, ${TABLE_Y}px)`;
-        stage.appendChild(lhead);
+        ring = document.createElement('div');
+        ring.className = 'enn-ring';
+        world.appendChild(ring);
+        anime.set(ring, { translateX: pt(DEMO)[0], translateY: pt(DEMO)[1], opacity: 0 });
 
-        DATA.forEach((d, i) => {
-          const row = makeRow(d[0], d[1], false);
-          row.style.transform = `translate(${LEFT_X}px, ${rowY(i)}px)`;
-          stage.appendChild(row);
-          leftRows.push(row);
-        });
+        NBRS[DEMO].forEach(j => demoLines.push(makeLine(pt(DEMO), pt(j), isMaj(j) ? '#8a9099' : C_MIN)));
 
-        // ---- right table (hidden until stage 2) ----
-        const rhead = makeRow(COLS[0], COLS[1], true);
-        rhead.style.transform = `translate(${RIGHT_X}px, ${TABLE_Y}px)`;
-        rhead.style.opacity = 0;
-        stage.appendChild(rhead);
-        rightEls.push(rhead);
+        // vote tally caption pinned under the demo point
+        tally = document.createElement('div');
+        tally.className = 'enn-tally';
+        const nMin = NBRS[DEMO].filter(j => !isMaj(j)).length;
+        tally.textContent = `${nMin} minority vs ${K - nMin} majority`;
+        world.appendChild(tally);
+        // above the point: below it would land on its own neighbour fan
+        anime.set(tally, { translateX: pt(DEMO)[0], translateY: pt(DEMO)[1] - 52, opacity: 0 });
 
-        passIdx.forEach((srcI, j) => {
-          const d = DATA[srcI];
-          const row = makeRow(d[0], d[1], false);
-          row.style.transform = `translate(${RIGHT_X}px, ${rowY(j)}px)`;
-          row.style.opacity = 0;
-          stage.appendChild(row);
-          rightEls.push(row);
-        });
-
-        // ---- arrows (svg overlay) ----
-        const svgNS = 'http://www.w3.org/2000/svg';
-        const svg = document.createElementNS(svgNS, 'svg');
-        svg.setAttribute('id', 'fr-arrows-svg');
-        const defs = document.createElementNS(svgNS, 'defs');
-        const marker = document.createElementNS(svgNS, 'marker');
-        marker.setAttribute('id', 'fr-arrowhead');
-        marker.setAttribute('viewBox', '0 0 10 10');
-        marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
-        marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
-        marker.setAttribute('orient', 'auto-start-reverse');
-        const head = document.createElementNS(svgNS, 'path');
-        head.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-        head.setAttribute('fill', '#4a86c5');
-        marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
-
-        const sx = LEFT_X + ROW_W + 6;
-        const dx = RIGHT_X - 8;
-        passIdx.forEach((srcI, j) => {
-          const syy = rowCenterY(srcI), dyy = rowCenterY(j);
-          const p = document.createElementNS(svgNS, 'path');
-          p.setAttribute('class', 'fr-arrow');
-          p.setAttribute('marker-end', 'url(#fr-arrowhead)');
-          p.setAttribute('d', `M ${sx} ${syy} C ${sx + 130} ${syy}, ${dx - 130} ${dyy}, ${dx} ${dyy}`);
-          svg.appendChild(p);
-          const len = p.getTotalLength();
-          p.style.strokeDasharray = len;
-          p.style.strokeDashoffset = len;
-          p.style.opacity = 0;
-          arrows.push({ p, len });
-        });
-        stage.appendChild(svg);
-
+        buildLegend(stageEl);
         return true;
+      }
+
+      function setCount(el, value) {
+        if (el.textContent === String(value)) return;
+        el.textContent = value;
+        TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+      }
+
+      function setTitle(text) {
+        const t = document.getElementById('enn-title');
+        if (!t) return;
+        t.textContent = text;
+        TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
       }
 
       function render(stage) {
         if (!build()) return;
 
-        // stages 1..nConds: highlight one condition's matching cells per step
-        const nConds = HITS.length;
-        // mirror the highlight onto that condition's code in the title
-        condSpans.forEach((s, c) => {
-          const hi = stage >= c + 1;
-          const cc = COND_COLORS[c % COND_COLORS.length];
-          TM.anime({
-            targets: s,
-            backgroundColor: hi ? cc.fill : clear(cc.fill),
-            color: hi ? cc.ink : INK,
-            duration: 450, easing: 'easeInOutQuad',
-          });
+        const demoing = stage === 1 || stage === 2;
+
+        // ---- the demo point's neighbourhood ----
+        TM.anime({ targets: ring, opacity: demoing ? 1 : 0, scale: demoing ? 1 : 0.6,
+          duration: 350, easing: 'easeOutBack' });
+        TM.anime({ targets: demoLines, opacity: demoing ? 0.95 : 0, duration: 400,
+          easing: 'easeInOutQuad', delay: demoing ? anime.stagger(90) : 0 });
+        TM.anime({ targets: tally, opacity: demoing ? 1 : 0, duration: 400,
+          easing: 'easeInOutQuad', delay: demoing ? 250 : 0 });
+
+        // ---- the marks: just the demo at stage 2, everything from stage 3 ----
+        marks.forEach((el, i) => {
+          if (!el) return;
+          const on = (stage === 2 && i === DEMO) || (stage >= 3 && stage < 4);
+          TM.anime({ targets: el, scale: on ? 1 : 0, opacity: on ? 1 : 0,
+            duration: 380, easing: on ? 'easeOutBack' : 'easeInQuad',
+            delay: stage === 3 ? anime.stagger(35) : 0 });
         });
-        leftRows.forEach((row, i) => {
-          const cells = row.querySelectorAll('.fr-cell');
-          HITS.forEach((col, c) => {
-            if (!col[i]) return;                 // this cell doesn't match — leave it
-            const hi = stage >= c + 1;           // condition c reveals at stage c+1
-            const cc = COND_COLORS[c % COND_COLORS.length];
-            const cell = cells[c];
-            cell.classList.toggle('fr-hit', hi);
-            TM.anime({
-              targets: cell,
-              backgroundColor: hi ? cc.fill : clear(cc.fill),
-              color: hi ? cc.ink : INK,
-              duration: 450, easing: 'easeInOutQuad',
-            });
+
+        // ---- dots: dim the bystanders while we work one point, then drop ----
+        dots.forEach((d, i) => {
+          const gone = stage >= 4 && DOOMED.has(i);
+          const involved = i === DEMO || NBRS[DEMO].includes(i);
+          const dim = demoing && !involved;
+          TM.anime({
+            targets: d,
+            scale: gone ? 0 : (demoing && involved ? 1.18 : 1),
+            opacity: gone ? 0 : (dim ? 0.25 : 1),
+            duration: gone ? 550 : 420,
+            easing: gone ? 'easeInBack' : 'easeOutBack',
+            delay: gone ? anime.stagger(25) : 0,
           });
         });
 
-        // next stage: keep only rows where ALL conditions match — give those rows a
-        // full-row highlight and dim the rows that fail at least one condition.
-        const both = stage >= nConds + 1;
-        leftRows.forEach((row, i) => {
-          TM.anime({
-            targets: row,
-            opacity: both && !PASS[i] ? 0.22 : 1,
-            backgroundColor: both && PASS[i] ? ROW_HIGHLIGHT : ROW_CLEAR,
-            duration: 450, easing: 'easeInOutQuad',
-          });
-        });
+        setCount(counts[0], stage >= 4 ? MAJ.length - N_MAJ_GONE : MAJ.length);
+        setCount(counts[1], stage >= 4 ? MIN.length - N_MIN_GONE : MIN.length);
 
-        // final stage: draw arrows, then reveal the filtered result right after
-        const show = stage >= nConds + 2;
-        arrows.forEach(({ p, len }, k) => {
-          TM.anime({
-            targets: p,
-            strokeDashoffset: show ? 0 : len,
-            opacity: show ? 1 : 0,
-            duration: 600, easing: 'easeInOutCubic',
-            delay: show ? k * 90 : 0,
-          });
-        });
-        TM.anime({
-          targets: rightEls,
-          opacity: show ? 1 : 0,
-          duration: 450, easing: 'easeInOutQuad',
-          delay: show ? anime.stagger(50, { start: 520 }) : 0,
-        });
+        setTitle(
+          stage >= 5 ? 'A cleaner boundary, with the overlap thinned from both sides'
+          : stage === 4 ? 'Drop every marked point'
+          : stage === 3 ? 'Sweep every point: both classes are eligible'
+          : stage === 2 ? 'Outvoted: its own neighbourhood contradicts it, so it is marked'
+          : stage === 1 ? 'Each point asks its k = 3 nearest neighbours what class they are'
+          : 'Two classes with a messy, overlapping boundary');
       }
 
       TM.gate({
-        markerClass: 'fr-slide',
-        fragmentIds: ['fr-cond-1', 'fr-cond-2', 'fr-both', 'fr-arrows'],
+        markerClass: 'enn-slide',
+        fragmentIds: ['enn-ask', 'enn-verdict', 'enn-sweep', 'enn-remove', 'enn-clean'],
         render,
       });
     })();

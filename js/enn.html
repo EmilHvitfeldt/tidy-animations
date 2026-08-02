@@ -1,0 +1,236 @@
+<script>
+/* ---- Edited nearest neighbours (ENN) animation ----
+ * Marker slide: .enn-slide   Stage container: #enn-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * ENN asks every point what its k nearest neighbours are. If the neighbours'
+ * majority vote disagrees with the point's own label, the point is dropped.
+ * Note (from themis R/enn_impl.R, enn_single): BOTH classes are eligible — the
+ * rule is "your neighbourhood contradicts you", not "you are in the majority
+ * class" — so the overlap gets thinned from both sides.
+ *
+ * Segments (stage 0 = slide arrival):
+ *   0 two classes with a messy, overlapping boundary
+ *   1 one point asks its k = 3 nearest neighbours what class they are
+ *   2 that point is outvoted, so it gets marked
+ *   3 sweep every point, marking each one its neighbourhood contradicts
+ *   4 drop every marked point
+ *   5 the cleaned boundary
+ */
+(function () {
+  // [majority, minority]
+  const COLORS = window.ENN_COLORS || ['#c8ccd4', '#d6336c'];
+  const [C_MAJ, C_MIN] = COLORS;
+
+  const K = 3;
+
+  // Hardcoded coordinates (rolled once from a seeded generator, then checked
+  // offline: 8 majority and 5 minority points are contradicted by their own
+  // neighbourhood). Stable across reloads / back-nav.
+  const MAJ = [
+    [645, 328], [491, 394], [201, 77], [146, 324], [561, 297],
+    [102, 463], [252, 313], [568, 86], [299, 321], [138, 268],
+    [396, 106], [780, 396], [445, 188], [537, 178], [658, 434],
+    [324, 228], [120, 121], [497, 211], [70, 244], [544, 499],
+    [372, 239], [207, 212], [461, 443], [596, 248], [528, 379],
+    [446, 314], [601, 379], [771, 284], [457, 270], [685, 126],
+    [202, 456], [121, 391], [278, 386], [407, 355],
+  ];
+  const MIN = [
+    [870, 114], [978, 241], [863, 258], [800, 358], [562, 233],
+    [657, 235], [935, 429], [736, 221], [737, 289], [754, 344],
+    [733, 465], [969, 363], [738, 145], [682, 204], [599, 296],
+    [973, 175], [575, 157], [1001, 436], [845, 226], [753, 418],
+    [672, 389], [807, 174],
+  ];
+
+  const NALL = MAJ.length + MIN.length;
+  function pt(gi) { return gi < MAJ.length ? MAJ[gi] : MIN[gi - MAJ.length]; }
+  function isMaj(gi) { return gi < MAJ.length; }
+
+  // k nearest neighbours of every point, and the resulting majority vote.
+  function knn(gi) {
+    const [sx, sy] = pt(gi);
+    const out = [];
+    for (let j = 0; j < NALL; j++) {
+      if (j === gi) continue;
+      const [x, y] = pt(j);
+      out.push({ j, d: (x - sx) ** 2 + (y - sy) ** 2 });
+    }
+    return out.sort((a, b) => a.d - b.d).slice(0, K).map(o => o.j);
+  }
+  const NBRS = [];
+  const DOOMED = new Set();
+  for (let i = 0; i < NALL; i++) {
+    const nb = knn(i);
+    NBRS.push(nb);
+    const majVotes = nb.filter(isMaj).length;
+    const mode = majVotes * 2 > K;              // K is odd, so no ties
+    if (mode !== isMaj(i)) DOOMED.add(i);
+  }
+  const N_MAJ_GONE = [...DOOMED].filter(isMaj).length;
+  const N_MIN_GONE = DOOMED.size - N_MAJ_GONE;
+
+  // The point we walk through in stages 1-2: a majority point marooned in
+  // minority territory, chosen for a clear, uncluttered fan of neighbour lines.
+  const DEMO = 29;
+
+  let built = false, world = null;
+  let dots = [], marks = [], ring = null, demoLines = [], tally = null;
+  const counts = [];
+
+  function makeDot(gi) {
+    const [x, y] = pt(gi);
+    const d = document.createElement('div');
+    d.className = 'enn-dot';
+    d.style.backgroundColor = isMaj(gi) ? C_MAJ : C_MIN;
+    world.appendChild(d);
+    anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+    return d;
+  }
+
+  function makeMark(gi) {
+    const [x, y] = pt(gi);
+    const el = document.createElement('div');
+    el.className = 'enn-mark';
+    el.textContent = '×';
+    world.appendChild(el);
+    anime.set(el, { translateX: x, translateY: y, scale: 0, opacity: 0 });
+    return el;
+  }
+
+  function makeLine(srcXY, dstXY, color) {
+    const [sx, sy] = srcXY, [dx, dy] = dstXY;
+    const len = Math.max(Math.hypot(dx - sx, dy - sy) - 14, 4);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = 'enn-line';
+    if (color) el.style.background = color;
+    el.style.width = len + 'px';
+    world.insertBefore(el, world.firstChild);
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+    return el;
+  }
+
+  function buildLegend(stageEl) {
+    const box = document.createElement('div');
+    box.className = 'enn-legend';
+    [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+      ([label, color, n]) => {
+        const row = document.createElement('div');
+        row.className = 'enn-legend-item';
+        const sw = document.createElement('span');
+        sw.className = 'enn-swatch';
+        sw.style.backgroundColor = color;
+        const txt = document.createElement('span');
+        txt.textContent = label + ' ';
+        const num = document.createElement('span');
+        num.className = 'enn-count';
+        num.textContent = n;
+        row.append(sw, txt, num);
+        box.appendChild(row);
+        counts.push(num);
+      });
+    stageEl.appendChild(box);
+  }
+
+  function build() {
+    const stageEl = document.getElementById('enn-stage');
+    if (!stageEl || built) return !!stageEl;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'enn-world';
+    stageEl.appendChild(world);
+
+    for (let i = 0; i < NALL; i++) dots.push(makeDot(i));
+    for (let i = 0; i < NALL; i++) marks.push(DOOMED.has(i) ? makeMark(i) : null);
+
+    ring = document.createElement('div');
+    ring.className = 'enn-ring';
+    world.appendChild(ring);
+    anime.set(ring, { translateX: pt(DEMO)[0], translateY: pt(DEMO)[1], opacity: 0 });
+
+    NBRS[DEMO].forEach(j => demoLines.push(makeLine(pt(DEMO), pt(j), isMaj(j) ? '#8a9099' : C_MIN)));
+
+    // vote tally caption pinned under the demo point
+    tally = document.createElement('div');
+    tally.className = 'enn-tally';
+    const nMin = NBRS[DEMO].filter(j => !isMaj(j)).length;
+    tally.textContent = `${nMin} minority vs ${K - nMin} majority`;
+    world.appendChild(tally);
+    // above the point: below it would land on its own neighbour fan
+    anime.set(tally, { translateX: pt(DEMO)[0], translateY: pt(DEMO)[1] - 52, opacity: 0 });
+
+    buildLegend(stageEl);
+    return true;
+  }
+
+  function setCount(el, value) {
+    if (el.textContent === String(value)) return;
+    el.textContent = value;
+    TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('enn-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    const demoing = stage === 1 || stage === 2;
+
+    // ---- the demo point's neighbourhood ----
+    TM.anime({ targets: ring, opacity: demoing ? 1 : 0, scale: demoing ? 1 : 0.6,
+      duration: 350, easing: 'easeOutBack' });
+    TM.anime({ targets: demoLines, opacity: demoing ? 0.95 : 0, duration: 400,
+      easing: 'easeInOutQuad', delay: demoing ? anime.stagger(90) : 0 });
+    TM.anime({ targets: tally, opacity: demoing ? 1 : 0, duration: 400,
+      easing: 'easeInOutQuad', delay: demoing ? 250 : 0 });
+
+    // ---- the marks: just the demo at stage 2, everything from stage 3 ----
+    marks.forEach((el, i) => {
+      if (!el) return;
+      const on = (stage === 2 && i === DEMO) || (stage >= 3 && stage < 4);
+      TM.anime({ targets: el, scale: on ? 1 : 0, opacity: on ? 1 : 0,
+        duration: 380, easing: on ? 'easeOutBack' : 'easeInQuad',
+        delay: stage === 3 ? anime.stagger(35) : 0 });
+    });
+
+    // ---- dots: dim the bystanders while we work one point, then drop ----
+    dots.forEach((d, i) => {
+      const gone = stage >= 4 && DOOMED.has(i);
+      const involved = i === DEMO || NBRS[DEMO].includes(i);
+      const dim = demoing && !involved;
+      TM.anime({
+        targets: d,
+        scale: gone ? 0 : (demoing && involved ? 1.18 : 1),
+        opacity: gone ? 0 : (dim ? 0.25 : 1),
+        duration: gone ? 550 : 420,
+        easing: gone ? 'easeInBack' : 'easeOutBack',
+        delay: gone ? anime.stagger(25) : 0,
+      });
+    });
+
+    setCount(counts[0], stage >= 4 ? MAJ.length - N_MAJ_GONE : MAJ.length);
+    setCount(counts[1], stage >= 4 ? MIN.length - N_MIN_GONE : MIN.length);
+
+    setTitle(
+      stage >= 5 ? 'A cleaner boundary, with the overlap thinned from both sides'
+      : stage === 4 ? 'Drop every marked point'
+      : stage === 3 ? 'Sweep every point: both classes are eligible'
+      : stage === 2 ? 'Outvoted: its own neighbourhood contradicts it, so it is marked'
+      : stage === 1 ? 'Each point asks its k = 3 nearest neighbours what class they are'
+      : 'Two classes with a messy, overlapping boundary');
+  }
+
+  TM.gate({
+    markerClass: 'enn-slide',
+    fragmentIds: ['enn-ask', 'enn-verdict', 'enn-sweep', 'enn-remove', 'enn-clean'],
+    render,
+  });
+})();
+</script>
