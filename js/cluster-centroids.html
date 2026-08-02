@@ -1,0 +1,194 @@
+<script>
+/* ---- Cluster centroids animation ----
+ * Marker slide: .cc-slide   Stage container: #cc-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * step_cluster_centroids() runs k-means on the majority class with k set to the
+ * target count, then (with the default voting = "soft") REPLACES the whole
+ * class with the centroids themselves. The survivors are therefore synthetic
+ * rows, not kept observations — which is the point the last stage lands on.
+ * ("hard" voting instead keeps the real observation nearest each centroid.)
+ * See themis R/cluster_centroids_impl.R.
+ *
+ * Segments (stage 0 = slide arrival):
+ *   0 imbalanced: 40 majority against 12 minority
+ *   1 cluster the majority into k = 12 groups (k = the minority count)
+ *   2 each group is summarised by its centroid
+ *   3 every cluster collapses into its centroid
+ *   4 the centroids become the new majority class
+ *   5 the nuance: these are synthetic points, not kept observations
+ */
+(function () {
+  // [majority, minority, centroid marker]
+  const COLORS = window.CC_COLORS || ['#c8ccd4', '#d6336c', '#5b6272'];
+  const [C_MAJ, C_MIN, C_CENT] = COLORS;
+
+  // Hardcoded layout AND clustering (k-means++ run offline over 60 seeds, best
+  // inertia kept) so the grouping is identical on every reload and back-nav.
+  const MAJ = [
+    [526, 210], [518, 465], [495, 141], [581, 352], [626, 406],
+    [349, 114], [698, 246], [226, 208], [265, 235], [470, 377],
+    [187, 152], [330, 299], [778, 161], [802, 94], [218, 254],
+    [373, 178], [642, 171], [126, 355], [443, 232], [143, 86],
+    [530, 359], [617, 468], [399, 259], [230, 141], [463, 297],
+    [550, 268], [639, 312], [475, 496], [342, 364], [482, 420],
+    [715, 368], [419, 485], [208, 316], [346, 416], [158, 398],
+    [287, 182], [237, 365], [267, 328], [561, 439], [151, 305],
+  ];
+  const MIN = [
+    [969, 146], [815, 341], [783, 292], [897, 209], [974, 229],
+    [848, 481], [827, 243], [956, 80], [760, 361], [692, 332],
+    [865, 294], [991, 301],
+  ];
+  const CENTROIDS = [
+    [245, 204], [790, 128], [668, 279], [473, 449], [176, 348],
+    [165, 119], [321, 352], [406, 144], [583, 405], [715, 368],
+    [435, 263], [573, 216],
+  ];
+  const ASSIGN = [11, 3, 7, 8, 8, 7, 2, 0, 0, 3, 5, 6, 1, 1, 0, 7, 11, 4, 10, 5,
+                  8, 8, 10, 0, 10, 11, 2, 3, 6, 3, 9, 3, 4, 6, 4, 0, 4, 6, 8, 4];
+  const K = CENTROIDS.length;
+
+  let built = false, world = null;
+  let majDots = [], minDots = [], centDots = [], spokes = [];
+  const counts = [];
+
+  function makeDot(x, y, color, cls) {
+    const d = document.createElement('div');
+    d.className = cls;
+    d.style.backgroundColor = color;
+    world.appendChild(d);
+    anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+    return d;
+  }
+
+  function makeSpoke(srcXY, dstXY) {
+    const [sx, sy] = srcXY, [dx, dy] = dstXY;
+    const len = Math.max(Math.hypot(dx - sx, dy - sy), 1);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = 'cc-spoke';
+    el.style.width = len + 'px';
+    world.insertBefore(el, world.firstChild);
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+    return el;
+  }
+
+  function buildLegend(stageEl) {
+    const box = document.createElement('div');
+    box.className = 'cc-legend';
+    [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+      ([label, color, n]) => {
+        const row = document.createElement('div');
+        row.className = 'cc-legend-item';
+        const sw = document.createElement('span');
+        sw.className = 'cc-swatch';
+        sw.style.backgroundColor = color;
+        const txt = document.createElement('span');
+        txt.textContent = label + ' ';
+        const num = document.createElement('span');
+        num.className = 'cc-count';
+        num.textContent = n;
+        row.append(sw, txt, num);
+        box.appendChild(row);
+        counts.push(num);
+      });
+    stageEl.appendChild(box);
+  }
+
+  function build() {
+    const stageEl = document.getElementById('cc-stage');
+    if (!stageEl || built) return !!stageEl;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'cc-world';
+    stageEl.appendChild(world);
+
+    MAJ.forEach(([x, y], i) => spokes.push(makeSpoke([x, y], CENTROIDS[ASSIGN[i]])));
+    MAJ.forEach(([x, y]) => majDots.push(makeDot(x, y, C_MAJ, 'cc-dot')));
+    MIN.forEach(([x, y]) => minDots.push(makeDot(x, y, C_MIN, 'cc-dot')));
+    CENTROIDS.forEach(([x, y]) => {
+      const d = makeDot(x, y, C_CENT, 'cc-centroid');
+      anime.set(d, { scale: 0, opacity: 0 });
+      centDots.push(d);
+    });
+
+    buildLegend(stageEl);
+    return true;
+  }
+
+  function setCount(el, value) {
+    if (el.textContent === String(value)) return;
+    el.textContent = value;
+    TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('cc-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    // ---- spokes show cluster membership (stages 1-2, and during the collapse) ----
+    TM.anime({
+      targets: spokes,
+      opacity: stage === 1 ? 0.55 : (stage === 2 ? 0.3 : 0),
+      duration: 420, easing: 'easeInOutQuad',
+      delay: stage === 1 ? anime.stagger(12) : 0,
+    });
+
+    // ---- majority points: sit still, then fly into their centroid ----
+    majDots.forEach((d, i) => {
+      const c = CENTROIDS[ASSIGN[i]];
+      const collapsed = stage >= 3;
+      TM.anime({
+        targets: d,
+        translateX: collapsed ? c[0] : MAJ[i][0],
+        translateY: collapsed ? c[1] : MAJ[i][1],
+        scale: collapsed ? 0 : 1,
+        opacity: collapsed ? 0 : 1,
+        duration: collapsed ? 700 : 550,
+        easing: collapsed ? 'easeInOutCubic' : 'easeOutBack',
+        delay: collapsed ? anime.stagger(14) : 0,
+      });
+    });
+
+    // ---- centroids: appear at stage 2, become the class proper at stage 4 ----
+    const centOn = stage >= 2;
+    const isClass = stage >= 4;
+    centDots.forEach((d, i) => {
+      d.classList.toggle('is-class', isClass);
+      TM.anime({
+        targets: d,
+        backgroundColor: isClass ? C_MAJ : C_CENT,
+        scale: centOn ? 1 : 0,
+        opacity: centOn ? 1 : 0,
+        duration: 480,
+        easing: 'easeOutBack',
+        delay: stage === 2 ? anime.stagger(35) : 0,
+      });
+    });
+
+    setCount(counts[0], stage >= 4 ? K : MAJ.length);
+    setCount(counts[1], MIN.length);
+
+    setTitle(
+      stage >= 5 ? 'With soft voting the survivors are the centroids: new rows, not kept observations'
+      : stage === 4 ? 'The centroids are the new majority class'
+      : stage === 3 ? 'Every cluster collapses into its centroid'
+      : stage === 2 ? 'Each group is summarised by its centroid'
+      : stage === 1 ? 'Cluster the majority into k = 12 groups, one per minority point'
+      : 'Imbalanced: 40 majority points against 12 minority');
+  }
+
+  TM.gate({
+    markerClass: 'cc-slide',
+    fragmentIds: ['cc-cluster', 'cc-centroids', 'cc-collapse', 'cc-become', 'cc-synthetic'],
+    render,
+  });
+})();
+</script>

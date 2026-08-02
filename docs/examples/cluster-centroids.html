@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – Orbital codegen</title>
+  <title>tidymodels, animated – Cluster centroids</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -130,23 +130,28 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">Orbital codegen</h1>
+  <h1 class="title">Cluster centroids</h1>
 
 <div class="quarto-title-authors">
 </div>
 
 </section>
-<section id="section" class="slide level2 oc-slide">
+<section class="slide level2">
+
+<!-- Colours: [majority, minority, centroid marker]. -->
+<script>window.CC_COLORS = ['#c8ccd4', '#d6336c', '#5b6272'];</script>
+</section>
+<section id="section" class="slide level2 cc-slide">
 <h2></h2>
-<div class="oc-stage-wrap">
-<div id="oc-title" class="oc-title">
+<div class="cc-stage-wrap">
+<div id="cc-title" class="cc-title">
 
 </div>
-<div id="oc-stage">
+<div id="cc-stage">
 
 </div>
 </div>
-<p><span id="oc-unknown" class="fragment oc-frag"></span> <span id="oc-impute" class="fragment oc-frag"></span> <span id="oc-dummy" class="fragment oc-frag"></span> <span id="oc-scale" class="fragment oc-frag"></span> <span id="oc-center" class="fragment oc-frag"></span> <span id="oc-model" class="fragment oc-frag"></span> <span id="oc-terms-setup" class="fragment oc-frag"></span> <span id="oc-trace-model" class="fragment oc-frag"></span> <span id="oc-trace-center-rhs" class="fragment oc-frag"></span> <span id="oc-trace-center-lhs" class="fragment oc-frag"></span> <span id="oc-trace-scale-rhs" class="fragment oc-frag"></span> <span id="oc-trace-scale-lhs" class="fragment oc-frag"></span> <span id="oc-trace-dummy-rhs" class="fragment oc-frag"></span> <span id="oc-trace-dummy-lhs" class="fragment oc-frag"></span> <span id="oc-trace-impute-rhs" class="fragment oc-frag"></span> <span id="oc-trace-impute-lhs" class="fragment oc-frag"></span> <span id="oc-trace-unknown-rhs" class="fragment oc-frag"></span> <span id="oc-trace-unknown-lhs" class="fragment oc-frag"></span> <span id="oc-final" class="fragment oc-frag"></span></p>
+<p><span id="cc-cluster" class="fragment cc-frag"></span> <span id="cc-centroids" class="fragment cc-frag"></span> <span id="cc-collapse" class="fragment cc-frag"></span> <span id="cc-become" class="fragment cc-frag"></span> <span id="cc-synthetic" class="fragment cc-frag"></span></p>
 
 
 </section>
@@ -450,421 +455,195 @@
     };
     </script>
     <script>
-    /* ---- Orbital codegen animation ----
-     * Marker slide: .oc-slide   Stage container: #oc-stage
+    /* ---- Cluster centroids animation ----
+     * Marker slide: .cc-slide   Stage container: #cc-stage
      * render(stage) is idempotent (stage = number of visible gating fragments).
      *
-     * Left: the fitted tidymodels pipeline as 6 step chips. Right: the flat code
-     * `orbital` generates from that pipeline, grouped into one block per step.
+     * step_cluster_centroids() runs k-means on the majority class with k set to the
+     * target count, then (with the default voting = "soft") REPLACES the whole
+     * class with the centroids themselves. The survivors are therefore synthetic
+     * rows, not kept observations — which is the point the last stage lands on.
+     * ("hard" voting instead keeps the real observation nearest each centroid.)
+     * See themis R/cluster_centroids_impl.R.
      *
-     * PHASE 1 — codegen (stages 1-6): each step chip lights up in turn and "emits"
-     * its block of generated code on the right, an arrow connecting the two.
-     *
-     * TRANSITION (stage 7): chips fade out, the empty "terms to account for" panel
-     * appears, code de-highlighted.
-     *
-     * PHASE 2 — dependency trace (stages 8-18): walk back UP from the model. Each
-     * block above the model gets TWO sub-steps: first highlight the LHS term we
-     * already track (locate where it is defined), then highlight the RHS source it
-     * derives from, adding any new source variable to the running terms list.
-     *
-     *   stage 0      arrival: chips + empty code panel
-     *   stage 1-6    codegen: each step emits its block of code
-     *   stage 7      transition: terms panel appears empty
-     *   stage 8      trace: the model's predictors (single step)
-     *   stage 9/10   trace step_center:  LHS then RHS
-     *   stage 11/12  trace step_scale:   LHS then RHS
-     *   stage 13/14  trace step_dummy:   LHS then RHS (adds species, sex)
-     *   stage 15/16  trace step_impute_median: LHS then RHS
-     *   stage 17/18  trace step_unknown: LHS then RHS
-     *   stage 19     collapse: drop the faded lines + list, keep only what matters
+     * Segments (stage 0 = slide arrival):
+     *   0 imbalanced: 40 majority against 12 minority
+     *   1 cluster the majority into k = 12 groups (k = the minority count)
+     *   2 each group is summarised by its centroid
+     *   3 every cluster collapses into its centroid
+     *   4 the centroids become the new majority class
+     *   5 the nuance: these are synthetic points, not kept observations
      */
     (function () {
-      const SVGNS = 'http://www.w3.org/2000/svg';
+      // [majority, minority, centroid marker]
+      const COLORS = window.CC_COLORS || ['#c8ccd4', '#d6336c', '#5b6272'];
+      const [C_MAJ, C_MIN, C_CENT] = COLORS;
 
-      // ---- geometry ----
-      const STAGE_H = 640;
-      const CODE_X = 530;                 // right-hand generated-code panel
-      const LINEH = 15, BLOCK_GAP = 9, CODE_Y0 = 8;
-      const LCODE_X = 0, LCODE_Y0 = 150, LCODE_LINEH = 24;   // left recipe code
-      const ARROW_X = 400;                // connector arrow springs from here
-
-      // a distinct colour per tracked term (fg text + translucent bg fill)
-      const COLORS = {
-        bill_length_mm:    { fg: '#1b4f8a', bg: 'rgba(43,108,176,0.18)' },
-        species_Chinstrap: { fg: '#0b6b60', bg: 'rgba(15,157,143,0.20)' },
-        sex_male:          { fg: '#b45a12', bg: 'rgba(232,133,58,0.24)' },
-        species:           { fg: '#5b21b6', bg: 'rgba(124,58,237,0.16)' },
-        sex:               { fg: '#a01f52', bg: 'rgba(214,51,108,0.16)' },
-      };
-      const tokenStyle = (term) => {
-        const c = COLORS[term];
-        return c ? `background:${c.bg};color:${c.fg}` : '';
-      };
-
-      // wrap whole-word occurrences of `terms` in a colour-coded span (HTML-escaped).
-      // \b treats "_" as a word char, so "sex" won't match inside "sex_male".
-      const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      function highlightTerms(text, terms) {
-        const out = esc(text);
-        if (!terms || !terms.length) return out;
-        const sorted = terms.slice().sort((a, b) => b.length - a.length);
-        const re = new RegExp('\\b(' + sorted.join('|') + ')\\b', 'g');
-        return out.replace(re, (m) => `<span class="oc-tok" style="${tokenStyle(m)}">${m}</span>`);
-      }
-      // split "LHS = RHS" at the assignment (the first " = "); "==" won't match
-      function splitAssign(t) {
-        const i = t.indexOf(' = ');
-        return i < 0 ? [t, null] : [t.slice(0, i), t.slice(i + 3)];
-      }
-      // highlight only the variable defined on the left-hand side of the assignment
-      function highlightLHS(text) {
-        const [l, r] = splitAssign(text);
-        if (r === null) return esc(text);
-        return highlightTerms(l, [l]) + ' = ' + esc(r);
-      }
-
-      // ---- content: the complete verbatim code orbital generates, one block per
-      // recipe step. `src` = the source variable on the RHS that this assignment
-      // derives from (used by the two-step trace; self-referential for mutate-in-
-      // place steps, a raw column for step_dummy). ----
-      const BLOCKS = [
-        { chip: 'step_unknown()', lines: [
-          { t: 'species = dplyr::if_else(is.na(species), "unknown", species)', src: 'species' },
-          { t: 'island = dplyr::if_else(is.na(island), "unknown", island)',    src: 'island' },
-          { t: 'sex = dplyr::if_else(is.na(sex), "unknown", sex)',             src: 'sex' },
-        ]},
-        { chip: 'step_impute_median()', lines: [
-          { t: 'bill_length_mm = dplyr::if_else(is.na(bill_length_mm), 44.95, bill_length_mm)',       src: 'bill_length_mm' },
-          { t: 'bill_depth_mm = dplyr::if_else(is.na(bill_depth_mm), 17.3, bill_depth_mm)',           src: 'bill_depth_mm' },
-          { t: 'flipper_length_mm = dplyr::if_else(is.na(flipper_length_mm), 198, flipper_length_mm)', src: 'flipper_length_mm' },
-        ]},
-        { chip: 'step_dummy()', lines: [
-          { t: 'species_Adelie = as.numeric(species == "Adelie")',        src: 'species' },
-          { t: 'species_Chinstrap = as.numeric(species == "Chinstrap")',  src: 'species' },
-          { t: 'species_Gentoo = as.numeric(species == "Gentoo")',        src: 'species' },
-          { t: 'species_unknown = as.numeric(species == "unknown")',      src: 'species' },
-          { t: 'island_Biscoe = as.numeric(island == "Biscoe")',          src: 'island' },
-          { t: 'island_Dream = as.numeric(island == "Dream")',            src: 'island' },
-          { t: 'island_Torgersen = as.numeric(island == "Torgersen")',    src: 'island' },
-          { t: 'island_unknown = as.numeric(island == "unknown")',        src: 'island' },
-          { t: 'sex_female = as.numeric(sex == "female")',                src: 'sex' },
-          { t: 'sex_male = as.numeric(sex == "male")',                    src: 'sex' },
-          { t: 'sex_unknown = as.numeric(sex == "unknown")',              src: 'sex' },
-        ]},
-        { chip: 'step_scale()', lines: [
-          { t: 'bill_length_mm = bill_length_mm / 5.451399',        src: 'bill_length_mm' },
-          { t: 'bill_depth_mm = bill_depth_mm / 1.98353',           src: 'bill_depth_mm' },
-          { t: 'flipper_length_mm = flipper_length_mm / 14.04647',  src: 'flipper_length_mm' },
-          { t: 'species_Chinstrap = species_Chinstrap / 0.4001953', src: 'species_Chinstrap' },
-          { t: 'species_Gentoo = species_Gentoo / 0.484043',        src: 'species_Gentoo' },
-          { t: 'island_Dream = island_Dream / 0.4795927',           src: 'island_Dream' },
-          { t: 'island_Torgersen = island_Torgersen / 0.3562296',   src: 'island_Torgersen' },
-          { t: 'sex_male = sex_male / 0.5002297',                   src: 'sex_male' },
-        ]},
-        { chip: 'step_center()', lines: [
-          { t: 'bill_length_mm = bill_length_mm - 8.04911',        src: 'bill_length_mm' },
-          { t: 'bill_depth_mm = bill_depth_mm - 8.628085',         src: 'bill_depth_mm' },
-          { t: 'flipper_length_mm = flipper_length_mm - 14.32021', src: 'flipper_length_mm' },
-          { t: 'species_Chinstrap = species_Chinstrap - 0.4978039', src: 'species_Chinstrap' },
-          { t: 'species_Gentoo = species_Gentoo - 0.7666532',      src: 'species_Gentoo' },
-          { t: 'island_Dream = island_Dream - 0.7411888',          src: 'island_Dream' },
-          { t: 'island_Torgersen = island_Torgersen - 0.4166906',  src: 'island_Torgersen' },
-          { t: 'sex_male = sex_male - 0.9448784',                  src: 'sex_male' },
-        ]},
-        { chip: 'model', lines: [
-          { t: '.pred = case_when(',                                                            src: null },
-          { t: '  sex_male <= -0.9448784 & bill_length_mm <= -0.2162576 ~ 3425.781,',           src: null },
-          { t: '  sex_male >  -0.9448784 & bill_length_mm <= -0.2162576 ~ 4028.804,',           src: null },
-          { t: '  species_Chinstrap <= -0.4978039 & bill_length_mm > -0.2162576 ~ 5008.838,',   src: null },
-          { t: '  species_Chinstrap >  -0.4978039 & bill_length_mm > -0.2162576 ~ 3786.702',    src: null },
-          { t: ')',                                                                             src: null },
-        ]},
+      // Hardcoded layout AND clustering (k-means++ run offline over 60 seeds, best
+      // inertia kept) so the grouping is identical on every reload and back-nav.
+      const MAJ = [
+        [526, 210], [518, 465], [495, 141], [581, 352], [626, 406],
+        [349, 114], [698, 246], [226, 208], [265, 235], [470, 377],
+        [187, 152], [330, 299], [778, 161], [802, 94], [218, 254],
+        [373, 178], [642, 171], [126, 355], [443, 232], [143, 86],
+        [530, 359], [617, 468], [399, 259], [230, 141], [463, 297],
+        [550, 268], [639, 312], [475, 496], [342, 364], [482, 420],
+        [715, 368], [419, 485], [208, 316], [346, 416], [158, 398],
+        [287, 182], [237, 365], [267, 328], [561, 439], [151, 305],
       ];
-      const MODEL_BI = 5;   // index of the model block (always fully highlighted)
-
-      // ---- left panel: the fitted pipeline as code. Each step line maps to the
-      // stage (1-6) that emits its generated-code block; header/blank lines are
-      // context (stage null). ----
-      const lfn = (s) => `<span class="oc-fn">${s}</span>`;
-      const lsel = (s) => `<span class="oc-sel">${s}</span>`;
-      const LCODE = [
-        { html: `${lfn('recipe')}(body_mass_g ~ ., data = penguins) |&gt;`,             stage: null },
-        { html: `  ${lfn('step_unknown')}(${lsel('all_nominal_predictors()')}) |&gt;`,   stage: 1 },
-        { html: `  ${lfn('step_impute_median')}(${lsel('all_numeric_predictors()')}) |&gt;`, stage: 2 },
-        { html: `  ${lfn('step_dummy')}(${lsel('all_nominal_predictors()')}) |&gt;`,     stage: 3 },
-        { html: `  ${lfn('step_scale')}(${lsel('all_numeric_predictors()')}) |&gt;`,     stage: 4 },
-        { html: `  ${lfn('step_center')}(${lsel('all_numeric_predictors()')})`,          stage: 5 },
-        { html: ``,                                                                      stage: null },
-        { html: `${lfn('decision_tree')}(mode = "regression")`,                          stage: 6 },
+      const MIN = [
+        [969, 146], [815, 341], [783, 292], [897, 209], [974, 229],
+        [848, 481], [827, 243], [956, 80], [760, 361], [692, 332],
+        [865, 294], [991, 301],
       ];
-
-      const TITLE_P1 = 'orbital translates each recipe step into code';
-      const TITLE_P2 = 'which inputs does the prediction actually use?';
-      const TITLE_FINAL = 'the prediction reduces to just these lines';
-
-      // ---- the trace, one entry per stage from stage 8 up. `R` = block index being
-      // examined this stage (blocks below it are already settled); `sub` = 'lhs'
-      // (highlight only the LHS term we already track) or 'full' (also highlight the
-      // RHS source, adding any new one); `T` = the running terms list. Each block
-      // above the model does LHS first, then RHS. ----
-      const T0 = ['bill_length_mm', 'species_Chinstrap', 'sex_male'];
-      const T1 = ['bill_length_mm', 'species_Chinstrap', 'sex_male', 'species', 'sex'];
-      const TRACE = [
-        { R: 5, sub: 'full', T: T0 },   // stage 8  model predictors
-        { R: 4, sub: 'lhs',  T: T0 },   // stage 9  center  LHS
-        { R: 4, sub: 'full', T: T0 },   // stage 10 center  RHS
-        { R: 3, sub: 'lhs',  T: T0 },   // stage 11 scale   LHS
-        { R: 3, sub: 'full', T: T0 },   // stage 12 scale   RHS
-        { R: 2, sub: 'lhs',  T: T0 },   // stage 13 dummy   LHS
-        { R: 2, sub: 'full', T: T1 },   // stage 14 dummy   RHS (adds species, sex)
-        { R: 1, sub: 'lhs',  T: T1 },   // stage 15 impute  LHS
-        { R: 1, sub: 'full', T: T1 },   // stage 16 impute  RHS
-        { R: 0, sub: 'lhs',  T: T1 },   // stage 17 unknown LHS
-        { R: 0, sub: 'full', T: T1 },   // stage 18 unknown RHS
+      const CENTROIDS = [
+        [245, 204], [790, 128], [668, 279], [473, 449], [176, 348],
+        [165, 119], [321, 352], [406, 144], [583, 405], [715, 368],
+        [435, 263], [573, 216],
       ];
-      const FINAL_STAGE = 8 + TRACE.length;   // 19: collapse to the lines that matter
+      const ASSIGN = [11, 3, 7, 8, 8, 7, 2, 0, 0, 3, 5, 6, 1, 1, 0, 7, 11, 4, 10, 5,
+                      8, 8, 10, 0, 10, 11, 2, 3, 6, 3, 9, 3, 4, 6, 4, 0, 4, 6, 8, 4];
+      const K = CENTROIDS.length;
 
-      let built = false;
-      let lineEls = [];          // { el, stage } for each left-code line
-      let stageY = {};           // stage -> vertical centre of its code line
-      let arrowLine = null, titleEl = null;
-      let termsEl = null, termListEl = null, stageEl = null;
-      let prevStage = -1;            // to detect forward entry (fly-in only then)
-      // per block: { top, els:[lineEl,...] }
-      let blocks = [];
+      let built = false, world = null;
+      let majDots = [], minDots = [], centDots = [], spokes = [];
+      const counts = [];
 
-      // screen-space rect -> the stage's internal (1220x640) coordinate space
-      function rectToStage(rect) {
-        const r = stageEl.getBoundingClientRect();
-        const fx = 1220 / r.width, fy = STAGE_H / r.height;
-        return { x: (rect.left - r.left) * fx, y: (rect.top - r.top) * fy,
-                 w: rect.width * fx, h: rect.height * fy };
+      function makeDot(x, y, color, cls) {
+        const d = document.createElement('div');
+        d.className = cls;
+        d.style.backgroundColor = color;
+        world.appendChild(d);
+        anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+        return d;
       }
-      // first highlighted token in the code whose text matches `term`
-      function findToken(term) {
-        const toks = stageEl.querySelectorAll('.oc-line.oc-pink .oc-tok');
-        for (const t of toks) if (t.textContent === term) return t;
-        return null;
+
+      function makeSpoke(srcXY, dstXY) {
+        const [sx, sy] = srcXY, [dx, dy] = dstXY;
+        const len = Math.max(Math.hypot(dx - sx, dy - sy), 1);
+        const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+        const el = document.createElement('div');
+        el.className = 'cc-spoke';
+        el.style.width = len + 'px';
+        world.insertBefore(el, world.firstChild);
+        anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+        return el;
       }
-      // fly a little pill from a code token into its slot in the terms list
-      function flyTerm(term, sourceEl, targetEl, delay) {
-        const s = rectToStage(sourceEl.getBoundingClientRect());
-        const d = rectToStage(targetEl.getBoundingClientRect());
-        const fly = document.createElement('div');
-        fly.className = 'oc-fly';
-        fly.textContent = term;
-        const c = COLORS[term];
-        if (c) { fly.style.background = c.bg; fly.style.color = c.fg; }
-        anime.set(fly, { translateX: s.x, translateY: s.y });
-        stageEl.appendChild(fly);
-        targetEl.style.opacity = 0;
-        TM.anime({ targets: fly, translateX: d.x + 16, translateY: d.y + d.h / 2 - 11,
-                   duration: 620, delay: delay, easing: 'easeInOutCubic',
-                   complete: () => fly.remove() });
-        TM.anime({ targets: targetEl, opacity: [0, 1], duration: 260,
-                   delay: delay + 520, easing: 'easeOutQuad' });
+
+      function buildLegend(stageEl) {
+        const box = document.createElement('div');
+        box.className = 'cc-legend';
+        [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+          ([label, color, n]) => {
+            const row = document.createElement('div');
+            row.className = 'cc-legend-item';
+            const sw = document.createElement('span');
+            sw.className = 'cc-swatch';
+            sw.style.backgroundColor = color;
+            const txt = document.createElement('span');
+            txt.textContent = label + ' ';
+            const num = document.createElement('span');
+            num.className = 'cc-count';
+            num.textContent = n;
+            row.append(sw, txt, num);
+            box.appendChild(row);
+            counts.push(num);
+          });
+        stageEl.appendChild(box);
       }
 
       function build() {
-        const stage = document.getElementById('oc-stage');
-        if (!stage || built) return !!stage;
+        const stageEl = document.getElementById('cc-stage');
+        if (!stageEl || built) return !!stageEl;
         built = true;
-        stageEl = stage;
-        titleEl = document.getElementById('oc-title');
+        world = document.createElement('div');
+        world.className = 'cc-world';
+        stageEl.appendChild(world);
 
-        // recipe code (left)
-        LCODE.forEach((ln, i) => {
-          const el = document.createElement('div');
-          el.className = 'oc-code-line';
-          el.innerHTML = ln.html;
-          const y = LCODE_Y0 + i * LCODE_LINEH;
-          anime.set(el, { translateX: LCODE_X, translateY: y });
-          stage.appendChild(el);
-          lineEls.push({ el, stage: ln.stage });
-          if (ln.stage) stageY[ln.stage] = y + LCODE_LINEH / 2;
+        MAJ.forEach(([x, y], i) => spokes.push(makeSpoke([x, y], CENTROIDS[ASSIGN[i]])));
+        MAJ.forEach(([x, y]) => majDots.push(makeDot(x, y, C_MAJ, 'cc-dot')));
+        MIN.forEach(([x, y]) => minDots.push(makeDot(x, y, C_MIN, 'cc-dot')));
+        CENTROIDS.forEach(([x, y]) => {
+          const d = makeDot(x, y, C_CENT, 'cc-centroid');
+          anime.set(d, { scale: 0, opacity: 0 });
+          centDots.push(d);
         });
 
-        // phase-2 "terms to account for" panel (same left column, hidden in phase 1)
-        termsEl = document.createElement('div');
-        termsEl.className = 'oc-terms';
-        termsEl.style.opacity = 0;
-        termsEl.innerHTML = '<div class="oc-term-title">terms to account for</div><div class="oc-term-list"></div>';
-        anime.set(termsEl, { translateX: LCODE_X, translateY: LCODE_Y0 });
-        stage.appendChild(termsEl);
-        termListEl = termsEl.querySelector('.oc-term-list');
-
-        // code lines (right), grouped into blocks
-        let y = CODE_Y0;
-        BLOCKS.forEach((blk) => {
-          const top = y;
-          const els = [];
-          blk.lines.forEach((ln) => {
-            ln.lhs = splitAssign(ln.t)[0];        // variable defined by this line
-            const el = document.createElement('div');
-            el.className = 'oc-line';
-            el.textContent = ln.t;
-            el.style.opacity = 0;
-            el._y = y;                            // original y (restored after final)
-            anime.set(el, { translateX: CODE_X, translateY: y });
-            stage.appendChild(el);
-            els.push(el);
-            y += LINEH;
-          });
-          y += BLOCK_GAP;
-          blocks.push({ top, els });
-        });
-
-        // connector arrow overlay
-        const svg = document.createElementNS(SVGNS, 'svg');
-        svg.setAttribute('class', 'oc-arrows');
-        svg.setAttribute('width', 1220);
-        svg.setAttribute('height', STAGE_H);
-        const defs = document.createElementNS(SVGNS, 'defs');
-        const marker = document.createElementNS(SVGNS, 'marker');
-        marker.setAttribute('id', 'oc-ah');
-        marker.setAttribute('markerWidth', 8); marker.setAttribute('markerHeight', 8);
-        marker.setAttribute('refX', 6); marker.setAttribute('refY', 3);
-        marker.setAttribute('orient', 'auto');
-        const mpath = document.createElementNS(SVGNS, 'path');
-        mpath.setAttribute('d', 'M0,0 L6,3 L0,6 Z');
-        mpath.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--oc-pink') || '#d6336c');
-        marker.appendChild(mpath); defs.appendChild(marker); svg.appendChild(defs);
-        arrowLine = document.createElementNS(SVGNS, 'path');
-        arrowLine.setAttribute('class', 'oc-arrow-line');
-        arrowLine.setAttribute('marker-end', 'url(#oc-ah)');
-        arrowLine.style.opacity = 0;
-        svg.appendChild(arrowLine);
-        stage.appendChild(svg);
-
+        buildLegend(stageEl);
         return true;
       }
 
-      // curved connector from the active recipe line to its emitted code block
-      function positionArrow(s) {
-        const x1 = ARROW_X, y1 = stageY[s];
-        const x2 = CODE_X - 10, y2 = blocks[s - 1].top + 10;
-        const mx = (x1 + x2) / 2;
-        arrowLine.setAttribute('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+      function setCount(el, value) {
+        if (el.textContent === String(value)) return;
+        el.textContent = value;
+        TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+      }
+
+      function setTitle(text) {
+        const t = document.getElementById('cc-title');
+        if (!t) return;
+        t.textContent = text;
+        TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
       }
 
       function render(stage) {
         if (!build()) return;
 
-        // stage 7 is a transition: chips gone, empty "terms" panel, no highlighting.
-        const leftTerms = stage >= 7;             // show terms panel instead of chips
-        const final = stage >= FINAL_STAGE;       // collapse to the lines that matter
-        const tr = (stage >= 8 && stage - 8 < TRACE.length) ? TRACE[stage - 8] : null;
-        const T = tr ? tr.T : null;
-        const isImportant = (bi, line) => (bi === MODEL_BI) || T1.indexOf(line.lhs) !== -1;
+        // ---- spokes show cluster membership (stages 1-2, and during the collapse) ----
+        TM.anime({
+          targets: spokes,
+          opacity: stage === 1 ? 0.55 : (stage === 2 ? 0.3 : 0),
+          duration: 420, easing: 'easeInOutQuad',
+          delay: stage === 1 ? anime.stagger(12) : 0,
+        });
 
-        if (titleEl) {
-          titleEl.textContent = stage === 0 ? '' : (final ? TITLE_FINAL : (leftTerms ? TITLE_P2 : TITLE_P1));
-          titleEl.style.opacity = stage === 0 ? 0 : 1;
-        }
-
-        // final stage: compact the surviving (important) lines into a tidy list
-        let compactY = null;
-        if (final) {
-          compactY = new Map();
-          let y = CODE_Y0, prevBi = -1;
-          blocks.forEach((blk, bi) => blk.els.forEach((el, li) => {
-            if (!isImportant(bi, BLOCKS[bi].lines[li])) return;
-            if (prevBi !== -1 && bi !== prevBi) y += BLOCK_GAP;
-            compactY.set(el, y);
-            y += LINEH;
-            prevBi = bi;
-          }));
-        }
-
-        // code blocks
-        blocks.forEach((blk, bi) => {
-          const b = bi + 1;
-          blk.els.forEach((el, li) => {
-            const line = BLOCKS[bi].lines[li];
-            el.classList.remove('oc-pink', 'oc-dim');
-
-            // final: fade the faded lines out first, THEN slide the survivors
-            // together (the translate is delayed until after the fade completes).
-            if (final) {
-              const important = isImportant(bi, line);
-              el.textContent = line.t;
-              if (!important) {
-                TM.anime({ targets: el, opacity: 0, duration: 350, easing: 'easeOutQuad' });
-              } else {
-                TM.anime({ targets: el, opacity: 1, duration: 200, easing: 'easeOutQuad' });
-                TM.anime({ targets: el, translateX: CODE_X, translateY: compactY.get(el),
-                           duration: 520, delay: 450, easing: 'easeInOutCubic' });
-              }
-              return;
-            }
-
-            // otherwise keep lines at their original positions
-            anime.set(el, { translateX: CODE_X, translateY: el._y });
-            TM.anime({ targets: el, opacity: stage >= b ? 1 : 0, duration: 350, easing: 'easeOutQuad' });
-
-            // not tracing yet, or this block is above the one we've reached: plain
-            if (!tr || bi < tr.R) { el.textContent = line.t; return; }
-            const relevant = (bi === MODEL_BI) || T.indexOf(line.lhs) !== -1;
-            if (!relevant) { el.classList.add('oc-dim'); el.textContent = line.t; return; }
-            el.classList.add('oc-pink');
-            // the block being examined in its 'lhs' sub-step: highlight only the
-            // LHS term we already track; everything else shows full highlight.
-            if (bi === tr.R && tr.sub === 'lhs') {
-              el.innerHTML = highlightLHS(line.t);
-            } else {
-              el.innerHTML = highlightTerms(line.t, T);
-            }
+        // ---- majority points: sit still, then fly into their centroid ----
+        majDots.forEach((d, i) => {
+          const c = CENTROIDS[ASSIGN[i]];
+          const collapsed = stage >= 3;
+          TM.anime({
+            targets: d,
+            translateX: collapsed ? c[0] : MAJ[i][0],
+            translateY: collapsed ? c[1] : MAJ[i][1],
+            scale: collapsed ? 0 : 1,
+            opacity: collapsed ? 0 : 1,
+            duration: collapsed ? 700 : 550,
+            easing: collapsed ? 'easeInOutCubic' : 'easeOutBack',
+            delay: collapsed ? anime.stagger(14) : 0,
           });
         });
 
-        // left column: recipe code while emitting, "terms to account for" panel after
-        lineEls.forEach(({ el, stage: st }) => {
-          el.classList.toggle('oc-active', !leftTerms && st === stage);
-          el.classList.toggle('oc-done', !leftTerms && st !== null && st < stage);
-          TM.anime({ targets: el, opacity: leftTerms ? 0 : 1, duration: 300, easing: 'easeOutQuad' });
+        // ---- centroids: appear at stage 2, become the class proper at stage 4 ----
+        const centOn = stage >= 2;
+        const isClass = stage >= 4;
+        centDots.forEach((d, i) => {
+          d.classList.toggle('is-class', isClass);
+          TM.anime({
+            targets: d,
+            backgroundColor: isClass ? C_MAJ : C_CENT,
+            scale: centOn ? 1 : 0,
+            opacity: centOn ? 1 : 0,
+            duration: 480,
+            easing: 'easeOutBack',
+            delay: stage === 2 ? anime.stagger(35) : 0,
+          });
         });
-        // terms list: empty during the transition, then fills in as we trace up.
-        // On forward entry, terms newly added this stage fly in from their token.
-        const prevT = (prevStage >= 8 && prevStage - 8 < TRACE.length) ? TRACE[prevStage - 8].T : [];
-        const added = (tr && stage === prevStage + 1) ? T.filter((x) => prevT.indexOf(x) === -1) : [];
-        termListEl.innerHTML = tr
-          ? T.map((t) => {
-              const c = COLORS[t] || {};
-              return `<div class="oc-term" data-term="${t}" style="border-color:${c.fg};background:${c.bg};color:${c.fg}">${t}</div>`;
-            }).join('')
-          : '';
-        added.forEach((term, i) => {
-          const targetEl = termListEl.querySelector('.oc-term[data-term="' + term + '"]');
-          const srcTok = findToken(term);
-          if (targetEl && srcTok) flyTerm(term, srcTok, targetEl, i * 150);
-        });
-        TM.anime({ targets: termsEl, opacity: (leftTerms && !final) ? 1 : 0, duration: 300, easing: 'easeOutQuad' });
 
-        prevStage = stage;
+        setCount(counts[0], stage >= 4 ? K : MAJ.length);
+        setCount(counts[1], MIN.length);
 
-        // connector arrow points the active recipe line -> its block (phase 1)
-        if (!leftTerms && stage >= 1 && stage <= 6) {
-          positionArrow(stage);
-          TM.anime({ targets: arrowLine, opacity: 1, duration: 300, easing: 'easeOutQuad' });
-        } else {
-          TM.anime({ targets: arrowLine, opacity: 0, duration: 300, easing: 'easeOutQuad' });
-        }
+        setTitle(
+          stage >= 5 ? 'With soft voting the survivors are the centroids: new rows, not kept observations'
+          : stage === 4 ? 'The centroids are the new majority class'
+          : stage === 3 ? 'Every cluster collapses into its centroid'
+          : stage === 2 ? 'Each group is summarised by its centroid'
+          : stage === 1 ? 'Cluster the majority into k = 12 groups, one per minority point'
+          : 'Imbalanced: 40 majority points against 12 minority');
       }
 
       TM.gate({
-        markerClass: 'oc-slide',
-        fragmentIds: [
-          'oc-unknown', 'oc-impute', 'oc-dummy', 'oc-scale', 'oc-center', 'oc-model',
-          'oc-terms-setup',
-          'oc-trace-model',
-          'oc-trace-center-rhs', 'oc-trace-center-lhs',
-          'oc-trace-scale-rhs', 'oc-trace-scale-lhs',
-          'oc-trace-dummy-rhs', 'oc-trace-dummy-lhs',
-          'oc-trace-impute-rhs', 'oc-trace-impute-lhs',
-          'oc-trace-unknown-rhs', 'oc-trace-unknown-lhs',
-          'oc-final',
-        ],
+        markerClass: 'cc-slide',
+        fragmentIds: ['cc-cluster', 'cc-centroids', 'cc-collapse', 'cc-become', 'cc-synthetic'],
         render,
       });
     })();

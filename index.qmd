@@ -256,6 +256,17 @@ Rebalancing an unevenly distributed outcome, as implemented by the
 [Download reusable bundle](bundles/nearmiss.zip)
 </p>
 
+## Cluster centroids
+
+<iframe class="deck-embed" src="examples/cluster-centroids.html" title="Cluster centroids animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/cluster-centroids.html){target="_blank"}
+[Download GIF](gifs/cluster-centroids.gif){download=""}
+[Download MP4](mp4/cluster-centroids.mp4){download=""}
+[Download reusable bundle](bundles/cluster-centroids.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.

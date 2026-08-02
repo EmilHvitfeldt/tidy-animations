@@ -1,0 +1,25 @@
+---
+title: "Cluster centroids"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/cluster-centroids.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority, centroid marker]. -->
+<script>window.CC_COLORS = ['#c8ccd4', '#d6336c', '#5b6272'];</script>
+```
+
+## {.cc-slide}
+
+::: {.cc-stage-wrap}
+<div id="cc-title" class="cc-title"></div>
+<div id="cc-stage"></div>
+:::
+
+[]{.fragment .cc-frag id="cc-cluster"}
+[]{.fragment .cc-frag id="cc-centroids"}
+[]{.fragment .cc-frag id="cc-collapse"}
+[]{.fragment .cc-frag id="cc-become"}
+[]{.fragment .cc-frag id="cc-synthetic"}

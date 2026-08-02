@@ -46,7 +46,7 @@
     "href": "index.html#bootstrap-resampling",
     "title": "tidy animations",
     "section": "Bootstrap resampling",
-    "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (14 KB)"
+    "text": "Bootstrap resampling\n\n\n\nOpen full deck Download GIF (1.2 MB) Download MP4 (527 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#recipe-pipeline",
@@ -60,7 +60,7 @@
     "href": "index.html#orbital-codegen",
     "title": "tidy animations",
     "section": "Orbital codegen",
-    "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (17 KB)"
+    "text": "Orbital codegen\n\n\n\nOpen full deck Download GIF (923 KB) Download MP4 (571 KB) Download reusable bundle (18 KB)"
   },
   {
     "objectID": "index.html#orbital-flat-to-nested-case_when",
@@ -74,7 +74,7 @@
     "href": "index.html#orbital-separate-trees",
     "title": "tidy animations",
     "section": "Orbital: separate trees",
-    "text": "Orbital: separate trees\n\n\n\nOpen full deck Download GIF (758 KB) Download MP4 (386 KB) Download reusable bundle (20 KB)"
+    "text": "Orbital: separate trees\n\n\n\nOpen full deck Download GIF (758 KB) Download MP4 (386 KB) Download reusable bundle (21 KB)"
   },
   {
     "objectID": "index.html#smote",
@@ -102,7 +102,7 @@
     "href": "index.html#adasyn",
     "title": "tidy animations",
     "section": "ADASYN",
-    "text": "ADASYN\n\n\n\nOpen full deck Download GIF (465 KB) Download MP4 (188 KB) Download reusable bundle (15 KB)"
+    "text": "ADASYN\n\n\n\nOpen full deck Download GIF (465 KB) Download MP4 (188 KB) Download reusable bundle (16 KB)"
   },
   {
     "objectID": "index.html#tomek-links",
@@ -124,6 +124,13 @@
     "title": "tidy animations",
     "section": "NearMiss-1",
     "text": "NearMiss-1\n\n\n\nOpen full deck Download GIF (325 KB) Download MP4 (140 KB) Download reusable bundle (15 KB)"
+  },
+  {
+    "objectID": "index.html#cluster-centroids",
+    "href": "index.html#cluster-centroids",
+    "title": "tidy animations",
+    "section": "Cluster centroids",
+    "text": "Cluster centroids\n\n\n\nOpen full deck Download GIF (228 KB) Download MP4 (109 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed",
@@ -151,7 +158,7 @@
     "href": "index.html#filter-a-data-frame",
     "title": "tidy animations",
     "section": "filter() a data frame",
-    "text": "filter() a data frame\n\n\n\nOpen full deck Download GIF (132 KB) Download MP4 (73 KB) Download reusable bundle (13 KB)"
+    "text": "filter() a data frame\n\n\n\nOpen full deck Download GIF (132 KB) Download MP4 (73 KB) Download reusable bundle (14 KB)"
   },
   {
     "objectID": "index.html#filter-on-two-columns",
