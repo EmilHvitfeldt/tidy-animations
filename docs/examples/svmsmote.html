@@ -9,7 +9,7 @@
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-f48cb789c6bab3b4303eaeba73647581.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.35">
 
-  <title>tidymodels, animated – ROSE</title>
+  <title>tidymodels, animated – SVM-SMOTE</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -130,7 +130,7 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">ROSE</h1>
+  <h1 class="title">SVM-SMOTE</h1>
 
 <div class="quarto-title-authors">
 </div>
@@ -138,20 +138,20 @@
 </section>
 <section class="slide level2">
 
-<!-- Colours: [majority, minority]. -->
-<script>window.ROSE_COLORS = ['#c8ccd4', '#d6336c'];</script>
+<!-- Colours: [majority, minority, synthetic, danger, safety, noise]. -->
+<script>window.SVMS_COLORS = ['#c8ccd4', '#d6336c', '#e59db7', '#e8590c', '#2f9e44', '#868e96'];</script>
 </section>
-<section id="section" class="slide level2 rose-slide">
+<section id="section" class="slide level2 svms-slide">
 <h2></h2>
-<div class="rose-stage-wrap">
-<div id="rose-title" class="rose-title">
+<div class="svms-stage-wrap">
+<div id="svms-title" class="svms-title">
 
 </div>
-<div id="rose-stage">
+<div id="svms-stage">
 
 </div>
 </div>
-<p><span id="rose-kernel" class="fragment rose-frag"></span> <span id="rose-draw" class="fragment rose-frag"></span> <span id="rose-repeat" class="fragment rose-frag"></span> <span id="rose-replace" class="fragment rose-frag"></span> <span id="rose-balanced" class="fragment rose-frag"></span></p>
+<p><span id="svms-fit" class="fragment svms-frag"></span> <span id="svms-classify" class="fragment svms-frag"></span> <span id="svms-danger" class="fragment svms-frag"></span> <span id="svms-safety" class="fragment svms-frag"></span> <span id="svms-balanced" class="fragment svms-frag"></span></p>
 
 
 </section>
@@ -455,72 +455,83 @@
     };
     </script>
     <script>
-    /* ---- ROSE animation ----
-     * Marker slide: .rose-slide   Stage container: #rose-stage
+    /* ---- SVM-SMOTE animation ----
+     * Marker slide: .svms-slide   Stage container: #svms-stage
      * render(stage) is idempotent (stage = number of visible gating fragments).
      *
-     * ROSE (Random OverSampling Examples) does not copy or interpolate points. It
-     * bootstraps an observation, then draws a NEW point from a Gaussian kernel
-     * centred on it. themis::rose() wraps ROSE::ROSE() with N = 2 * majority size
-     * and p = 0.5, so the output is an entirely new, balanced sample and BOTH
-     * classes get smoothed — not just the minority. See themis R/rose.R.
+     * SVM-SMOTE seeds SMOTE from the minority SUPPORT VECTORS of a fitted SVM, and
+     * treats them differently depending on how hostile their neighbourhood is.
+     * With m nearest neighbours across all classes and n_maj of them majority:
+     *   noise  : n_maj == m          -> generates nothing
+     *   danger : m/2 <= n_maj < m    -> INTERPOLATES toward a minority neighbour
+     *   safety : n_maj < m/2         -> EXTRAPOLATES away from one (step -out_step)
+     * Interpolating fills in the boundary; extrapolating pushes the minority
+     * region outward. See themis R/svmsmote_impl.R.
      *
      * Segments (stage 0 = slide arrival):
-     *   0 imbalanced: 30 majority against 10 minority
-     *   1 a smoothing kernel sits around an observation
-     *   2 a new point is drawn from that kernel
-     *   3 repeat: bootstrap a point, draw from its kernel, for both classes
-     *   4 the originals are not kept; the draws are the returned sample
-     *   5 balanced 30/30, both classes smoothed
+     *   0 imbalanced, with the classes overlapping around a boundary
+     *   1 fit an SVM: decision boundary, margins, support vectors
+     *   2 label each minority support vector noise / danger / safety
+     *   3 danger vectors interpolate inward
+     *   4 safety vectors extrapolate outward
+     *   5 balanced, with the new points massed along the boundary
      */
     (function () {
-      // [majority, minority]
-      const COLORS = window.ROSE_COLORS || ['#c8ccd4', '#d6336c'];
-      const [C_MAJ, C_MIN] = COLORS;
+      // [majority, minority, synthetic, danger, safety, noise]
+      const COLORS = window.SVMS_COLORS ||
+        ['#c8ccd4', '#d6336c', '#e59db7', '#e8590c', '#2f9e44', '#868e96'];
+      const [C_MAJ, C_MIN, C_SYN, C_DANGER, C_SAFETY, C_NOISE] = COLORS;
 
-      // Hardcoded layout and draws (rolled once offline with the rule-of-thumb
-      // bandwidth ROSE uses for d = 2, h = (4 / ((d + 2) n))^(1 / (d + 4)) scaled
-      // per axis by that class's sd). Third entry of a draw is the observation it
-      // was bootstrapped from. Rejection-sampled inside the stage, so nothing piles
-      // up against the rim.
+      const K = 5, M = 10;      // SMOTE neighbours, and m = min(2k, n - 1)
+
+      // Everything below was computed offline and frozen: a linear SVM fitted with
+      // Pegasos (88% train accuracy on this overlap), its support vectors, the
+      // noise/danger/safety split, and the generated points.
       const MAJ = [
-        [376, 450], [202, 419], [316, 269], [683, 319], [353, 388],
-        [552, 296], [460, 183], [134, 119], [83, 271], [372, 140],
-        [346, 329], [119, 432], [416, 263], [438, 363], [259, 227],
-        [192, 295], [642, 62], [542, 212], [334, 219], [619, 414],
-        [278, 337], [281, 498], [710, 71], [416, 416], [690, 364],
-        [492, 229], [160, 336], [219, 173], [140, 239], [114, 380],
+        [135, 135], [512, 317], [554, 222], [396, 251], [208, 310],
+        [123, 242], [445, 298], [340, 211], [266, 243], [664, 293],
+        [359, 381], [439, 220], [266, 352], [367, 329], [259, 464],
+        [578, 294], [409, 150], [314, 246], [365, 285], [619, 317],
+        [185, 422], [421, 504], [686, 152], [244, 395], [543, 431],
+        [718, 364], [457, 357], [193, 257], [413, 326], [533, 276],
+        [74, 149], [164, 329],
       ];
       const MIN = [
-        [777, 354], [902, 253], [754, 265], [645, 337], [684, 190],
-        [726, 186], [722, 112], [809, 275], [737, 362], [607, 201],
+        [1030, 372], [926, 309], [831, 226], [892, 360], [926, 467],
+        [766, 407], [1015, 279], [920, 260], [710, 293], [749, 318],
+        [676, 441], [826, 97], [521, 126], [569, 118], [525, 172],
+        [250, 290],
       ];
-      const SMAJ = [
-        [496, 243, 25], [411, 266, 6], [58, 323, 8], [162, 330, 29], [429, 183, 6],
-        [42, 372, 15], [543, 349, 3], [355, 368, 4], [51, 298, 20], [348, 474, 21],
-        [505, 262, 14], [454, 282, 10], [257, 189, 2], [115, 215, 26], [153, 202, 10],
-        [727, 397, 19], [294, 190, 8], [285, 194, 6], [528, 384, 13], [670, 82, 16],
-        [568, 48, 16], [542, 222, 22], [324, 210, 28], [295, 259, 9], [882, 454, 19],
-        [519, 445, 0], [473, 64, 6], [183, 432, 4], [324, 401, 4], [828, 358, 24],
+      // indices below are in MAJ-then-MIN space
+      const SV = [2, 9, 15, 19, 22, 25, 29, 34, 35, 36, 37, 40, 41, 42, 44, 45, 46, 47];
+      const DANGER = [40, 42, 44, 45, 46];
+      const SAFETY = [34, 35, 36, 37, 41];
+      const NOISE = [47];
+      // [x, y, seed, neighbour]
+      const GEN_DANGER = [
+        [568, 120, 45, 46], [651, 111, 45, 43], [799, 454, 42, 36], [562, 126, 45, 46], [568, 118, 45, 44],
+        [533, 162, 46, 45], [750, 375, 40, 37], [565, 123, 46, 45],
       ];
-      const SMIN = [
-        [736, 278, 7], [838, 205, 7], [770, 342, 7], [943, 164, 1], [677, 235, 9],
-        [650, 277, 9], [831, 260, 8], [743, 261, 5], [658, 191, 4], [840, 278, 7],
-        [886, 285, 1], [830, 221, 7], [630, 368, 3], [580, 375, 3], [635, 356, 3],
-        [689, 384, 0], [705, 412, 3], [789, 196, 5], [834, 360, 8], [818, 338, 7],
-        [618, 295, 3], [756, 183, 2], [769, 56, 6], [784, 200, 2], [768, 36, 6],
-        [832, 268, 1], [760, 184, 2], [874, 289, 7], [655, 362, 3], [733, 285, 8],
+      const GEN_SAFETY = [
+        [815, 212, 34, 33], [899, 492, 36, 32], [927, 508, 36, 39], [926, 529, 36, 33], [928, 525, 36, 39],
+        [932, 469, 36, 37], [771, 417, 37, 40], [741, 277, 41, 37],
       ];
+      const BOUNDARY = [[591, 0], [811, 560]];
+      const MARGIN_POS = [[777, 0], [997, 560]];
+      const MARGIN_NEG = [[404, 0], [624, 560]];
 
-      // kernel half-extents (2 sd) used to draw the ellipse
-      const KMAJ = [210, 126], KMIN = [108, 106];
-
-      const DEMO = 7;                 // minority point we walk through
-      const DEMO_DRAW = 0;            // index into SMIN, a draw from DEMO
+      const NALL = MAJ.length + MIN.length;
+      const isMaj = gi => gi < MAJ.length;
+      const pt = gi => (isMaj(gi) ? MAJ[gi] : MIN[gi - MAJ.length]);
+      const catOf = gi =>
+        DANGER.includes(gi) ? 'danger'
+        : SAFETY.includes(gi) ? 'safety'
+        : NOISE.includes(gi) ? 'noise' : null;
+      const CAT_COLOR = { danger: C_DANGER, safety: C_SAFETY, noise: C_NOISE };
 
       let built = false, world = null;
-      let majDots = [], minDots = [], synMaj = [], synMin = [];
-      let kernel = null, demoLink = null;
+      let dots = [], rings = [], synD = [], synS = [];
+      let boundary = null, marginA = null, marginB = null, key = null;
       const counts = [];
 
       function makeDot(x, y, color, cls) {
@@ -532,61 +543,97 @@
         return d;
       }
 
-      function buildLegend(stageEl) {
+      function makeLine(p0, p1, cls) {
+        const [sx, sy] = p0, [dx, dy] = p1;
+        const len = Math.hypot(dx - sx, dy - sy);
+        const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+        const el = document.createElement('div');
+        el.className = cls;
+        el.style.width = len + 'px';
+        world.insertBefore(el, world.firstChild);
+        anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+        return el;
+      }
+
+      function buildChrome(stageEl) {
         const box = document.createElement('div');
-        box.className = 'rose-legend';
+        box.className = 'svms-legend';
         [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
           ([label, color, n]) => {
             const row = document.createElement('div');
-            row.className = 'rose-legend-item';
+            row.className = 'svms-legend-item';
             const sw = document.createElement('span');
-            sw.className = 'rose-swatch';
+            sw.className = 'svms-swatch';
             sw.style.backgroundColor = color;
             const txt = document.createElement('span');
             txt.textContent = label + ' ';
             const num = document.createElement('span');
-            num.className = 'rose-count';
+            num.className = 'svms-count';
             num.textContent = n;
             row.append(sw, txt, num);
             box.appendChild(row);
             counts.push(num);
           });
         stageEl.appendChild(box);
+
+        // category key, shown once the support vectors are labelled
+        key = document.createElement('div');
+        key.className = 'svms-key';
+        [['danger: interpolate inward', C_DANGER],
+         ['safety: extrapolate outward', C_SAFETY],
+         ['noise: generates nothing', C_NOISE]].forEach(([label, color]) => {
+          const row = document.createElement('div');
+          row.className = 'svms-key-item';
+          const sw = document.createElement('span');
+          sw.className = 'svms-key-ring';
+          sw.style.borderColor = color;
+          const txt = document.createElement('span');
+          txt.textContent = label;
+          row.append(sw, txt);
+          key.appendChild(row);
+        });
+        stageEl.appendChild(key);
+        anime.set(key, { opacity: 0 });
       }
 
       function build() {
-        const stageEl = document.getElementById('rose-stage');
+        const stageEl = document.getElementById('svms-stage');
         if (!stageEl || built) return !!stageEl;
         built = true;
         world = document.createElement('div');
-        world.className = 'rose-world';
+        world.className = 'svms-world';
         stageEl.appendChild(world);
 
-        // kernel ellipse sits behind everything
-        kernel = document.createElement('div');
-        kernel.className = 'rose-kernel';
-        kernel.style.width = KMIN[0] * 2 + 'px';
-        kernel.style.height = KMIN[1] * 2 + 'px';
-        kernel.style.marginLeft = -KMIN[0] + 'px';
-        kernel.style.marginTop = -KMIN[1] + 'px';
-        world.appendChild(kernel);
-        anime.set(kernel, { translateX: MIN[DEMO][0], translateY: MIN[DEMO][1], scale: 0.4, opacity: 0 });
+        marginA = makeLine(MARGIN_POS[0], MARGIN_POS[1], 'svms-margin');
+        marginB = makeLine(MARGIN_NEG[0], MARGIN_NEG[1], 'svms-margin');
+        boundary = makeLine(BOUNDARY[0], BOUNDARY[1], 'svms-boundary');
 
-        MAJ.forEach(([x, y]) => majDots.push(makeDot(x, y, C_MAJ, 'rose-dot')));
-        MIN.forEach(([x, y]) => minDots.push(makeDot(x, y, C_MIN, 'rose-dot')));
-
-        SMAJ.forEach(([x, y]) => {
-          const d = makeDot(x, y, C_MAJ, 'rose-dot is-syn');
+        for (let i = 0; i < NALL; i++) {
+          const [x, y] = pt(i);
+          dots.push(makeDot(x, y, isMaj(i) ? C_MAJ : C_MIN, 'svms-dot'));
+        }
+        // a ring on every support vector; recoloured by category at stage 2
+        for (let i = 0; i < NALL; i++) {
+          if (!SV.includes(i)) { rings.push(null); continue; }
+          const [x, y] = pt(i);
+          const el = document.createElement('div');
+          el.className = 'svms-ring';
+          world.appendChild(el);
+          anime.set(el, { translateX: x, translateY: y, scale: 0.6, opacity: 0 });
+          rings.push(el);
+        }
+        GEN_DANGER.forEach(([x, y]) => {
+          const d = makeDot(x, y, C_SYN, 'svms-dot');
           anime.set(d, { scale: 0, opacity: 0 });
-          synMaj.push(d);
+          synD.push(d);
         });
-        SMIN.forEach(([x, y]) => {
-          const d = makeDot(x, y, C_MIN, 'rose-dot is-syn');
+        GEN_SAFETY.forEach(([x, y]) => {
+          const d = makeDot(x, y, C_SYN, 'svms-dot');
           anime.set(d, { scale: 0, opacity: 0 });
-          synMin.push(d);
+          synS.push(d);
         });
 
-        buildLegend(stageEl);
+        buildChrome(stageEl);
         return true;
       }
 
@@ -597,7 +644,7 @@
       }
 
       function setTitle(text) {
-        const t = document.getElementById('rose-title');
+        const t = document.getElementById('svms-title');
         if (!t) return;
         t.textContent = text;
         TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
@@ -606,57 +653,66 @@
       function render(stage) {
         if (!build()) return;
 
-        const demoing = stage === 1 || stage === 2;
-        const originalsGone = stage >= 4;
+        // ---- the fitted SVM ----
+        TM.anime({ targets: boundary, opacity: stage >= 1 ? 0.9 : 0, duration: 450,
+          easing: 'easeInOutQuad' });
+        TM.anime({ targets: [marginA, marginB], opacity: stage >= 1 ? 0.45 : 0, duration: 450,
+          easing: 'easeInOutQuad', delay: anime.stagger(80) });
 
-        // ---- the kernel around the demo point ----
-        TM.anime({ targets: kernel, scale: demoing ? 1 : 0.4, opacity: demoing ? 1 : 0,
-          duration: 500, easing: 'easeOutBack' });
+        // ---- support vector rings ----
+        rings.forEach((el, i) => {
+          if (!el) return;
+          const cat = catOf(i);
+          // stage 1 shows every support vector; from stage 2 only the minority ones,
+          // recoloured by their neighbourhood verdict
+          // dropped again at the final stage, along with the key, so the last
+          // frame is just the balanced data
+          const on = stage === 1 || (stage >= 2 && stage < 5 && !!cat);
+          el.style.borderColor = stage >= 2 && cat ? CAT_COLOR[cat] : '#343a40';
+          TM.anime({ targets: el, scale: on ? 1 : 0.6, opacity: on ? 1 : 0,
+            duration: 420, easing: 'easeOutBack',
+            delay: stage === 1 ? anime.stagger(30) : 0 });
+        });
+        TM.anime({ targets: key, opacity: stage >= 2 && stage < 5 ? 1 : 0, duration: 400,
+          easing: 'easeInOutQuad' });
 
-        // ---- originals: dim while demoing, dim again under the draws, then go ----
-        majDots.forEach((d, i) => {
-          TM.anime({ targets: d, scale: originalsGone ? 0 : 1,
-            opacity: originalsGone ? 0 : (demoing ? 0.25 : (stage === 3 ? 0.28 : 1)),
-            duration: originalsGone ? 600 : 450, easing: originalsGone ? 'easeInBack' : 'easeInOutQuad',
-            delay: originalsGone ? anime.stagger(10) : 0 });
-        });
-        minDots.forEach((d, i) => {
-          const spotlight = demoing && i === DEMO;
-          TM.anime({ targets: d, scale: originalsGone ? 0 : (spotlight ? 1.25 : 1),
-            opacity: originalsGone ? 0 : (demoing && !spotlight ? 0.25 : (stage === 3 ? 0.28 : 1)),
-            duration: originalsGone ? 600 : 450, easing: originalsGone ? 'easeInBack' : 'easeOutBack',
-            delay: originalsGone ? anime.stagger(10) : 0 });
+        // ---- dots stay put; dim the majority once we are working the minority ----
+        dots.forEach((d, i) => {
+          const dim = stage >= 2 && stage < 5 && isMaj(i);
+          TM.anime({ targets: d, opacity: dim ? 0.32 : 1, scale: 1,
+            duration: 420, easing: 'easeInOutQuad' });
         });
 
-        // ---- the draws: one at stage 2, all of them from stage 3 ----
-        synMin.forEach((d, i) => {
-          const on = (stage === 2 && i === DEMO_DRAW) || stage >= 3;
-          TM.anime({ targets: d, scale: on ? 1 : 0, opacity: on ? 1 : 0,
-            duration: 450, easing: on ? 'easeOutBack' : 'easeInQuad',
-            delay: stage === 3 ? anime.stagger(22) : 0 });
-        });
-        synMaj.forEach(d => {
+        // ---- generated points ----
+        synD.forEach(d => {
           const on = stage >= 3;
-          TM.anime({ targets: d, scale: on ? 1 : 0, opacity: on ? 1 : 0,
+          TM.anime({ targets: d, scale: on ? 1.1 : 0, opacity: on ? 1 : 0,
             duration: 450, easing: on ? 'easeOutBack' : 'easeInQuad',
-            delay: on ? anime.stagger(22) : 0 });
+            delay: on ? anime.stagger(45) : 0 });
+        });
+        synS.forEach(d => {
+          const on = stage >= 4;
+          TM.anime({ targets: d, scale: on ? 1.1 : 0, opacity: on ? 1 : 0,
+            duration: 450, easing: on ? 'easeOutBack' : 'easeInQuad',
+            delay: on ? anime.stagger(45) : 0 });
         });
 
-        setCount(counts[0], stage >= 4 ? SMAJ.length : MAJ.length);
-        setCount(counts[1], stage >= 4 ? SMIN.length : MIN.length);
+        setCount(counts[0], MAJ.length);
+        setCount(counts[1], MIN.length
+          + (stage >= 3 ? GEN_DANGER.length : 0) + (stage >= 4 ? GEN_SAFETY.length : 0));
 
         setTitle(
-          stage >= 5 ? 'A balanced sample, with both classes smoothed rather than copied'
-          : stage === 4 ? 'The originals are not kept: the draws are the returned sample'
-          : stage === 3 ? 'Repeat: bootstrap a point, draw from its kernel, for both classes'
-          : stage === 2 ? 'A new point is drawn from the kernel, so it is near the original but not a copy'
-          : stage === 1 ? 'ROSE puts a smoothing kernel around an observation'
-          : 'Imbalanced: 30 majority points against 10 minority');
+          stage >= 5 ? 'Balanced, with the new points massed along the boundary'
+          : stage === 4 ? 'Safety vectors extrapolate outward, pushing the minority region out'
+          : stage === 3 ? 'Danger vectors interpolate inward, filling the boundary'
+          : stage === 2 ? 'Label each minority support vector by how many of its m = 10 neighbours are majority'
+          : stage === 1 ? 'Fit an SVM: the boundary, its margins, and the support vectors'
+          : 'Imbalanced, with the two classes overlapping around a boundary');
       }
 
       TM.gate({
-        markerClass: 'rose-slide',
-        fragmentIds: ['rose-kernel', 'rose-draw', 'rose-repeat', 'rose-replace', 'rose-balanced'],
+        markerClass: 'svms-slide',
+        fragmentIds: ['svms-fit', 'svms-classify', 'svms-danger', 'svms-safety', 'svms-balanced'],
         render,
       });
     })();

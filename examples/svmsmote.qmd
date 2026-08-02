@@ -1,0 +1,25 @@
+---
+title: "SVM-SMOTE"
+format:
+  revealjs:
+    include-after-body:
+      - ../js/svmsmote.html
+---
+
+```{=html}
+<!-- Colours: [majority, minority, synthetic, danger, safety, noise]. -->
+<script>window.SVMS_COLORS = ['#c8ccd4', '#d6336c', '#e59db7', '#e8590c', '#2f9e44', '#868e96'];</script>
+```
+
+## {.svms-slide}
+
+::: {.svms-stage-wrap}
+<div id="svms-title" class="svms-title"></div>
+<div id="svms-stage"></div>
+:::
+
+[]{.fragment .svms-frag id="svms-fit"}
+[]{.fragment .svms-frag id="svms-classify"}
+[]{.fragment .svms-frag id="svms-danger"}
+[]{.fragment .svms-frag id="svms-safety"}
+[]{.fragment .svms-frag id="svms-balanced"}

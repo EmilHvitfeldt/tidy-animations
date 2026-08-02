@@ -1,0 +1,263 @@
+<script>
+/* ---- SVM-SMOTE animation ----
+ * Marker slide: .svms-slide   Stage container: #svms-stage
+ * render(stage) is idempotent (stage = number of visible gating fragments).
+ *
+ * SVM-SMOTE seeds SMOTE from the minority SUPPORT VECTORS of a fitted SVM, and
+ * treats them differently depending on how hostile their neighbourhood is.
+ * With m nearest neighbours across all classes and n_maj of them majority:
+ *   noise  : n_maj == m          -> generates nothing
+ *   danger : m/2 <= n_maj < m    -> INTERPOLATES toward a minority neighbour
+ *   safety : n_maj < m/2         -> EXTRAPOLATES away from one (step -out_step)
+ * Interpolating fills in the boundary; extrapolating pushes the minority
+ * region outward. See themis R/svmsmote_impl.R.
+ *
+ * Segments (stage 0 = slide arrival):
+ *   0 imbalanced, with the classes overlapping around a boundary
+ *   1 fit an SVM: decision boundary, margins, support vectors
+ *   2 label each minority support vector noise / danger / safety
+ *   3 danger vectors interpolate inward
+ *   4 safety vectors extrapolate outward
+ *   5 balanced, with the new points massed along the boundary
+ */
+(function () {
+  // [majority, minority, synthetic, danger, safety, noise]
+  const COLORS = window.SVMS_COLORS ||
+    ['#c8ccd4', '#d6336c', '#e59db7', '#e8590c', '#2f9e44', '#868e96'];
+  const [C_MAJ, C_MIN, C_SYN, C_DANGER, C_SAFETY, C_NOISE] = COLORS;
+
+  const K = 5, M = 10;      // SMOTE neighbours, and m = min(2k, n - 1)
+
+  // Everything below was computed offline and frozen: a linear SVM fitted with
+  // Pegasos (88% train accuracy on this overlap), its support vectors, the
+  // noise/danger/safety split, and the generated points.
+  const MAJ = [
+    [135, 135], [512, 317], [554, 222], [396, 251], [208, 310],
+    [123, 242], [445, 298], [340, 211], [266, 243], [664, 293],
+    [359, 381], [439, 220], [266, 352], [367, 329], [259, 464],
+    [578, 294], [409, 150], [314, 246], [365, 285], [619, 317],
+    [185, 422], [421, 504], [686, 152], [244, 395], [543, 431],
+    [718, 364], [457, 357], [193, 257], [413, 326], [533, 276],
+    [74, 149], [164, 329],
+  ];
+  const MIN = [
+    [1030, 372], [926, 309], [831, 226], [892, 360], [926, 467],
+    [766, 407], [1015, 279], [920, 260], [710, 293], [749, 318],
+    [676, 441], [826, 97], [521, 126], [569, 118], [525, 172],
+    [250, 290],
+  ];
+  // indices below are in MAJ-then-MIN space
+  const SV = [2, 9, 15, 19, 22, 25, 29, 34, 35, 36, 37, 40, 41, 42, 44, 45, 46, 47];
+  const DANGER = [40, 42, 44, 45, 46];
+  const SAFETY = [34, 35, 36, 37, 41];
+  const NOISE = [47];
+  // [x, y, seed, neighbour]
+  const GEN_DANGER = [
+    [568, 120, 45, 46], [651, 111, 45, 43], [799, 454, 42, 36], [562, 126, 45, 46], [568, 118, 45, 44],
+    [533, 162, 46, 45], [750, 375, 40, 37], [565, 123, 46, 45],
+  ];
+  const GEN_SAFETY = [
+    [815, 212, 34, 33], [899, 492, 36, 32], [927, 508, 36, 39], [926, 529, 36, 33], [928, 525, 36, 39],
+    [932, 469, 36, 37], [771, 417, 37, 40], [741, 277, 41, 37],
+  ];
+  const BOUNDARY = [[591, 0], [811, 560]];
+  const MARGIN_POS = [[777, 0], [997, 560]];
+  const MARGIN_NEG = [[404, 0], [624, 560]];
+
+  const NALL = MAJ.length + MIN.length;
+  const isMaj = gi => gi < MAJ.length;
+  const pt = gi => (isMaj(gi) ? MAJ[gi] : MIN[gi - MAJ.length]);
+  const catOf = gi =>
+    DANGER.includes(gi) ? 'danger'
+    : SAFETY.includes(gi) ? 'safety'
+    : NOISE.includes(gi) ? 'noise' : null;
+  const CAT_COLOR = { danger: C_DANGER, safety: C_SAFETY, noise: C_NOISE };
+
+  let built = false, world = null;
+  let dots = [], rings = [], synD = [], synS = [];
+  let boundary = null, marginA = null, marginB = null, key = null;
+  const counts = [];
+
+  function makeDot(x, y, color, cls) {
+    const d = document.createElement('div');
+    d.className = cls;
+    d.style.backgroundColor = color;
+    world.appendChild(d);
+    anime.set(d, { translateX: x, translateY: y, scale: 1, opacity: 1 });
+    return d;
+  }
+
+  function makeLine(p0, p1, cls) {
+    const [sx, sy] = p0, [dx, dy] = p1;
+    const len = Math.hypot(dx - sx, dy - sy);
+    const ang = Math.atan2(dy - sy, dx - sx) * 180 / Math.PI;
+    const el = document.createElement('div');
+    el.className = cls;
+    el.style.width = len + 'px';
+    world.insertBefore(el, world.firstChild);
+    anime.set(el, { translateX: sx, translateY: sy, rotate: ang, opacity: 0 });
+    return el;
+  }
+
+  function buildChrome(stageEl) {
+    const box = document.createElement('div');
+    box.className = 'svms-legend';
+    [['majority', C_MAJ, MAJ.length], ['minority', C_MIN, MIN.length]].forEach(
+      ([label, color, n]) => {
+        const row = document.createElement('div');
+        row.className = 'svms-legend-item';
+        const sw = document.createElement('span');
+        sw.className = 'svms-swatch';
+        sw.style.backgroundColor = color;
+        const txt = document.createElement('span');
+        txt.textContent = label + ' ';
+        const num = document.createElement('span');
+        num.className = 'svms-count';
+        num.textContent = n;
+        row.append(sw, txt, num);
+        box.appendChild(row);
+        counts.push(num);
+      });
+    stageEl.appendChild(box);
+
+    // category key, shown once the support vectors are labelled
+    key = document.createElement('div');
+    key.className = 'svms-key';
+    [['danger: interpolate inward', C_DANGER],
+     ['safety: extrapolate outward', C_SAFETY],
+     ['noise: generates nothing', C_NOISE]].forEach(([label, color]) => {
+      const row = document.createElement('div');
+      row.className = 'svms-key-item';
+      const sw = document.createElement('span');
+      sw.className = 'svms-key-ring';
+      sw.style.borderColor = color;
+      const txt = document.createElement('span');
+      txt.textContent = label;
+      row.append(sw, txt);
+      key.appendChild(row);
+    });
+    stageEl.appendChild(key);
+    anime.set(key, { opacity: 0 });
+  }
+
+  function build() {
+    const stageEl = document.getElementById('svms-stage');
+    if (!stageEl || built) return !!stageEl;
+    built = true;
+    world = document.createElement('div');
+    world.className = 'svms-world';
+    stageEl.appendChild(world);
+
+    marginA = makeLine(MARGIN_POS[0], MARGIN_POS[1], 'svms-margin');
+    marginB = makeLine(MARGIN_NEG[0], MARGIN_NEG[1], 'svms-margin');
+    boundary = makeLine(BOUNDARY[0], BOUNDARY[1], 'svms-boundary');
+
+    for (let i = 0; i < NALL; i++) {
+      const [x, y] = pt(i);
+      dots.push(makeDot(x, y, isMaj(i) ? C_MAJ : C_MIN, 'svms-dot'));
+    }
+    // a ring on every support vector; recoloured by category at stage 2
+    for (let i = 0; i < NALL; i++) {
+      if (!SV.includes(i)) { rings.push(null); continue; }
+      const [x, y] = pt(i);
+      const el = document.createElement('div');
+      el.className = 'svms-ring';
+      world.appendChild(el);
+      anime.set(el, { translateX: x, translateY: y, scale: 0.6, opacity: 0 });
+      rings.push(el);
+    }
+    GEN_DANGER.forEach(([x, y]) => {
+      const d = makeDot(x, y, C_SYN, 'svms-dot');
+      anime.set(d, { scale: 0, opacity: 0 });
+      synD.push(d);
+    });
+    GEN_SAFETY.forEach(([x, y]) => {
+      const d = makeDot(x, y, C_SYN, 'svms-dot');
+      anime.set(d, { scale: 0, opacity: 0 });
+      synS.push(d);
+    });
+
+    buildChrome(stageEl);
+    return true;
+  }
+
+  function setCount(el, value) {
+    if (el.textContent === String(value)) return;
+    el.textContent = value;
+    TM.anime({ targets: el, scale: [1.35, 1], duration: 420, easing: 'easeOutBack' });
+  }
+
+  function setTitle(text) {
+    const t = document.getElementById('svms-title');
+    if (!t) return;
+    t.textContent = text;
+    TM.anime({ targets: t, opacity: text ? 1 : 0, duration: 400, easing: 'easeInOutQuad' });
+  }
+
+  function render(stage) {
+    if (!build()) return;
+
+    // ---- the fitted SVM ----
+    TM.anime({ targets: boundary, opacity: stage >= 1 ? 0.9 : 0, duration: 450,
+      easing: 'easeInOutQuad' });
+    TM.anime({ targets: [marginA, marginB], opacity: stage >= 1 ? 0.45 : 0, duration: 450,
+      easing: 'easeInOutQuad', delay: anime.stagger(80) });
+
+    // ---- support vector rings ----
+    rings.forEach((el, i) => {
+      if (!el) return;
+      const cat = catOf(i);
+      // stage 1 shows every support vector; from stage 2 only the minority ones,
+      // recoloured by their neighbourhood verdict
+      // dropped again at the final stage, along with the key, so the last
+      // frame is just the balanced data
+      const on = stage === 1 || (stage >= 2 && stage < 5 && !!cat);
+      el.style.borderColor = stage >= 2 && cat ? CAT_COLOR[cat] : '#343a40';
+      TM.anime({ targets: el, scale: on ? 1 : 0.6, opacity: on ? 1 : 0,
+        duration: 420, easing: 'easeOutBack',
+        delay: stage === 1 ? anime.stagger(30) : 0 });
+    });
+    TM.anime({ targets: key, opacity: stage >= 2 && stage < 5 ? 1 : 0, duration: 400,
+      easing: 'easeInOutQuad' });
+
+    // ---- dots stay put; dim the majority once we are working the minority ----
+    dots.forEach((d, i) => {
+      const dim = stage >= 2 && stage < 5 && isMaj(i);
+      TM.anime({ targets: d, opacity: dim ? 0.32 : 1, scale: 1,
+        duration: 420, easing: 'easeInOutQuad' });
+    });
+
+    // ---- generated points ----
+    synD.forEach(d => {
+      const on = stage >= 3;
+      TM.anime({ targets: d, scale: on ? 1.1 : 0, opacity: on ? 1 : 0,
+        duration: 450, easing: on ? 'easeOutBack' : 'easeInQuad',
+        delay: on ? anime.stagger(45) : 0 });
+    });
+    synS.forEach(d => {
+      const on = stage >= 4;
+      TM.anime({ targets: d, scale: on ? 1.1 : 0, opacity: on ? 1 : 0,
+        duration: 450, easing: on ? 'easeOutBack' : 'easeInQuad',
+        delay: on ? anime.stagger(45) : 0 });
+    });
+
+    setCount(counts[0], MAJ.length);
+    setCount(counts[1], MIN.length
+      + (stage >= 3 ? GEN_DANGER.length : 0) + (stage >= 4 ? GEN_SAFETY.length : 0));
+
+    setTitle(
+      stage >= 5 ? 'Balanced, with the new points massed along the boundary'
+      : stage === 4 ? 'Safety vectors extrapolate outward, pushing the minority region out'
+      : stage === 3 ? 'Danger vectors interpolate inward, filling the boundary'
+      : stage === 2 ? 'Label each minority support vector by how many of its m = 10 neighbours are majority'
+      : stage === 1 ? 'Fit an SVM: the boundary, its margins, and the support vectors'
+      : 'Imbalanced, with the two classes overlapping around a boundary');
+  }
+
+  TM.gate({
+    markerClass: 'svms-slide',
+    fragmentIds: ['svms-fit', 'svms-classify', 'svms-danger', 'svms-safety', 'svms-balanced'],
+    render,
+  });
+})();
+</script>

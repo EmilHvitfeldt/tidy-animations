@@ -130,7 +130,7 @@
     "href": "index.html#cluster-centroids",
     "title": "tidy animations",
     "section": "Cluster centroids",
-    "text": "Cluster centroids\n\n\n\nOpen full deck Download GIF (228 KB) Download MP4 (109 KB) Download reusable bundle (14 KB)"
+    "text": "Cluster centroids\n\n\n\nOpen full deck Download GIF (228 KB) Download MP4 (109 KB) Download reusable bundle (15 KB)"
   },
   {
     "objectID": "index.html#rose",
@@ -147,6 +147,13 @@
     "text": "k-means SMOTE\n\n\n\nOpen full deck Download GIF (332 KB) Download MP4 (154 KB) Download reusable bundle (15 KB)"
   },
   {
+    "objectID": "index.html#svm-smote",
+    "href": "index.html#svm-smote",
+    "title": "tidy animations",
+    "section": "SVM-SMOTE",
+    "text": "SVM-SMOTE\n\n\n\nOpen full deck Download GIF (306 KB) Download MP4 (173 KB) Download reusable bundle (15 KB)"
+  },
+  {
     "objectID": "index.html#ggplot2-deconstructed",
     "href": "index.html#ggplot2-deconstructed",
     "title": "tidy animations",
@@ -158,14 +165,14 @@
     "href": "index.html#ggplot2-deconstructed-variant",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed (variant)",
-    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (17 KB)"
+    "text": "ggplot2, deconstructed (variant)\n\n\n\nOpen full deck Download GIF (1.4 MB) Download MP4 (485 KB) Download reusable bundle (18 KB)"
   },
   {
     "objectID": "index.html#ggplot2-deconstructed-mobile",
     "href": "index.html#ggplot2-deconstructed-mobile",
     "title": "tidy animations",
     "section": "ggplot2, deconstructed (mobile)",
-    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (16 KB)"
+    "text": "ggplot2, deconstructed (mobile)\n\n\n\nOpen full deck Download GIF (3.9 MB) Download MP4 (1.0 MB) Download reusable bundle (17 KB)"
   },
   {
     "objectID": "index.html#filter-a-data-frame",

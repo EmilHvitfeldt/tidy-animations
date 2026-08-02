@@ -289,6 +289,17 @@ Rebalancing an unevenly distributed outcome, as implemented by the
 [Download reusable bundle](bundles/kmeans-smote.zip)
 </p>
 
+## SVM-SMOTE
+
+<iframe class="deck-embed" src="examples/svmsmote.html" title="SVM-SMOTE animation"></iframe>
+
+<p class="gif-link">
+[Open full deck](examples/svmsmote.html){target="_blank"}
+[Download GIF](gifs/svmsmote.gif){download=""}
+[Download MP4](mp4/svmsmote.mp4){download=""}
+[Download reusable bundle](bundles/svmsmote.zip)
+</p>
+
 # Visualization (ggplot2)
 
 Watching plotting code come apart layer by layer.
